@@ -1,0 +1,327 @@
+$Id: README 2 2000-07-31 09:13:29Z edpratomo $
+
+
+A test suite for DBD drivers
+============================
+
+This is an attempt to write a test suite for DBD drivers. In short I
+took Alligator Descarte's test script for mSQL, isolated database
+specific parts and wrote something around. I'd be glad, if other
+driver authors would take it, adapt the DBMS specific file (lib.pl)
+to their drivers. IMO this would enhance the stability of DBI a
+lot.
+
+
+What's currently included?
+==========================
+
+The test suite consists of a lot of files, currently these are:
+
+  lib.pl	   the core of the test suite, being included by any
+                   test before doing anything; in short it defines
+                   variables $mdriver and $dbdriver, includes
+	           $mdriver.mtest and $dbdriver.dbtest and defines
+                   some global functions used within any test.
+
+  skeleton.test    A skeleton file for writing new tests. Basically you
+		   take this file and at a given point you include your
+		   tests. This file is described in detail below.
+
+  README           You are reading this. :-)
+
+  00base.t	   This is essentially the base.t from DBD::Oracle. It
+		   checks whether the driver may be installed.
+
+  10dsnlist.t      This script checks $dbh->data_sources. I missed the
+		   possibility of passing data source attributes like
+		   host and port. :-(
+
+  10listtables.t   This is a DBMS specific test: It lists the tables of
+		   a given dsn.
+
+  20createdrop.t   Guess what this does? :-) Yes, it creates a table and
+		   drops it.
+
+  30insertfetch.t  Inserts a row into a table and retreives it
+
+  40blobs.t        Likewise, but using blobs. This is a check for
+		   $dbh->quote and inserting and retreiving binary data.
+
+  40listfields.t   Checks the attributes of a statement handle, currently
+		   NUM_OF_FIELDS, NAME and NULLABLE.
+
+  40nulls.t        Checks working with NULLS.
+
+  40update.t       Checks the UPDATE statement.
+
+  40bindparam.t    Checks the bind_col() method and the internal
+                   function dbd_ph_bind().
+
+  50chopblanks.t   Checks the "ChopBlanks" attribute.
+
+  50commit.t       Checks commit, rollback and the "AutoCommit" attribute.
+
+  mysql.mtest      These files are used for setting up the DBMS specific
+  mysql.dbtest     part for the 'mysql' database with constants (dsn
+	           definitions, user, password for running tests), a
+	           possibility to create a table from a somewhat abstract
+	           table description, and a function for listing tables.
+	           Additionally some functions for supporting test script
+	           are included. These files are described in detail below.
+
+  mSQL.mtest       Likewise for mSQL.
+  mSQL.dbtest
+
+  pNET.mtest       Likewise for pNET.
+  pNET.dbtest
+
+  Ingres.mtest     Likewise for Ingres.
+  Ingres.dbtest
+
+  ODBC.mtest       Likewise for ODBC.
+  ODBC.dbtest
+
+
+How do I use the test suite for my driver?
+==========================================
+
+Basically you create scripts "mydriver.mtest" and "mydriver.dbtest",
+modify them for your needs and insert the name "mydriver" in "lib.pl".
+There should be no need for modifying the test files themselves, except
+for executing immediately after including lib.pl, if a test isn't well
+suited for your driver. (See mSQL and t/40blobs.t for an example.)
+
+In particular you should
+
+  - set the variable $mdriver and $dbdriver to your driver name;
+    examples are
+
+	$mdriver = $dbdriver = 'mysql';  or
+	$mdriver = $dbdriver = 'mSQL';
+
+    (Using different values is only required for DBD::pNET where one
+    has to distinguish between the module driver ($mdriver = 'pNET')
+    and the database driver ($dbdriver).
+
+    Ignore $test_dsn, $test_user and $test_password here, set this in
+    "mydriver.dbtest".
+
+  - set the dsn, user name and password for test purposes in
+    "mydriver.dbtest", if the defaults aren't good for you. The
+    default is
+
+	$::test_dsn      = $ENV{'DBI_DSN'}   ||  "DBI::$::driver:test";
+	$::test_user     = $ENV{'DBI_USER'}  ||  "";
+	$::test_password = $ENV{'DBI_PASS'}  ||  "";
+
+  - create a function ListTables() in "mydriver.mtest" (This could
+    be in "mydriver.dbtest" as soon as there is a similar functionality
+    in DBI itself.): Given a database handle dbh, return a list of table
+    names present in the corresponding database; for example in mysql
+    this is done as follows:
+
+	if (!defined(@tables = $dbh->func('_ListTables'))  ||
+	    $dbh->errstr) {
+	    return undef;
+	} else {
+	    return tables;
+        }
+
+    See mysql.mtest for an exaple.
+
+  - create a function AnsiTypeToDb() in "mydriver.dbtest":
+    Given a type string like "char", "integer" or "blob" and a size,
+    return a string that is suitable for use in CREATE statements.
+    For example "char" and "64" could return "char(64)", sizes can
+    currently be ignored for "integer". Currently "integer", "char"
+    and "blob" are valid input types. In mysql.dbtest this is implemented
+    as follows:
+
+	if ((lc $type) eq 'blob') {
+	    if ($size >= 1 << 16) {
+		$ret = 'MEDIUMBLOB';
+	    } else {
+		$ret = 'BLOB';
+	    }
+	} elsif ((lc $type) eq 'int'  ||  (lc $type) eq 'integer') {
+	    $ret = uc $type;
+	} elsif ((lc $type) eq 'char') {
+	    $ret = "CHAR($size)";
+	} else {
+	    warn "Unknown type $type\n";
+	    $ret = $type;
+	}
+
+    See mysql.dbtest for an example.
+  
+  - create a function TableDefinition() in "mydriver.dbtest": Given a
+    table name and a list of column attributes like
+
+	TableDefinition("tablename",
+			[ "id", "INTEGER", 4, $COL_KEY ],
+			[ "name", "CHAR",  64, 0 ],
+			[ "email", "CHAR", 64, $COL_NULLABLE ]),
+
+    return a string for use in a CREATE statement, like
+
+	CREATE TABLE tablename (
+		id INTEGER NOT NULL,
+		name VARCHAR(64) NOT NULL,
+		email VARCHAR(64),
+		PRIMARY KEY(id))
+
+    The function need not know about foreign keys, secondary keys or other
+    extended possibilities. If AnsiTypeToDb works and your driver conforms
+    to Ansi SQL, the example from mysql.dbtest should be fine for you.
+
+  - create a function HaveTransactians() that returns TRUE, if your
+    database supports transactions and FALSE otherwise
+
+  - create a function IsNull(): Given a column name, return an SQL
+    expression that checks whether the column is NULL, for example
+
+        sub IsNull ($) {
+            my($col) = @_;
+            "$col = NULL"; # or "$col IS NULL"
+        }
+
+That's it! Try a "make test". :-)
+
+
+How do I use the test suite for my driver?
+==========================================
+
+Let's take a look at skeleton.test:
+
+The first thing you notice is that the file "lib.pl" is included by executing
+a "do". Leave this as it is, but note the last lines:
+
+    if ($mdriver eq 'whatever') {
+        print "1..0\n";
+        exit 0;
+    }
+
+This is the place where to stop the test, if it isn't suitable for a certain
+driver or for your driver only by modifying the condition. The next thing
+to notice is
+
+    #
+    #   Main loop; leave this untouched, put tests after creating
+    #   the new table.
+    #
+    while (Testing()) {
+
+You should know, that skeleton.test will run this loop twice. The
+first time no test is executed, only the tests are counted, so that
+a valid input string for Test::Harness can be printed, like
+
+	1..15
+
+to indicate that 15 tests will follow.
+
+The second pass will indeed run the tests. The Testing() function has
+extended possibilities which I won't describe here, for building groups
+of tests (for example it probably doesn´t make sense to execute a
+test if even the connect failed).
+
+The next thing we notice is a first test: Connecting to the DBMS.
+
+    #
+    #   Connect to the database
+    Test($state or ($dbh = DBI->connect($test_dsn, $test_user,
+					$test_password)),
+	 undef,
+	 "Attempting to connect.\n");
+	   or ErrMsgF("Cannot connect: Error %s.\n\n"
+		      . "Make sure, your database server is up and running.\n"
+		      . "Check that '$test_dsn' references a valid database"
+		      . " name.\nDBI error message: $DBI::errstr");
+
+Things you should note here:
+
+  - The Test() function will be called always, so that lib.pl has
+    control over what happens; in particular the number of tests will
+    be counted.
+  - The test will only be executed if $state == 0 (not vice versa!);
+    this ensures that your tests won't be executed twice, although
+    the loop will be repeated.
+  - a boolean value is passed to the function Test() as the first
+    argument. This function will print a "ok $numTests" or a "not
+    ok $numTests" for TRUE or FALSE.
+  - the second argument is 'undef'; ignore this for now.
+  - the third argument is a message that will be printed before
+    executing the test, if $verbose=1. This is for use in large
+    test scripts where you would otherwise leave the connection
+    between test output ("315 ok, 316 ok, 317 not ok, ...") and
+    test script.
+  - if Test() fails a long error message is printed by using the
+    function ErrMsgF. This function receives printf-style input.
+
+Now a second test: We let lib.pl detect the name for a new table
+that should be created, so that we may work in it.
+
+    #
+    #   Find a possible new table name
+    #
+    Test($state or ($def = TableDefinition($table,
+					   ["id",   "INTEGER",  4, 0],
+					   ["name", "CHAR",    64, 0]),
+		    $dbh->do($def)))
+	   or ErrMsgF("Cannot create table: Error %s.\n",
+		      $dbh->errstr);
+
+As a third test we create the database. Note the use of the
+TableDefinition() function.
+
+    #
+    #   Create a new table; EDIT THIS!
+    #
+    Test($state or ($def = TableDefinition($table,
+					   ["id",   "INTEGER",  4, 0],
+					   ["name", "CHAR",    64, 0]),
+		    $dbh->do($def)),
+	undef, "Creating a table.\n")
+	or ErrMsgF("Cannot create table: Error %s.\n",
+		   $dbh->errstr);
+
+
+and finally, here's the place for you, the place where you enter
+your tests:
+
+    #
+    #   and here's the right place for inserting new tests:
+    #
+    EDIT THIS!
+
+There follows some stuff later, especially dropping the new
+table, but in general leave this as it is.
+
+
+Known problems
+==============
+
+mysql: The blob test fails with blobs larger than 252*256 bytes, you
+       must start the mysql daemon with -Omax_allowed_packet=<bigvalue>.
+
+msql: The null test fails, because the query
+
+	SELECT * FROM $table WHERE id = NULL
+
+      doesn't return anything. Does anyone have an idea, how to modify
+      this?
+
+ODBC: ChopBlank test fail; seems to be a driver problem.
+
+
+What remains to do?
+===================
+
+Writing test cases! For example I do currently not
+
+  - check transactions (mysql doesn't know about transactions :-(
+
+I'll be happy to include them into the test suite. Any new tests,
+critics or suggestions welcome:
+
+	Jochen Wiedmann
+	joe@ispsoft.de

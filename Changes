@@ -1,0 +1,330 @@
+Revision history for Perl extension DBD::InterBase.
+
+$Id: Changes 400 2008-01-08 09:31:13Z edpratomo $
+
+Jan 08, 2008 - edpratomo
+* maintenance release: 0.48
+* fixed link problem when using perl-5.6.x (undefined PERL_UNUSED_VAR)
+* prepare_cached() now works. added t/31prepare.t
+* some code cleanup (compiler warnings suppressed)
+* t/81event-fork.t now checks signal availability
+
+May 20, 2007 - edpratomo
+* fixed retval from ib_set_tx
+* removed debug output from ib_tx_info
+
+Oct 25, 2006 - edpratomo
+* added ib_tx_info()
+* added t/91txinfo.t
+* added skip check for t/80event-ithreads.t if Perl version older than 5.8.8
+* updated MANIFEST
+
+Oct 24, 2006 - edpratomo
+* fixed some croaks in InterBase.xs
+* safer t/62timeout.t and t/90dbinfo.t
+
+Oct 23, 2006 - edpratomo
+* added support for wait timeout
+* added -Wall and some warnings fixes
+* dbkey_scope defaults to 0. configurable.
+* added active_tran_count and creation_date req items for ib_database_info()
+* added tests for ib_database_info() and wait timeout
+
+Oct 14, 2006 - edpratomo
+* applied patches from Michael Moehle for 64 bit platform
+* added backward compatibility
+* ib_error_check() reworked, with fb_interpret()
+
+Sep 12, 2005 - edpratomo
+* cleaned warnings when compiled with gcc-4.0
+
+Sep 11, 2005 - edpratomo
+* removed unused event state
+* renewed dbd_init(); DBIh_EVENT2 call and DBIS were removed.
+  perl -pi.old -e
+    's/DBI_TRACE\((\d),\s*?\(DBILOGFP, ("[^"]+".*)\)\);/DBI_TRACE_imp_xxh(imp_xyz, $1, (DBIc_LOGPIO(imp_xyz), $2));/' 
+     InterBase.xs dbdimp.c
+  followed by manual tweaking
+* triggers cleanup in t/8[01]event-*.t
+
+Sep 10, 2005 - edpratomo
+* Updates to documentation regarding bugs, faq, and event
+* fixed $how_many in t/81event-fork.t
+* GetInfo.pm was regenerated using easysoft's firebird odbc driver,
+  unixodbc, DBI::DBD::Metadata, and DBD::ODBC, of course
+* TypeInfo.pm was generated as well, and added to MANIFEST
+* t/40alltypes.t, t/40datetime.t, t/41numeric.t now use find_new_table()
+
+Sep 8, 2005 - edpratomo
+* FAQ was moved into main documentation, maintaining docs at separate
+  places is difficult
+* FAQ.pm and Bundle were removed from MANIFEST. Bundle is not necessary.
+
+Sep 4, 2005 - edpratomo
+* fixed segfault when destroying event handles in multithreaded app
+* increased DBI version in Makefile.PL
+* added t/80event-ithreads.t, t/81-event-fork.t, uses Test::More
+* updated documentation
+
+Aug 31, 2005 - edpratomo
+* cleaned warnings about unused variables, different signedness
+* make it compile with old gcc 2.96
+* increased required DBI version - 1.41
+
+Aug 30, 2005 - edpratomo
+* manually applied patch sf #1042790 by freeduke for dbdimp.c to support
+  InterBase 7. typecasting changes are skipped.
+* major changes to event API
+* manually applied patch sf #1068671 by dstreifert
+
+Aug 8, 2005 - edpratomo
+* fixed bug sf #1171702 (memory leak when doing TM type timestamp)
+
+Jan 14, 2005 - danielritz
+* better error handling for blobs
+* 30insertfetch.t, 40blobs.t with more tests
+* prevent a possible buffer overflow in date handling
+* don't accept blob bind param for SELECT statement
+* remove pointless 'ib_cursorname' attribute. DBD does it automatically
+
+Nov 26, 2004 - danielritz
+* add CLONE() method to support threads
+* update test scripts for newer DBI
+
+Mar 3, 2004 - edpratomo
+* make bind value with blessed scalar work again
+
+Feb 25, 2004 - edpratomo
+* Fixed memory write error in dbd_db_login6()
+* update doc
+
+Dec 6, 2003 - edpratomo
+* Makefile.PL now works with remote test db
+* Added $sth->func('ib_plan')
+* Updated doc
+* $sth->execute() now returns correct row count values for non-select stmt
+
+Nov 19, 2003 - edpratomo
+* Fixed bug #844954
+
+Nov 16, 2003 - danielritz
+* Make it work with Firebird 1.5
+
+May 20, 2003 - edpratomo
+* Fixed problem in ib_init_event() in filling IB_EVENT->names, caused segfault during destruction.
+* Added skipping reason in t/60leaks.t
+
+July 25, 2002 - danielritz
+* cleanups, speedups
+
+July 18, 2002 - edpratomo
+* fixes by Sergey Skvortsov:
+  - fix INT64 for FreeBSD
+  - fix for ib_role parsing
+
+July 18, 2002 - danielritz
+* %lld as standard format for INT64
+
+July 8, 2002 - danielritz
+* numeric fixes for negative values like -0.9
+
+July 1, 2002 - danielritz
+* trace message can be deactivated
+
+June ?, 2002 - danielritz
+* fixes for ib event 
+* more cleanups, IB5 fixes
+
+June ?, 2002 - edpratomo
+* initial support for ib event
+
+May ?, 2002 - danielritz
+* fix EXECUTE PROCEDURE w/o return values
+* compile fixes for IB5
+* rollback can do isc_rollback_retaining
+* cleanups
+
+April 22, 2002 - danielritz
+* fix EXECUTE PROCEDURE statments data fetching
+
+April 5, 2002 - edpratomo
+* Switching AutoCommit attribute now also affects active softcommit flags.
+
+April 4, 2002 - edpratomo, danielritz
+* Added ib_softcommit attribute, isc_commit_retaining now needs to be enabled
+  explicitly by users. 
+
+April 4, 2002 - danielritz
+* Added set_tx_param() with no param which now resets TPB.
+
+April 4, 2002 - edpratomo
+* Updated t/40cursoron.t, t/70nestedon.t to use ib_softcommit
+* Makefile.PL code indented properly, now load dbd_dbi_arch_dir() only once, 
+  now prompts with directory name, `make clean` cleans trace.txt
+* Updated documentation in InterBase.pm and FAQ.pm
+* Changed the semantic of -reserving in set_tx_param(), now uses hashref
+  instead of arrayref.
+* Fixed warnings when compiled with DBI >= 1.20
+* Ilya addressed bug #429820 and some bug in sth_ddl.
+
+February 14, 2002 - ilyaverlinsky
+* fix DATE, TIME, TIMESTAP problem
+
+February 8, 2002 - ilyaverlinsky
+* fix sth_ddl not always being reset
+
+February 2, 2002 - danielritz
+* faster  blob write code
+
+January 30, 2002 - danielritz
+* updated numeric handing code
+* fixed blob code
+
+January 29, 2002
+* Fixed wrong value stored through bind param if numeric(*, 0)
+* Added t/41numeric.t for exhaustive test on INT64 type.
+* Updated version number in FAQ (danielritz)
+* Change acceptable oldest perl version in InterBase.pm
+
+January 28, 2002
+* Fixed incorrect precision number in INT64 values and now locale-aware.
+* changed version number in InterBase.pm
+* Applied a patch to type_info_all by Christian Lademann
+* Removed trailing precision if INT64 value is an integer.
+
+December 2001, by danielritz
+* no longer start a default transaction on init
+* set_tx_param in AutoCommit mode commits any changes, starts a new
+  transcation using updated TPB; all open statement handles are closed!
+* include Pavel Zheltouhov <pavlo@tvrn.ru> patch for table reservation
+* only allow to set each param once in set_tx_param
+* use SvPV_nolen where no len is required in set_tx_param
+* fix ChopBlanks on Sun Sparc
+* close all open statment handles on rollback
+* close all open statements before commit (AutoCommit = 0)
+* close all open statements before commit if sth_dll > 0 (AutoCommit = 1)
+* manage statement handles with double linked list
+* always set imp_dbh->tr = 0L after isc_commit_transcation or isc_rollback_transaction
+* ib_commit_transaction uses isc_commit_retaining in AutoCommit mode
+* fix possible buffer overflow in dbd_db_login6
+* don't waste some bytes of memory (dbd_db_login6)
+* fix $dbh->table_info didn't show views correctly
+* big update in coding style
+* cleanups
+
+November 2001, by danielritz
+* handle numberic bind params with values such as .7 passed as string
+* int64 support for microsoft visual c++
+* fix: numeric with bind and negative values stored wrong
+
+August 1 2001
+* fix set_tx_param crashes perl, by danielritz
+* always rollback open transactions on disconnect (see source), by danielritz
+
+July 24 2001
+* fix in bind_param for numeric values, by danielritz
+
+July 15 2001
+* fix repeated execute() in AutoCommit mode, by danielritz
+
+July 13 2001
+* Fix for compile with ActiveState Build 626+ and BCC, by danielritz
+* Fix to fetching blob field with zero maximum segment length
+
+June 12 2001
+* Fixed to buffer overflow in ib_fill_isqlda, by danielritz.
+* Fixed to problem with DATE and TIMESTAMP fields, by danielritz.
+
+June 7 2001
+* Added PatchBCC by danielritz
+* Fixed problem with repeatable use with blob field.
+
+May 2 2001
+* Fixed memory leak in bind param.
+
+April 19 2001
+* Fix to dbdimp.h by danielritz. 
+* Nullify var->sqldata and tpb_buffer when cleaning up. 
+
+April 18 2001
+* Now works correctly with negative INT64 values
+
+March 24 2001
+* Added private method set_tx_param() for controlling transaction parameters
+  (experimental)
+* More robust execute()
+* Added more tests
+* Easier `make test`. Now allows user to specify test database, as well as 
+  username, and password to connect. 
+  The test database creation is automated, if it doesn't exist.
+* Clean compile with MSVC. But in Windows, there's bug with BLOB fields.
+
+January 22 2001
+* Memory leak problem fixed
+* Added Flemming's submitted patch to zero sqlda before being used.
+* SQL dialect 1 now can access timestamp field. 
+* Lighter, faster $dbh->ping(). I hope this is more stable, as well.
+
+Sept 27 2000
+* Replace isc_commit_retaining() with isc_commit_transaction. Flemming
+  suspected this as the source of some deadlock problem.
+* Fixed dbd_db_rollback(). Now no longer starts a new transaction after
+  rollback.
+
+Aug 30 2000
+* Patch to DBI.pm of DBI-1.14, fixes a subtle bug of fetchall_arrayref().
+  The patched DBI allows DBD::InterBase to work with DBIx::Tree 0.91. Cool!
+* Moving FAQ.pm to InterBase/FAQ.pm
+
+Aug 28 2000
+* $sth->{NAME} now return column alias, if any.
+
+Aug 22 2000
+* Fixed _OdbcParse() in InterBase.pm, to connect to remote host incl.
+  Windows.
+
+Aug 19 2000
+* $sth->rows() now returns the number of fetched rows, for SELECT, otherwise
+  returns - 1 (unknown).
+
+Aug 18 2000
+* starting a transaction (automatic or not) is more robust, now it reuses an
+  active transaction handle, instead of overridding it with a new one, leaving
+  the previous one "immortal" (because the previous transaction handle is no
+  longer kept!)
+
+Aug 16 2000
+* Fix $dbh->do() method for usage with placeholders.
+* Added support for CursorName attrib
+* more robust commit with AutoCommit on
+
+Aug 13 2000
+* Added datatype values conversion routine between InterBase internal
+  values and DBI/ISO/ANSI/ODBC values
+* Fixed tables() method, now correctly removes the trailing blank spaces
+* Tested to 100% compliant with DBIx::Recordset (0.21)!
+
+Aug 12 2000
+* more informative error message
+* fix ping() method. Now not die if RaiseError => 1
+
+July 29 2000
+* AutoCommit attribute handling:
+
+- in dbd_login6():
+simply turns on imp_dbh->init_commit = 1
+
+- in db_STORE_attrib() :
+if init_commit == 1:
+if AutoCommit turned On: do nothing.
+if AutoCommit turned Off: start a new default transaction, stored in
+imp_dbh->tr
+
+if init_commit == 0:
+if AutoCommit turned On: commit changes.
+if AutoCommit turned Off: start a new default transaction, stored in 
+imp_dbh->tr
+
+Before returning, init_commit is reset to 0.
+
+- 

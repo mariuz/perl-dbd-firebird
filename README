@@ -1,0 +1,68 @@
+DBD::InterBase -- DBI driver for Firebird and InterBase RDBMS server.
+
+   $Id: README 360 2005-09-12 03:25:30Z edpratomo $
+
+   Copyright (c) 1999-2005  Edwin Pratomo
+   Portions Copyright (c) 2001-2005  Daniel Ritz 
+
+   You may distribute under the terms of either the GNU General Public
+   License or the Artistic License, as specified in the Perl README file.
+
+   PLEASE READ THE ENTIRE README FILE CAREFULLY !
+
+   WARNING: THIS IS BETA SOFTWARE. Your mileage may vary.
+
+REQUIREMENTS:
+  - Perl 5.004 installed
+  - Perl DBI (1.41 and higher)
+  - Firebird or InterBase
+  - A C compiler
+    * UN*X
+      GCC 2.95.2 (tested, older may or may not work) or other capable
+
+    * Windows
+      - Borland C++ 5.5
+        You can donwload a free copy of BCC55 at
+          ftp://ftpd.borland.com/download/bcppbuilder/freecommandLinetools.exe
+
+        In order to compile with Borland compiler you need pmake:
+          http://www.cpan.org/authors/id/NI-S/Make-1.00.tar.gz
+        dmake would work too (building) but has problems creating PPD file
+          http://www.cpan.org/authors/id/GSAR/dmake-4.1pl1-win32.zip
+
+
+      - or Microsoft VC++ 6.0
+
+
+*BEFORE* BUILDING, TESTING AND INSTALLING this you will need to:
+
+  - Build, test and install Perl 5 (at least 5.004).
+    It is very important to TEST it and INSTALL it!
+
+  - Build, test and install the DBI module (at least DBI 1.41).
+    It is very important to TEST it and INSTALL it!
+
+  - Remember to *read* the DBI README file!
+
+  - Make sure that InterBase/Firebird server is running (for testing)
+
+
+BUILDING:
+  Win32 with Borland C++:
+    type 'pmake' or 'dmake', not just 'make'. before run make: 
+      perl PatchBCC
+
+  Win32 with MS compiler:
+    type 'nmake', not just 'make'
+
+
+  To Configure and build the DBD:
+    perl Makefile.PL
+      (when asked to specify a test database, please specify a non-existing file)
+    make
+
+TESTING
+
+  make test
+  make install               (if the tests look okay)
+

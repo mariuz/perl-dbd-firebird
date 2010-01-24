@@ -1,0 +1,147 @@
+#!/usr/bin/perl -w
+
+################################################################################
+# $Id: PatchBCC 241 2002-05-15 16:39:12Z danielritz $
+#
+# Copyright (c) 2001 by Daniel Ritz
+################################################################################
+# Patch program to patch the Config.pm module of ActiveState Perl for use
+# with freely available Borland C++ 5.5 compiler
+#
+# You can donwload a free copy of BCC55 at
+#   ftp://ftpd.borland.com/download/bcppbuilder/freecommandLinetools.exe
+#
+# In order to compile with Borland compiler you need pmake:
+#   http://www.cpan.org/authors/id/NI-S/Make-1.00.tar.gz
+# dmake would work too (building) but has a problem creating PPD file
+################################################################################
+# What Patch_BCC does:
+# = in Config.pm
+#   - change cc to bcc32.exe
+#   - change ld to ilink32.exe
+#   - change libc to cw32.lib
+#   - change make to dmake
+#   - add new value: bcc_dir
+#
+# = convert perl56.lib from coff to omf format (make backup of course)
+################################################################################
+
+use strict;
+use Config;
+use ExtUtils::MakeMaker qw(prompt);
+
+# show message
+print "\nPatch_BCC - Patch for Config.pm for use with Borland C++ compiler";
+print "\n  Don't use ...\\bin when specifing the compiler directory!";
+print "\n  [Ctrl]+[c] to abort\n";
+
+# determine Path of Config.pm script
+my $config_name = $Config{installarchlib} . "\\Config.pm";
+
+# ask for Path or Borland C++ 5.5
+my $bcb_path = '';
+while (! -e "$bcb_path\\bin\\bcc32.exe")
+{
+  $bcb_path = prompt('Borland C++ 5.5 Path:');
+}
+
+################################################################################
+# replace / add values to Config.pm
+################################################################################
+
+# the values to replace
+my %replacements =
+(
+  cc       => "'bcc32.exe'"  ,
+  ld       => "'ilink32.exe'",
+  libc     => "'cw32.lib'"   ,
+  make     => "'dmake'"      ,
+  bcc_path => "'$bcb_path'"  ,
+);
+
+
+# copy of above hash for internal use
+my %notreplaced = %replacements;
+
+
+# set filenames...
+my $config_old = $config_name;
+my $config_new = $config_name . '.tmp';
+my $config_bak = $config_name . '.bak';
+
+# open the Config.pm file
+open(OLD, "< $config_old") || die "can't open $config_old: $!";
+open(NEW, "> $config_new") || die "can't open $config_new: $!";
+
+# do the replacement
+my $pattern = '^(' . join('|', keys(%replacements)) . ')=.*';
+my $cend = 0;
+my $cbegin = 0;
+
+while (<OLD>)
+{
+  # begin of the config part reached?
+  $cbegin = 1 if ((!$cbegin) && ($_ =~ m/^my \$config_sh = <<'!END!';$/));
+
+  # end of config part reached?
+  if (($cbegin) && (!$cend) && ($_ =~ m/^!END!$/))
+  {
+    $cend = 1;
+
+    # add new line before end..
+    my @new_key = keys(%notreplaced);
+    foreach my $key (@new_key)
+    {
+      print NEW "$key=$notreplaced{$key}\n";
+    }
+  }
+
+  # may we replace
+  if (($cbegin) && (!$cend))
+  {
+    # is any replacement done?
+    if ($_ =~ s/$pattern/$1=$replacements{$1}/)
+    {
+      # remove the replaced value from hash
+      delete $notreplaced{$1};
+    }
+  }
+  print NEW $_;
+}
+
+# close the files
+close(OLD);
+close(NEW);
+
+# rename the Config files
+rename($config_old, $config_bak) || die "can't rename $config_old to $config_bak: $!";
+rename($config_new, $config_old) || die "can't rename $config_new to $config_old: $!";
+
+
+################################################################################
+# convert the coff .lib files to omf format
+################################################################################
+
+# read the path form perlXX.lib
+my $libname = $Config{archlib};
+$libname =~ s/"//g;
+$libname .= '\\CORE\\' . $Config{libperl};
+
+# move the old file to perlXX_coff.lib
+my $coffname = $libname;
+$coffname =~ s/(.*).lib/$1_coff.lib/g;
+
+# check if not already done...
+if (! -e $coffname)
+{
+  # not done, so rename $libname to $coffname
+  rename($libname, $coffname) || die "can't rename $libname to $coffname: $!";
+
+  # run the borland coff2omf utility
+  system("\"$bcb_path\\bin\\coff2omf\"", $coffname, $libname) == 0 
+    or die "Unable to run coff2omf utility: $!";
+}
+
+################################################################################
+# EOF
+################################################################################

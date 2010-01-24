@@ -1,0 +1,81 @@
+#!/usr/local/bin/perl
+#
+#   $Id: skeleton.test 2 2000-07-31 09:13:29Z edpratomo $
+#
+#   This is a skeleton test. For writing new tests, take this file
+#   and modify/extend it.
+#
+
+
+#
+#   Make -w happy
+#
+$test_dsn = $test_user = $test_password = '';
+
+
+#
+#   Include lib.pl
+#
+require DBI;
+$mdriver = "";
+foreach $file ("lib.pl", "t/lib.pl") {
+    do $file; if ($@) { print STDERR "Error while executing lib.pl: $@\n";
+			   exit 10;
+		      }
+    if ($mdriver ne '') {
+	last;
+    }
+}
+if ($mdriver eq 'whatever') {
+    print "1..0\n";
+    exit 0;
+}
+
+
+#
+#   Main loop; leave this untouched, put tests after creating
+#   the new table.
+#
+while (Testing()) {
+    #
+    #   Connect to the database
+    Test($state or ($dbh = DBI->connect($test_dsn, $test_user,
+					$test_password)),
+	 undef,
+	 "Attempting to connect.\n");
+	   or ErrMsgF("Cannot connect: Error %s.\n\n"
+		      . "Make sure, your database server is up and running.\n"
+		      . "Check that '$test_dsn' references a valid database"
+		      . " name.\nDBI error message: $DBI::errstr");
+
+    #
+    #   Find a possible new table name
+    #
+    Test($state or $table = FindNewTable($dbh))
+	   or ErrMsgF("Cannot determine a legal table name: Error %s.\n",
+		      $dbh->errstr);
+
+    #
+    #   Create a new table; EDIT THIS!
+    #
+    Test($state or ($def = TableDefinition($table,
+					   ["id",   "INTEGER",  4, 0],
+					   ["name", "CHAR",    64, 0]),
+		    $dbh->do($def)))
+	   or ErrMsgF("Cannot create table: Error %s.\n",
+		      $dbh->errstr);
+
+
+    #
+    #   and here's the right place for inserting new tests:
+    #
+    EDIT THIS!
+
+    #
+    #   Finally drop the test table.
+    #
+    Test($state or $dbh->do("DROP TABLE $table"))
+	   or ErrMsgF("Cannot DROP test table $table: %s.\n",
+		      $dbh->errstr);
+    Test($state or $dbh->disconnect);
+}
