@@ -62,11 +62,13 @@ SKIP: {
 
 TEST_CACHED: {
     $prepare_sub = sub { $dbh->prepare_cached(shift), "prepare_cached" };
-    my $k;
+    my ($query, $n_cached);
 
-    $k = simpleQuery($dbh, $prepare_sub);
-    my $ck = $dbh->{CachedKids};
-    ok($ck->{$k}, qq{cached "$k"});
+    $query = simpleQuery($dbh, $prepare_sub);
+	for (values %{$dbh->{CachedKids}}) {
+		$n_cached++ if $_->{Statement} eq $query;
+	}
+    is($n_cached, 1, qq{cached "$query"});
 
     $dbh->commit() unless $dbh->{AutoCommit};
 
@@ -75,11 +77,11 @@ TEST_CACHED: {
 #    ok($dbh->{CachedKids}{$k}, qq{cached "$k"});
 #    $dbh->rollback() unless $dbh->{AutoCommit};
 
-    $k = simpleQuery($dbh, $prepare_sub);
-    is(scalar keys(%$ck), 1);
+    $query = simpleQuery($dbh, $prepare_sub);
+    is(scalar keys(%{$dbh->{CachedKids}}), 1);
 
     # clear cached sth
-    %$ck = ();
+    %{$dbh->{CachedKids}} = ();
     # wrong:
     # $dbh->{CachedKids} = undef;
 
