@@ -93,9 +93,9 @@ SKIP: {
         ok($dbh1->commit, "1st tx committed");
     }
 
+	ok($dbh2->disconnect);
+
     ok($dbh1->do("DROP TABLE $table"), "DROP TABLE $table");
     ok($dbh1->disconnect);    
-}
-
-ok($dbh2->disconnect);
+} # - SKIP {}
 
