@@ -120,6 +120,7 @@ sub connect
     DBD::InterBase->_OdbcParse($dsn, $private_attr_hash,
                                ['database', 'host', 'port', 'ib_role', 'ib_dbkey_scope',
                                 'ib_charset', 'ib_dialect', 'ib_cache', 'ib_lc_time']);
+    $private_attr_hash->{database} ||= $ENV{ISC_DATABASE}; #"employee.fdb"
 
     # second attr args will be retrieved using DBIc_IMP_DATA
     my $dbh = DBI::_new_dbh($drh, {}, $private_attr_hash);
@@ -255,7 +256,7 @@ DBD::InterBase - DBI driver for Firebird and InterBase RDBMS server
 
   use DBI;
 
-  $dbh = DBI->connect("dbi:InterBase:db=$dbname", "sysdba", "masterkey");
+  $dbh = DBI->connect("dbi:InterBase:db=$dbname", $user, $password);
 
   # See the DBI module documentation for full details
 
@@ -281,13 +282,17 @@ case consult the DBI documentation first !
 To connect to a database with a minimum of parameters, use the 
 following syntax: 
 
-  $dbh = DBI->connect("dbi:InterBase:dbname=$dbname", "sysdba", "masterkey");
+  $dbh = DBI->connect("dbi:InterBase:dbname=$dbname", $user, $password);
 
-This connects to the database $dbname at localhost as SYSDBA user with the
-default password. 
+If omitted, C<$user> defaults to the ISC_USER environment variable
+(or, failing that, the DBI-standard DBI_USER environment variable).
+Similarly, C<$password> defaults to ISC_PASSWORD (or DBI_PASS).  If
+C<$dbname> is blank, that is, I<"dbi:InterBase:dbname=">, the
+environment variable ISC_DATABASE is substituted.
 
-Multiline DSN is acceptable. Here is an example of connect statement which uses all 
-possible parameters: 
+The DSN may take several optional parameters, which may be split
+over multiple lines.  Here is an example of connect statement which
+uses all possible parameters: 
 
    $dsn =<< "DSN";
  dbi:InterBase:dbname=$dbname;
@@ -301,7 +306,7 @@ possible parameters:
 
  $dbh =  DBI->connect($dsn, $username, $password);
 
-The $dsn is prefixed by 'dbi:InterBase:', and consists of key-value
+The C<$dsn> is prefixed by 'dbi:InterBase:', and consists of key-value
 parameters separated by B<semicolons>. New line may be added after the
 semicolon. The following is the list of valid parameters and their
 respective meanings:
