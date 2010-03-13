@@ -161,6 +161,35 @@ sub prepare
     $sth;
 }
 
+sub primary_key_info
+{
+    my ($dbh, $cat, $schem, $tbl) = @_;
+
+    my $sth = $dbh->prepare(<<'__eosql');
+    SELECT CAST(NULL AS CHAR(1))       AS TABLE_CAT,
+           CAST(NULL AS CHAR(1))       AS TABLE_SCHEM,
+           rc.rdb$relation_name        AS TABLE_NAME,
+           ix.rdb$field_name           AS COLUMN_NAME,
+           ix.rdb$field_position + 1   AS KEY_SEQ,
+           rc.rdb$index_name           AS PK_NAME
+      FROM rdb$relation_constraints rc
+           INNER JOIN
+           rdb$index_segments ix
+             ON rc.rdb$index_name = ix.rdb$index_name
+     WHERE rc.rdb$relation_name = ?
+           AND
+           rc.rdb$constraint_type = 'PRIMARY KEY'
+  ORDER BY 1, 2, 3, 5
+__eosql
+
+    if ($sth) {
+        $sth->{ChopBlanks} = 1;
+        return unless $sth->execute($tbl);
+    }
+
+    $sth;
+}
+
 # from Michael Arnett <marnett@samc.com> :
 sub tables
 {
