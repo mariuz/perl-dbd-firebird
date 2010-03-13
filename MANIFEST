@@ -44,4 +44,5 @@ t/ak-dbd.t
 t/dbdadmin.t
 t/lib.pl
 t/skeleton.test
+t/dbi-primary_key_info.t
 META.yml                                 Module meta-data (added by MakeMaker)

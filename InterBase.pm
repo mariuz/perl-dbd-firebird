@@ -596,6 +596,13 @@ This driver supports the ping-method, which can be used to check the
 validity of a database-handle. This is especially required by
 C<Apache::DBI>.
 
+=item B<primary_key_info>
+
+  $sth = $dbh->primary_key_info('', '', $table_name);
+  @pks = $dbh->primary_key('', '', $table_name);
+
+Supported by the driver as proposed by DBI.
+
 =item B<table_info>
 
   $sth = $dbh->table_info;
