@@ -51,4 +51,5 @@ t/lib.pl
 t/testlib.pl
 t/skeleton.test
 t/rt49896.t
+t/dbi-primary_key_info.t
 META.yml                                 Module meta-data (added by MakeMaker)
