@@ -33,6 +33,7 @@ my $ib_dir_prefix;
 # init stuff
 my $IB_Bin_path = '';
 my $isql_name;
+my $isql_path;
 my @ib_bin_dirs;
 my @ib_inc_dirs;
 my $ib_lib_dir = '';
@@ -91,6 +92,33 @@ sub locate_dbi_arch_dir {
     Carp::croak("Unable to locate Driver.xst in @try") unless @xst;
     Carp::carp( "Multiple copies of Driver.xst found in: @xst") if @xst > 1;
     return $xst[0];
+}
+
+sub ISQL_EXE
+{
+    # try to find isql
+    return $isql_path if $isql_path;
+
+    for ($IB_Bin_path, split /:/ => $ENV{PATH}) {
+        s!/ +$ !!xg;
+        next unless $_;
+        if (-x "$_/$isql_name") {
+            $isql_path = "$_/$isql_name";
+            return $isql_path;
+        }
+    }
+
+    EXEC:
+    {
+        for (1..3)
+        {
+            $isql_path = prompt("Enter full path to isql: ", $isql_path);
+            last EXEC if (-x $isql_path);
+        }
+        die "Unable to execute isql. Aborting..";
+    }
+
+    $isql_path;
 }
 
 ################################################################################
@@ -160,69 +188,48 @@ sub make_test_conf
     # ask for database path
     DBPATH: {
         for (1..3) {
-            last if $path = prompt("\nFull path to your test database: ", $path);
+            last if $path = prompt("\nFull path to test database to create or use: ", $path);
         }
         die "Must specify a test database" unless $path;
 
         ($db, $host) = reverse split /:/, $path;
+        $user = prompt("Username :", $user);
+        $pass = prompt("Password :", $pass);
 
-        # no longer necessary
-        #PFW - isql on windows doesn't seem to work without the localhost in the db path
-        #my $hostpath = $path;
-        #if ($path =~ /^localhost:(.+)/) {
-        #    $hostpath = $1;
-        #}
+        my $isql = ISQL_EXE;
+		my $dialect = undef;
 
-        # if DB doesn't exist ask for creation
-        if ((!$host || $host =~ /localhost/) && !-f $db or
-            $host && $host !~ /localhost/)
-        {
-            print <<"EOM";
-$path does not exist.
-Trying to create the test database..
-Please enter a username with CREATE DATABASE permission.
-EOM
-            $user = prompt("Username :", $user);
-            $pass = prompt("Password :", $pass);
-            create_test_db($path, $user, $pass);
-            last DBPATH;
-        }
-        else
-        {
-            print <<"EOM";
-$db exists.
-Trying to use an existing database..
-Please enter a username to connect.
-EOM
-            $user = prompt("Username :", $user);
-            $pass = prompt("Password :", $pass);
+        if (open(*ISQL, "\Q$isql\E -u \Q$user\E -p \Q$pass\E -x \Q$path\E |")) {
+			while (<ISQL>) {
+				if (/DIALECT (\d)/i) {
+					$dialect = $1;
+					last;
+				}
+			}
+			close(ISQL);
+		} else {
+			# Assume target db did not exist
+			create_test_db($path, $user, $pass);
+		}
 
-            # check dialect
-            my $dialect;
-            my $gstat = $IB_Bin_path . "/" . test_files($IB_Bin_path, [qw(gstat gstat.exe)]);
-            local *GSTAT;
-            open GSTAT, "$gstat -user $user -password $pass -h $path |" or die "Can't execute $gstat: $!";
-            while (<GSTAT>) { ($dialect) = $_ =~ /dialect\s+(\d)/i and last }
-
-            unless (defined $dialect) {
-                print <<"EOM";
+		unless (defined $dialect) {
+			print <<"EOM";
 
 Dialect of $path is UNKNOWN.
 This test requires a database of dialect 3. You may specify a non-existent database to create a new one.
 EOM
-                my $is_proceed = prompt("Proceed anyway or create a NEW test database (P/N)?", "P");
-                last DBPATH if $is_proceed =~ /P/i;
-                $path = undef, goto DBPATH;
-            }
-            unless ($dialect == 3) {
-                print <<"EOM";
+			my $is_proceed = prompt("Proceed anyway or create a NEW test database (P/N)?", "P");
+			last DBPATH if $is_proceed =~ /P/i;
+			$path = undef, goto DBPATH;
+		}
+		unless ($dialect == 3) {
+			print <<"EOM";
 The dialect of $path is: $dialect !!.
 This test requires a database of dialect 3. Please specify a non-existent database to create a new one.
 EOM
-                $path = undef, goto DBPATH;
-            }
-        }
-    }
+			$path = undef, goto DBPATH;
+		}
+	}
 
     # save test config to file
     open F, ">$test_conf" or die "Can't write $test_conf: $!";
@@ -253,47 +260,10 @@ sub create_test_db
     }
     close T;
 
-    # try to find isql
-    my $isql;
-    if (-x "$IB_Bin_path/$isql_name") { 
-        $isql = "$IB_Bin_path/$isql_name"; 
-    } else {
-        for (split /:/, $ENV{PATH})
-        {
-            s#/+$##g;
-            if (-x "$_/$isql_name") {
-                $isql = "$_/$isql_name"; last; 
-            }
-        }
-    }
-
-    EXEC:
-    {
-        for (1..3)
-        {
-            $isql = prompt("Enter full path to isql: ", $isql);
-            last EXEC if (-x $isql);
-        }
-        die "Unable to execute isql. Aborting..";
-    }
-
-    #PFW - isql on windows doesn't seem to work without the localhost in the db path
-    my $hostpath = $path;
-    if ($path =~ /^localhost:(.+)/) {
-        $hostpath = $1;
-    }
-    # if test db directory doesn't exist -> try to create
-    my $dir = dirname $hostpath;
-    unless (-d $dir)
-    {
-        print "Can't find $dir. Trying to mkdir..\n";
-        system('mkdir', '-p', $dir) == 0
-        or die "Can't mkdir -p $dir";
-    }
-
     # try to execute isql and create the test database
+	my $isql = ISQL_EXE;
     system($isql, '-sql_dialect', 3, '-i', './t/create.sql') == 0
-    or die "Fail calling $isql -i t/create/sql: $?";
+        or die "Fail calling $isql -i t/create/sql: $?";
 }
 
 ################################################################################
