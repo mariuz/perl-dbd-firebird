@@ -2,6 +2,15 @@ Revision history for Perl extension DBD::InterBase.
 
 $Id: Changes 400 2008-01-08 09:31:13Z edpratomo $
 
+Mar 13, 2010 - mjp
+* t/31prepare.t adapt test to modern DBI (RT#53671)
+* t/62timeout.t work around "object in use" failure on Firebird 2.1 (RT#53904)
+* Interbase.pm respect and document $ENV{ISC_DATABASE} (RT#53997)
+* .../InterBase/GetInfo.pm shorten SQL_DRIVER_NAME (RT#53674)
+* Makefile.PL Allow local, remote and aliased db specifications during build (RT#55530)
+* InterBase.xs, dbdimp.[ch] Switch to perlclib(1) equivalents of memory and
+string management functions (addresses RT#49896)
+
 Jan 08, 2008 - edpratomo
 * maintenance release: 0.48
 * fixed link problem when using perl-5.6.x (undefined PERL_UNUSED_VAR)
