@@ -148,7 +148,7 @@ sub do
     else 
     {
         $rows = DBD::InterBase::db::_do($dbh, $statement, $attr) or return undef;
-    }       
+    }
     ($rows == 0) ? "0E0" : $rows;
 }
 
@@ -162,57 +162,36 @@ sub prepare
     $sth;
 }
 
-# from Michael Arnett <marnett@samc.com> :
-sub tables
-{
-    my $dbh = shift;
-    my @tables;
-    my @row;
-
-    my $sth = $dbh->prepare(q{
-      SELECT rdb$relation_name 
-      FROM rdb$relations 
-      WHERE (rdb$system_flag IS NULL OR rdb$system_flag = 0) 
-        AND rdb$view_source IS NULL;  
-    }) or return undef;
-
-    $sth->{ChopBlanks} = 1;
-    $sth->execute;
-    while (@row = $sth->fetchrow_array) {
-        push(@tables, @row);
-    }
-    return @tables;
-}
-
 sub table_info
 {
-    my $dbh = shift;
+    my ($self, $cat, $schem, $name, $type, $attr) = @_;
 
-    my $sth = $dbh->prepare(q{
-      SELECT
-        NULL                      TABLE_CAT, 
-        a.rdb$owner_name          TABLE_SCHEM,
-        a.rdb$relation_name       TABLE_NAME,
-        CAST('TABLE' AS CHAR(5))  TABLE_TYPE,
-        a.rdb$description         REMARKS
-      FROM rdb$relations a
-      WHERE a.rdb$system_flag=0 AND a.rdb$view_blr IS NULL
-        UNION ALL
-      SELECT
-        NULL                      TABLE_CAT, 
-        b.rdb$owner_name          TABLE_SCHEM,
-        b.rdb$relation_name       TABLE_NAME,
-        CAST('VIEW' AS CHAR(5))   TABLE_TYPE,
-        b.rdb$description         REMARKS
-      FROM rdb$relations b
-      WHERE b.rdb$system_flag=0 AND b.rdb$view_blr IS NOT NULL
-    });
-    $sth->execute() or return undef;
+    require DBD::InterBase::TableInfo;
 
-    return $sth;
+    my $ti = ($self->{private_table_info}
+               ||=
+              DBD::InterBase::TableInfo->factory($self));
+
+    no warnings 'uninitialized';
+    if ($cat eq '%' and $schem eq '' and $name eq '') {
+        return $ti->list_catalogs($self);
+    } elsif ($cat eq '' and $schem eq '%' and $name eq '') {
+        return $ti->list_schema($self);
+    } elsif ($cat eq '' and $schem eq '' and $name eq '' and $type eq '%') {
+        return $ti->list_types($self);
+    } else {
+        my %seen;
+        $type = '' if $type eq '%';
+
+        # normalize $type specifiers:  upcase, strip quote and uniqify
+        my @types = grep { length and not $seen{$_}++ }
+                        map { s/'//g; s/^\s+//; s/\s+$//; uc }
+                            split(',' => $type);
+        return $ti->list_tables($self, $name, @types);
+    }
 }
 
-sub ping 
+sub ping
 {
     my($dbh) = @_;
 
@@ -576,13 +555,32 @@ C<Apache::DBI>.
 
   $sth = $dbh->table_info;
 
-Supported by the driver as proposed by DBI. 
+All Interbase/Firebird versions support the basic DBI-specified columns
+(TABLE_NAME, TABLE_TYPE, etc.) as well as C<IB_TABLE_OWNER>.  Peculiar
+versions may return additional fields, prefixed by C<IB_>.
+
+Table searching may not work as expected on older Interbase/Firebird engines
+which do not natively offer a TRIM() function.  Some engines store TABLE_NAME
+in a blank-padded CHAR field, and a search for table name is performed via a
+SQL C<LIKE> predicate, which is sensitive to blanks.  That is:
+
+  $dbh->table_info('', '', 'FOO');  # May not find table "FOO", depending on
+                                    # IB/FB version
+  $dbh->table_info('', '', 'FOO%'); # Will always find "FOO", but also tables
+                                    # "FOOD", "FOOT", etc.
+
+Future versions of DBD::InterBase may attempt to work around this irritating
+limitation, at the expense of efficiency.
+
+Note that Interbase/Firebird implementations do not presently support the DBI
+concepts of 'catalog' and 'schema', so these parameters are effectively
+ignored.
 
 =item B<tables>
 
   @names = $dbh->tables;
 
-Supported by the driver as proposed by DBI. 
+Returns a list of tables, excluding any 'SYSTEM TABLE' types.
 
 =item B<type_info_all>
 
