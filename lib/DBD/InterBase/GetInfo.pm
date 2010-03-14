@@ -21,7 +21,12 @@ use DBD::InterBase;
 
 my $sql_driver = 'InterBase';
 my $sql_ver_fmt = '%02d.%02d.%04d';   # ODBC version string: ##.##.#####
-my $sql_driver_ver = sprintf $sql_ver_fmt, split (/\./, $DBD::InterBase::VERSION);
+my $sql_driver_ver;
+{
+    no warnings 'uninitialized';
+    $sql_driver_ver = sprintf $sql_ver_fmt, split (/\./, $DBD::InterBase::VERSION);
+}
+
 
 my @Keywords = qw(
 
