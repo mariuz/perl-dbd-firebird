@@ -1,3 +1,4 @@
+/* vim: set noai ts=4 et sw=4: */
 /*
    $Id: dbdimp.c 395 2008-01-08 05:33:11Z edpratomo $
 
@@ -21,13 +22,9 @@ do {                                                                  \
     char *frmt = NULL;                                                \
     char *buf = SvPV(sv, len);                                        \
     if (len < 2 || len > 30)  break;                                  \
-    if ((frmt = (char*) safemalloc(sizeof(char)* (len + 1))) == NULL) \
-    {                                                                 \
-        do_error(xxh, 2, "Can't alloc SQL time format");              \
-        return FALSE;                                                 \
-    }                                                                 \
+    Newx(frmt, len + 1, char);                                        \
     strcpy(frmt, buf);                                                \
-    if (format) safefree(format);                                     \
+    if (format) Safefree(format);                                     \
     format = frmt;                                                    \
 } while (0)
 
@@ -36,14 +33,12 @@ do {                                                         \
     short len = n;                                           \
     if (sqlda)                                               \
     {                                                        \
-        safefree(sqlda);                                     \
+        Safefree(sqlda);                                     \
         sqlda = NULL;                                        \
     }                                                        \
-    if (!(sqlda = (XSQLDA*) safemalloc(XSQLDA_LENGTH(len)))) \
-        do_error(sth, 2, "Fail to allocate XSQLDA");         \
-    memset(sqlda, 0, XSQLDA_LENGTH(len));                    \
+    Newxz(sqlda, XSQLDA_LENGTH(len), char);                  \
     sqlda->sqln = len;                                       \
-    sqlda->version = SQLDA_OK_VERSION;                         \
+    sqlda->version = SQLDA_OK_VERSION;                       \
 } while (0)
 
 
@@ -51,12 +46,7 @@ int create_cursor_name(SV *sth, imp_sth_t *imp_sth)
 {
     ISC_STATUS status[ISC_STATUS_LENGTH];
 
-    if ((imp_sth->cursor_name = (char *) safemalloc(22)) == NULL)
-    {
-        do_error(sth, IB_ALLOC_FAIL, "Cannot allocate cursor name.");
-        return FALSE;
-    }
-
+    Newxz(imp_sth->cursor_name, 22, char);
     sprintf(imp_sth->cursor_name, "perl%016.16x", imp_sth->stmt);
     isc_dsql_set_cursor_name(status, &(imp_sth->stmt), imp_sth->cursor_name, 0);
     if (ib_error_check(sth, status))
@@ -93,7 +83,7 @@ void ib_cleanup_st_execute (imp_sth_t *imp_sth)
 
         for (i = 0; i < imp_sth->in_sqlda->sqln; i++, var++)
         {
-            safefree(var->sqldata);
+            Safefree(var->sqldata);
             var->sqldata = NULL;
             if (var->sqlind)
                 *(var->sqlind) = -1;    /* isNULL */
@@ -135,7 +125,7 @@ int ib_error_check(SV *h, ISC_STATUS *status)
 #else
         char msg[1024], *pmsg;
 #endif
-        memset(msg, 0, sizeof(msg));
+        Zero(msg, sizeof(msg), char);
         pmsg = msg;
 
         if ((sqlcode = isc_sqlcode(status)) != 0)
@@ -286,27 +276,27 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
 
     imp_dbh->soft_commit = 0; /* use soft commit (isc_commit_retaining)? */
 
-    /* default date/time formats */
-    imp_dbh->dateformat      = (char *) safemalloc(sizeof(char) * 3);
-#ifdef IB_API_V6
-    imp_dbh->timeformat      = (char *) safemalloc(sizeof(char) * 3);
-    imp_dbh->timestampformat = (char *) safemalloc(sizeof(char) * 3);
-    if (!imp_dbh->dateformat || !imp_dbh->timeformat ||
-        !imp_dbh->timestampformat)
-#else
-    if (!imp_dbh->dateformat)
-#endif
-    {
-        do_error(dbh, 2, "Not enough memory to allocate date/time formats.");
-        return FALSE;
-    }
-
+    /* default date/time formats
+       +     *
+     * Old API:  dateformat ........ %c
+     *           timeformat ........ (none)
+     *           timestampformat ... (none)
+     *
+     * v6 API:   dateformat ........ %x
+     *           timeformat ........ %X
+     *           timestampformat ... %c
+     */
+    Newxz(imp_dbh->dateformat, 3, char);
 #ifndef IB_API_V6
-    strcpy(imp_dbh->dateformat,      "%c");
+    strcpy(imp_dbh->dateformat, "%c");
 #else
+    strcpy(imp_dbh->dateformat, "%x");
+
+    Newxz(imp_dbh->timeformat, 3, char);
+    strcpy(imp_dbh->timeformat, "%X");
+
+    Newxz(imp_dbh->timestampformat, 3, char);
     strcpy(imp_dbh->timestampformat, "%c");
-    strcpy(imp_dbh->dateformat,      "%x");
-    strcpy(imp_dbh->timeformat,      "%X");
 #endif
 
     /* linked list */
@@ -390,11 +380,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     DBI_TRACE_imp_xxh(imp_dbh, 2, (DBIc_LOGPIO(imp_dbh), "dbd_db_login6\n"));
 
     /* Allocate DPB */
-    if ((dpb_buffer = (char *) safemalloc(buflen * sizeof(char))) == NULL)
-    {
-        do_error(dbh, 2, "Not enough memory to allocate DPB");
-        return FALSE;
-    }
+    Newx(dpb_buffer, buflen, char);
 
     /* Default SQL dialect for every statement  */
     imp_dbh->sqldialect = ib_dialect;
@@ -455,7 +441,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
                         dpb_buffer);      /* connect options */
 
     /* freeing database parameter buffer */
-    safefree(dpb_buffer);
+    Safefree(dpb_buffer);
 
     /* return false on failed attach */
     if (ib_error_check(dbh, status))
@@ -963,7 +949,7 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs)
     }
     else if (imp_sth->out_sqlda->sqld == 0) /* not a select statement */
     {
-        safefree(imp_sth->out_sqlda);
+        Safefree(imp_sth->out_sqlda);
         imp_sth->out_sqlda = NULL;
     }
 
@@ -979,21 +965,13 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs)
             DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_prepare: field type: %d.\n", dtype));
 
             /* Alloc space for sqldata */
-            var->sqldata = (char *) safemalloc(sizeof(char) * var->sqllen +
-                           (dtype == SQL_VARYING ? sizeof(short) : 0));
-            if (!var->sqldata)
-            {
-                do_error(sth, 2, "Cannot allocate XSQLDA sqldata.\n");
-                return FALSE;
-            }
+            Newx(var->sqldata,
+                 var->sqllen + (dtype == SQL_VARYING ? sizeof(short) : 0),
+                 ISC_SCHAR);
 
             /* Nullable? */
             if (var->sqltype & 1)
-                if ((var->sqlind = (short*) safemalloc(sizeof(short))) == NULL)
-                {
-                    do_error(sth, 2, "Cannot allocate XSQLDA sqlind.\n");
-                    return FALSE;
-                }
+                Newx(var->sqlind, 1, short);
         }
     }
 
@@ -1440,7 +1418,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 
 
                     /* hardcoded output format.... */
-                    if (!strcmp(format, "iso") || !strcmp(format, "ISO"))
+                    if (strEQ(format, "iso") || strEQ(format, "ISO"))
                     {
                         switch (dtype)
                         {
@@ -1483,7 +1461,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 
 #endif
                     /* output as array like perl's localtime? */
-                    if (!strcmp(format, "tm") || !strcmp(format, "TM"))
+                    if (strEQ(format, "tm") || strEQ(format, "TM"))
                     {
                         AV *list = newAV();
 
@@ -1514,7 +1492,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                     if (sizeof(struct tm) > (9*sizeof(int)))
                     {
                         struct tm dummy;
-                        memset(&dummy, 0, sizeof(struct tm));
+                        Zero(&dummy, 1, struct tm);
                         mktime(&dummy);
                         memcpy(((char *)&times) + 9*sizeof(int),
                                ((char *)&dummy) + 9*sizeof(int),
@@ -1786,7 +1764,7 @@ void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth)
 
         DBI_TRACE_imp_xxh(imp_dbh, 3, (DBIc_LOGPIO(imp_dbh), "dbd_st_destroy: freeing in_sqlda..\n"));
 
-        safefree(imp_sth->in_sqlda);
+        Safefree(imp_sth->in_sqlda);
         imp_sth->in_sqlda = NULL;
     }
 
@@ -1800,7 +1778,7 @@ void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth)
             FREE_SETNULL(var->sqldata);
             FREE_SETNULL(var->sqlind);
         }
-        safefree(imp_sth->out_sqlda);
+        Safefree(imp_sth->out_sqlda);
         imp_sth->out_sqlda = NULL;
     }
 
@@ -2014,13 +1992,8 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
             return FALSE;
 
     /* alloc mem for blob id */
-    if ((var->sqldata == (char *) NULL) &&
-        ((var->sqldata = (char *) safemalloc(sizeof(ISC_QUAD))) == NULL))
-    {
-        do_error(sth, 2, "Cannot allocate buffer for Blob input parameter ..\n");
-        return FALSE;
-    }
-
+    if (var->sqldata == NULL)
+        Newxc(var->sqldata, 1, ISC_QUAD, ISC_SCHAR);
 
     /* try to create blob handle */
     isc_create_blob2(status, &(imp_dbh->db), &(imp_dbh->tr), &handle,
@@ -2112,7 +2085,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
     /* NULL indicator */
     if (!(ivar->sqlind))
-        ivar->sqlind = (short *) safemalloc(sizeof(short));
+        Newx(ivar->sqlind, 1, ISC_SHORT);
 
     /* *(ivar->sqlind) = ivar->sqltype & 1 ? 0 : 1; */
 
@@ -2125,7 +2098,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "ib_fill_isqlda: Freeing sqldata\n"));
         DBI_TRACE_imp_xxh(imp_sth, 4, (DBIc_LOGPIO(imp_sth), "ib_fill_isqlda: Freeing sqldata, sqltype is %d\n", ivar->sqltype));
 
-        safefree(ivar->sqldata);
+        Safefree(ivar->sqldata);
         ivar->sqldata = (char *)NULL;
     }
 #endif
@@ -2179,109 +2152,47 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         case SQL_VARYING:
             DBI_TRACE_imp_xxh(imp_sth, 1, (DBIc_LOGPIO(imp_sth), "ib_fill_isqlda: SQL_VARYING\n"));
         {
-            char buf[25]; /* long long can have max 20 chars. */
-            char *tmp = NULL;
-            if (ivar->sqldata == (char *) NULL)
-            {
-                if ((ivar->sqldata = (char *)safemalloc(
-                    sizeof(char) * (ivar->sqllen + 1) + sizeof(short))) == NULL)
-                {
-                    do_error(sth, 2, "Cannot allocate buffer for VARCHAR input parameter \n");
-                    retval = FALSE;
-                    break;
-                }
-            }
-            if (SvIOK(value)) {
-                tmp = buf;
-                len = sprintf(tmp, "%d", (int)SvIV(value));
-            }
-            else if (SvNOK(value)) {
-                tmp = buf;
-                len = sprintf(tmp, "%f", SvNV(value));
-            }
-            else if (SvPOK(value) || (SvTYPE(value) == SVt_PVMG)) {
-                len = SvCUR(value);
-                tmp = SvPV_nolen(value);
-            }
-            else {
-                /* error */
-                do_error(sth, 2, "Cannot cast to VARCHAR input parameter\n");
-                retval = FALSE;
+            char *string;
+            STRLEN len;
+
+            string = SvPV(value, len);
+
+            if (len > ivar->sqllen) {
+                char err[80];
+                sprintf(err, "String truncation (SQL_VARYING): attempted to bind %lu octets to column sized %lu",
+                        len, (sizeof(char) * (ivar->sqllen)));
                 break;
             }
 
-            /* The first word of VARCHAR sqldata is the length */
-             *((short *) ivar->sqldata) = len;
-            /* is the scalar longer than the database field? */
+            if (!(ivar->sqldata))
+                Newxz(ivar->sqldata, ivar->sqllen + sizeof(short), char);
 
-            if (len > (sizeof(char) * (ivar->sqllen+1)))
-            {
-                char err[80];
-                sprintf(err, "You are trying to put %d characters into a %d character field",
-                        len, (sizeof(char) * (ivar->sqllen + 1)));
-                do_error(sth, 2, err);
-                retval = FALSE;
-            }
-            else
-            {
-                memcpy(ivar->sqldata + sizeof(short), tmp, len);
-                ivar->sqldata[len + sizeof(short)] = '\0';
-            }
-
+            *((short *)ivar->sqldata) = len;
+            Copy(string, ivar->sqldata + sizeof(short), len, char);
             break;
         }
         /**********************************************************************/
         case SQL_TEXT:
             DBI_TRACE_imp_xxh(imp_sth, 1, (DBIc_LOGPIO(imp_sth), "ib_fill_isqlda: SQL_TEXT\n"));
         {
-            char buf[25]; /* long long can have max 20 chars. */
-            char *tmp;
+            char *string;
+            STRLEN len;
 
-            if (ivar->sqldata == (char *) NULL)
-            {
-                if ((ivar->sqldata = (char *)
-                    safemalloc(sizeof(char) * (ivar->sqllen + 1))) == NULL)
-                {
-                    do_error(sth, 2, "Cannot allocate buffer for TEXT input parameter \n");
-                    retval = FALSE;
-                    break;
-                }
-            }
-            if (SvIOK(value)) {
-                tmp = buf;
-                len = sprintf(tmp, "%d", (int)SvIV(value));
-            }
-            else if (SvNOK(value)) {
-                tmp = buf;
-                len = sprintf(tmp, "%f", SvNV(value));
-            }
-            else if (SvPOK(value) || (SvTYPE(value) == SVt_PVMG)) {
-                len = SvCUR(value);
-                tmp = SvPV_nolen(value);
-            }
-            else {
-                /* error */
-                do_error(sth, 2, "Cannot cast to TEXT input parameter\n");
-                retval = FALSE;
+            string = SvPV(value, len);
+
+            if (len > ivar->sqllen) {
+                char err[80];
+                sprintf(err, "String truncation (SQL_TEXT): attempted to bind %lu octets to column sized %lu",
+                        len, (sizeof(char) * (ivar->sqllen)));
                 break;
             }
 
-            /* is the scalar longer than the database field? */
-            if (len > (sizeof(char) * (ivar->sqllen+1)))
-            {
-                /* error? or truncate? */
-                char err[80];
-                sprintf(err, "You are trying to put %d characters into a %d character field",
-                        len, (sizeof(char) * (ivar->sqllen+1)));
-                do_error(sth, 2, err);
-                retval = FALSE;
-            }
-            else
-            {
-                memset(ivar->sqldata, ' ', ivar->sqllen);
-                memcpy(ivar->sqldata, tmp, len);
-            }
+            if (!(ivar->sqldata))
+                Newxc(ivar->sqldata, ivar->sqllen, char, ISC_SCHAR);
 
+            /* Pad the entire field with blanks */
+            PoisonWith(ivar->sqldata, ivar->sqllen, char, ' ');
+            Copy(string, ivar->sqldata, len, char);
             break;
         }
 
@@ -2296,15 +2207,12 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             char *svalue;
 
             /* we need a bit of mem */
-            if ((ivar->sqldata == (char *) NULL) &&
-                ((ivar->sqldata = (dtype == SQL_SHORT)? (char *) safemalloc(sizeof(short)):
-                                                        (char *) safemalloc(sizeof(long ))) == NULL))
-            {
-                do_error(sth, 2, "Cannot allocate buffer for SHORT/LONG input parameter ..\n");
-                retval = FALSE;
-                break;
+            if (!(ivar->sqldata)) {
+                Newxc(ivar->sqldata,
+                      (dtype == SQL_SHORT ? sizeof(short) : sizeof(long)),
+                      char,
+                      ISC_SCHAR);
             }
-
 
             /* See case SQL_INT64 for commentary. */
 
@@ -2397,13 +2305,8 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             char     format[64];
             ISC_INT64 p, q, r;
 
-            if ((ivar->sqldata == (char *) NULL) &&
-                ((ivar->sqldata = (char *) safemalloc(sizeof(ISC_INT64))) == NULL))
-            {
-                do_error(sth, 2, "Cannot allocate buffer for LONG input parameter ..\n");
-                retval = FALSE;
-                break;
-            }
+            if (!(ivar->sqldata))
+                Newxc(ivar->sqldata, 1, ISC_INT64, ISC_SCHAR);
 
             /*
              * Here I handle both whole and scaled numerics.
@@ -2531,30 +2434,20 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         case SQL_FLOAT:
             DBI_TRACE_imp_xxh(imp_sth, 1, (DBIc_LOGPIO(imp_sth), "ib_fill_isqlda: SQL_FLOAT\n"));
 
-            if ((ivar->sqldata == (char *) NULL) &&
-                ((ivar->sqldata = (char *) safemalloc(sizeof(float))) == NULL))
-            {
-                do_error(sth, 2, "Cannot allocate buffer for FLOAT input parameter..\n");
-                retval = FALSE;
-            }
-            else
-                *(float *) (ivar->sqldata) = (float) SvNV(value);
+            if (!(ivar->sqldata))
+                Newxc(ivar->sqldata, 1, float, ISC_SCHAR);
+            *(float *) (ivar->sqldata) = (float) SvNV(value);
 
             break;
-
 
         /**********************************************************************/
         case SQL_DOUBLE:
             DBI_TRACE_imp_xxh(imp_sth, 1, (DBIc_LOGPIO(imp_sth), "ib_fill_isqlda: SQL_DOUBLE\n"));
 
-            if ((ivar->sqldata == (char *) NULL) &&
-                ((ivar->sqldata = (char *) safemalloc(sizeof(double))) == NULL))
-            {
-                do_error(sth, 2, "Cannot allocate buffer for DOUBLE input parameter ..\n");
-                retval = FALSE;
-            }
-            else
-                *(double *) (ivar->sqldata) = SvNV(value);
+            if (!(ivar->sqldata))
+                Newxc(ivar->sqldata, 1, double, ISC_SCHAR);
+
+            *(double *) (ivar->sqldata) = SvNV(value);
 
             break;
 
@@ -2587,21 +2480,14 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                 ivar->sqlsubtype = 0x77; /* (0x77 is a random value) */
 
                 ivar->sqllen = len;
-                if (ivar->sqldata == (char *) NULL)
-                {
                 /*
                  * I should not allocate based on len, I should allocate
                  * a fixed length based on the max date/time string.
                  * For now let's just call it 100.  Okay, 101.
                  */
-                    if ((ivar->sqldata = (char *) safemalloc(sizeof(char) * 101)) == NULL)
-                    {
-                        do_error(sth, 2, "Cannot allocate buffer for DATE input parameter ..\n");
-                        retval = FALSE;
-                        break;
-                    }
-                }
-                memcpy(ivar->sqldata, datestring, len);
+                if (!(ivar->sqldata))
+                    Newx(ivar->sqldata, 101, ISC_SCHAR);
+                Copy(datestring, ivar->sqldata, len, ISC_SCHAR);
                 ivar->sqldata[len] = '\0';
             }
             else if (SvROK(value))
@@ -2631,7 +2517,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                 /* free ivar->sqldata (prior call wasn't necessary an localtimes
                  * style list) */
                 if (ivar->sqldata)
-                    safefree(ivar->sqldata);
+                    Safefree(ivar->sqldata);
 
                 /* encode for firebird/interbase, store value*/
 #ifndef IB_API_V6
@@ -2639,7 +2525,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                     ISC_QUAD timestamp;
                     isc_encode_date(&times, &timestamp);
 
-                    ivar->sqldata = (char *) safemalloc(sizeof(ISC_QUAD));
+                    Newx(ivar->sqldata, 1, ISC_QUAD, ISC_SCHAR);
 
                     /* we assume there's a fpsecs part after struct tm elements */
                     if (items >= 10)
@@ -2655,7 +2541,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                         ISC_TIMESTAMP timestamp;
                         isc_encode_timestamp(&times, &timestamp);
 
-                        ivar->sqldata = (char *) safemalloc(sizeof(ISC_TIMESTAMP));
+                        Newxc(ivar->sqldata, 1, ISC_TIMESTAMP, ISC_SCHAR);
 
                         if (items >= 10)
                             TIMESTAMP_ADD_FPSECS(&timestamp, SvIV(svp[9]));
@@ -2670,7 +2556,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                         ISC_TIME sql_time;
                         isc_encode_sql_time(&times, &sql_time);
 
-                        ivar->sqldata = (char *) safemalloc(sizeof(ISC_TIME));
+                        Newxc(ivar->sqldata, 1, ISC_TIME, ISC_SCHAR);
 
                         if (items >= 10)
                             TIME_ADD_FPSECS(&sql_time, SvIV(svp[9]));
@@ -2685,7 +2571,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                         ISC_DATE sql_date;
                         isc_encode_sql_date(&times, &sql_date);
 
-                        ivar->sqldata = (char *) safemalloc(sizeof(ISC_TIME));
+                        Newxc(ivar->sqldata, 1, ISC_DATE, ISC_SCHAR);
                         *(ISC_DATE *) ivar->sqldata = sql_date;
 
                         break;

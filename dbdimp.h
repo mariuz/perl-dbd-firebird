@@ -101,7 +101,7 @@ typedef void (*ISC_EVENT_CALLBACK)();
 do {                      \
     if (ptr)              \
     {                     \
-        safefree(ptr);    \
+        Safefree(ptr);    \
         ptr = NULL;       \
     }                     \
 } while (0)
@@ -118,7 +118,7 @@ do {                                         \
     *(dpb) = 4;                              \
     dpb += 1;                                \
     tmp = isc_vax_integer((char *) &tmp, 4); \
-    memcpy(dpb, &tmp, sizeof(tmp));          \
+    Copy(&tmp, dpb, 1, sizeof(tmp));         \
     dpb += 4;                                \
 } while (0)
 

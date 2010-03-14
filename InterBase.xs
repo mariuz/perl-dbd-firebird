@@ -10,6 +10,7 @@
    for commercial distribution without the prior approval of the author.
 
 */
+/* vim: set noai ts=4 et sw=4: */
 
 #include "InterBase.h"
 
@@ -318,7 +319,7 @@ ib_tx_info(dbh)
     RETVAL = newHV();
     if (!RETVAL) {
         if (result) {
-            safefree(result);
+            Safefree(result);
         }
         do_error(dbh, 2, "unable to allocate hash return value");
         XSRETURN_UNDEF;
@@ -360,12 +361,7 @@ ib_tx_info(dbh)
     */
     
   try_alloc_result_buffer:
-    result = (char*)safemalloc(result_length * sizeof(char));
-    if (result == NULL) {
-        do_error(dbh, 2, "Unable to allocate memory");
-        XSRETURN_UNDEF;
-    }
-    memset(result, 0, result_length);
+    Newxz(result, result_length, char);
     /* PerlIO_printf(PerlIO_stderr(), "result_length: %d\n", result_length); */
 
     /* call */
@@ -389,7 +385,7 @@ ib_tx_info(dbh)
 
                 /* increase result_length, retry allocation */
                 result_length += 10;
-                safefree(result);
+                Safefree(result);
                 result = NULL;
                 goto try_alloc_result_buffer;
             }
@@ -430,7 +426,7 @@ ib_tx_info(dbh)
                         reshv = newHV();
                         if (!reshv) {
                             if (result) {
-                                safefree(result);
+                                Safefree(result);
                             }
                             do_error(dbh, 2, "unable to allocate hash for read_committed rec/no_rec version");
                             XSRETURN_UNDEF;
@@ -543,10 +539,7 @@ ib_set_tx_param(dbh, ...)
     }
 
     /* alloc it */
-    tmp_tpb = (char *)safemalloc(tpb_len * sizeof(char));
-
-    if (tmp_tpb == NULL)
-        croak("set_tx_param: Can't alloc memory");
+	Newx(tmp_tpb, tpb_len, char);
 
     /* do set TPB values */
     tpb = tmp_tpb;
@@ -560,7 +553,7 @@ ib_set_tx_param(dbh, ...)
         /* value specified? */
         if (i >= items - 1)
         {
-            safefree(tmp_tpb);
+            Safefree(tmp_tpb);
             croak("You must specify parameter => value pairs, but theres no value for %s", tx_key);
         }
 
@@ -580,7 +573,7 @@ ib_set_tx_param(dbh, ...)
                 *tpb++ = isc_tpb_read;
             else
             {
-                safefree(tmp_tpb);
+                Safefree(tmp_tpb);
                 croak("Unknown -access_mode value %s", tx_val);
             }
 
@@ -612,7 +605,7 @@ ib_set_tx_param(dbh, ...)
 
                 if (!rc)
                 {
-                    safefree(tmp_tpb);
+                    Safefree(tmp_tpb);
                     croak("Invalid -isolation_level value");
                 }
 
@@ -631,7 +624,7 @@ ib_set_tx_param(dbh, ...)
                     }
                     else if (!strEQ(tx_val, "read_committed"))
                     {
-                        safefree(tmp_tpb);
+                        Safefree(tmp_tpb);
                         croak("Unknown -isolation_level value %s", tx_val);
                     }
                 }
@@ -647,7 +640,7 @@ ib_set_tx_param(dbh, ...)
                     *tpb++ = isc_tpb_consistency;
                 else
                 {
-                    safefree(tmp_tpb);
+                    Safefree(tmp_tpb);
                     croak("Unknown -isolation_level value %s", tx_val);
                 }
             }
@@ -700,7 +693,7 @@ ib_set_tx_param(dbh, ...)
                     *tpb++ = isc_tpb_nowait;
                 else
                 {
-                    safefree(tmp_tpb);
+                    Safefree(tmp_tpb);
                     croak("Unknown transaction parameter %s", tx_val);
                 }
             }
@@ -732,7 +725,7 @@ ib_set_tx_param(dbh, ...)
                                 *tpb++ = isc_tpb_protected;
                             else
                             {
-                                safefree(tmp_tpb);
+                                Safefree(tmp_tpb);
                                 croak("Invalid -reserving access value");
                             }
                         }
@@ -747,13 +740,13 @@ ib_set_tx_param(dbh, ...)
                                *tpb++ = isc_tpb_lock_write;
                             else
                             {
-                              safefree(tmp_tpb);
+                              Safefree(tmp_tpb);
                               croak("Invalid -reserving lock value");
                             }
                         }
                         else /* lock */
                         {
-                            safefree(tmp_tpb);
+                            Safefree(tmp_tpb);
                             croak("Lock value is required in -reserving");
                         }
 
@@ -769,20 +762,20 @@ ib_set_tx_param(dbh, ...)
                     } /* end hashref check*/
                     else
                     {
-                        safefree(tmp_tpb);
+                        Safefree(tmp_tpb);
                         croak("Reservation for a given table must be hashref.");
                     }
                 } /* end of while() */
             }
             else
             {
-                safefree(tmp_tpb);
+                Safefree(tmp_tpb);
                 croak("Invalid -reserving value. Must be hashref.");
             }
         } /* end table reservation */
         else
         {
-            safefree(tmp_tpb);
+            Safefree(tmp_tpb);
             croak("Unknown transaction parameter %s", tx_key);
         }
     }
@@ -790,7 +783,7 @@ ib_set_tx_param(dbh, ...)
     /* an ugly label... */
     do_set_tpb:
 
-    safefree(imp_dbh->tpb_buffer);
+    Safefree(imp_dbh->tpb_buffer);
     imp_dbh->tpb_buffer = tmp_tpb;
     imp_dbh->tpb_length = tpb - imp_dbh->tpb_buffer;
 
@@ -909,7 +902,7 @@ ib_database_info(dbh, ...)
 
     /* allocate the result buffer */
     res_len += 256; /* add some safety...just in case */
-    res_buf = (char *) safemalloc(res_len);
+	Newx(res_buf, res_len, char);
 
     /* call the function */
     isc_database_info(status, &(imp_dbh->db), item_buf_len, item_buf,
@@ -917,21 +910,12 @@ ib_database_info(dbh, ...)
 
     if (ib_error_check(dbh, status))
     {
-        safefree(res_buf);
+        Safefree(res_buf);
         XSRETURN_UNDEF; // croak("isc_database_info failed!");
     }
 
-    /* create a hash if function passed */
+    /* fill hash with key/value pairs */
     RETVAL = newHV();
-    if (!RETVAL)
-    {
-        safefree(res_buf);
-        // croak("unable to allocate hash return value");
-        do_error(dbh, 2, "unable to allocate hash return value");
-        XSRETURN_UNDEF;
-    }
-
-    /* fill the hash with key/value pairs */
     for (p = res_buf; *p != isc_info_end; )
     {
         char *keyname;
@@ -1078,7 +1062,7 @@ ib_database_info(dbh, ...)
                     svp = hv_fetch(RETVAL, "user_names", 10, 0);
                     if (!svp || !SvROK(*svp))
                     {
-                        safefree(res_buf);
+                        Safefree(res_buf);
                         croak("Error fetching hash value");
                     }
 
@@ -1125,7 +1109,7 @@ ib_database_info(dbh, ...)
                 struct tm times;
                 ISC_TIMESTAMP cdatetime;
                 char tbuf[100];
-                memset(tbuf, 0, sizeof(tbuf));
+				Zero(tbuf, sizeof(tbuf), char);
                 cdatetime.timestamp_date = isc_vax_integer(p, sizeof(ISC_DATE));
                 cdatetime.timestamp_time = isc_vax_integer(p + sizeof(ISC_DATE), sizeof(ISC_TIME));
                 isc_decode_timestamp(&cdatetime, &times);
@@ -1144,7 +1128,7 @@ ib_database_info(dbh, ...)
     }
 
     /* don't leak */
-    safefree(res_buf);
+    Safefree(res_buf);
 }
     OUTPUT:
     RETVAL
@@ -1176,9 +1160,7 @@ ib_init_event(dbh, ...)
         if (cnt > MAX_EVENTS)
             croak("Max number of events exceeded.");
 
-        RETVAL = (IB_EVENT *) safemalloc(sizeof(IB_EVENT));
-        if (RETVAL == NULL)
-            croak("Unable to allocate memory");
+		Newx(RETVAL, 1, IB_EVENT);
 
         /* init members */
         RETVAL->dbh           = imp_dbh;
@@ -1189,10 +1171,8 @@ ib_init_event(dbh, ...)
         RETVAL->perl_cb       = NULL;
         RETVAL->state         = INACTIVE;
         RETVAL->exec_cb       = 0;
-        
-        RETVAL->names = (char **) safemalloc(sizeof(char*) * MAX_EVENTS);
-        if (RETVAL->names == NULL)
-            croak("Unable to allocate memory");
+
+		Newx(RETVAL->names, MAX_EVENTS, char *);
 
         for (i = 0; i < MAX_EVENTS; i++)
         {
@@ -1200,9 +1180,7 @@ ib_init_event(dbh, ...)
                 /* dangerous! 
                 *(RETVAL->names + i) = SvPV_nolen(ST(i + 1));
                 */
-                RETVAL->names[i] = (char*) safemalloc(sizeof(char) * (SvCUR(ST(i + 1)) + 1));
-                if (RETVAL->names[i] == NULL) 
-                    croak("Unable to allocate memory");
+				Newx(RETVAL->names[i], SvCUR(ST(i + 1)) + 1, char);
                 strcpy(RETVAL->names[i], SvPV_nolen(ST(i + 1)));
             }
             else
@@ -1362,9 +1340,9 @@ DESTROY(evh)
 #endif
     for (i = 0; i < evh->num; i++)
         if (*(evh->names + i))
-            safefree(*(evh->names + i));
+            Safefree(*(evh->names + i));
     if (evh->names)
-        safefree(evh->names);
+        Safefree(evh->names);
     if (evh->perl_cb) {
         SvREFCNT_dec(evh->perl_cb);
         isc_cancel_events(status, &(evh->dbh->db), &(evh->id));
@@ -1396,7 +1374,7 @@ ib_plan(sth)
     char plan_buffer[PLAN_BUFFER_LEN];
 
     RETVAL = NULL;
-    memset(plan_buffer, 0, PLAN_BUFFER_LEN);
+	Zero(plan_buffer, sizeof(plan_buffer), char);
     plan_info[0] = isc_info_sql_get_plan;
 
     if (isc_dsql_sql_info(status, &(imp_sth->stmt), sizeof(plan_info), plan_info,
@@ -1410,10 +1388,7 @@ ib_plan(sth)
     }
     if (plan_buffer[0] == isc_info_sql_get_plan) {
         short l = (short) isc_vax_integer((char *)plan_buffer + 1, 2);
-        if ((RETVAL = (char*)safemalloc(sizeof(char) * (l + 2))) == NULL) {
-            do_error(sth, 2, "Failed to allocate plan buffer");
-            XSRETURN_UNDEF;
-        }
+		Newx(RETVAL, l + 2, char);
         sprintf(RETVAL, "%.*s%s", l, plan_buffer + 3, "\n");
         //PerlIO_printf(PerlIO_stderr(), "Len: %d, orig len: %d\n", strlen(imp_sth->plan), l);
     }
