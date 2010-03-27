@@ -45,17 +45,6 @@ sub contains {
     1;
 }
 
-sub find_new_table {
-    my $dbh = shift;
-    my $try_name = 'TESTAA';
-    my $try_name_quoted = $dbh->quote_identifier($try_name);
-    my %tables = map { uc($_) => 1 } $dbh->tables;
-    while (exists $tables{$try_name} or exists $tables{$try_name_quoted}) {
-        ++$try_name;
-    }
-    $try_name;
-}
-
 # === BEGIN TESTS ===
 
 my ($dbh, $sth, $r);

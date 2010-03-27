@@ -22,27 +22,11 @@ $::test_dsn = '';
 $::test_user = '';
 $::test_password = '';
 
-my $file;
-do {
-    if (-f ($file = "t/InterBase.dbtest") ||
-        -f ($file = "InterBase.dbtest")) 
-    {
-        eval { require $file };
-        if ($@) {
-            diag("Cannot execute $file: $@\n");
-            exit 0;
-        }
-    }
-};
-
-sub find_new_table {
-    my $dbh = shift;
-    my $try_name = 'GGG';
-    my %tables = map { uc($_) => 1 } $dbh->tables;
-    while (exists $tables{$try_name}) {
-        ++$try_name;
-    }
-    $try_name;
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
+    last;
 }
 
 # ------- TESTS ------------------------------------------------------------- #
@@ -56,10 +40,10 @@ ok($table);
 ok($dbh->do("CREATE TABLE $table( c1 varchar(3) )",
             "CREATE TABLE $table(...)"));
 
-ok($dbh->do("INSERT INTO GGG(c1) VALUES(?)", undef, 'aa'),
+ok($dbh->do("INSERT INTO $table(c1) VALUES(?)", undef, 'aa'),
    "INSERT string (length < column size) succeeds");
 
-ok($dbh->do("INSERT INTO GGG(c1) VALUES(?)", undef, 'aaa'),
+ok($dbh->do("INSERT INTO $table(c1) VALUES(?)", undef, 'aaa'),
    "INSERT string (length == column size) succeeds");
 
 $dbh->{PrintError} = 0;
