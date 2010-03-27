@@ -1285,16 +1285,13 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                                                         10000000000000000LL,
                                                         100000000000000000LL };
                     ISC_INT64 i; /* significand */
-                    ISC_INT64 divisor, remainder;
                     char buf[22]; /* NUMERIC(18,2) = -92233720368547758.08 + '\0' */
+
                     i = *((ISC_INT64 *) (var->sqldata));
-                    divisor   = scales[-var->sqlscale];
-                    remainder = (i%divisor);
-                    if (remainder < 0) remainder = -remainder;
 
                     /* We use the system snprintf(3) and system-specific
                      * format codes. :(  On my perl, I was unable to
-                     * persuafe sv_setpvf to handle INT64 values with
+                     * persuade sv_setpvf to handle INT64 values with
                      * IVdf (and there is no I64f).
                      *  - MJP 2010-03-25
                      */
@@ -1307,9 +1304,19 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 #else                        /* others: linux, various unices */
 #  define DBD_IB_INT64f "lld"
 #endif
-                    snprintf(buf, sizeof(buf),
-                             "%"DBD_IB_INT64f".%0.*"DBD_IB_INT64f,
-                             i/divisor, -var->sqlscale, remainder);
+                    if (var->sqlscale == 0) {
+                        snprintf(buf, sizeof(buf), "%"DBD_IB_INT64f, i);
+                    } else {
+                        ISC_INT64 divisor, remainder;
+                        divisor   = scales[-var->sqlscale];
+                        remainder = (i%divisor);
+                        if (remainder < 0) remainder = -remainder;
+
+                        snprintf(buf, sizeof(buf),
+                                "%"DBD_IB_INT64f".%0.*"DBD_IB_INT64f,
+                                i/divisor, -var->sqlscale, remainder);
+                    }
+
                     sv_setpvn(sv, buf, strlen(buf));
                 }
                 break;
