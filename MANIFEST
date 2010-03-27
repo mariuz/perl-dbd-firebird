@@ -30,6 +30,7 @@ t/40listfields.t
 t/40nulls.t
 t/40numrows.t
 t/41numeric.t
+t/42scale.t
 t/50chopblanks.t
 t/50commit.t
 t/60leaks.t
