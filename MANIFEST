@@ -41,8 +41,6 @@ t/80event-ithreads.t
 t/81event-fork.t
 t/90dbinfo.t
 t/91txinfo.t
-t/dbi-tables.t
-t/dbi-table_info.t
 t/InterBase.dbtest
 t/InterBase.mtest
 t/README
