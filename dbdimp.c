@@ -1266,47 +1266,50 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                  * nobody has a problem with it.
                  */
                 {
-                    ISC_INT64 q, r;
-                    char buf[25], prec_buf[25];
-                    long double prec;
-                    q = *((ISC_INT64 *) (var->sqldata));
+                    static ISC_INT64 const scales[] = { 1LL,
+                                                        10LL,
+                                                        100LL,
+                                                        1000LL,
+                                                        10000LL,
+                                                        100000LL,
+                                                        1000000LL,
+                                                        10000000LL,
+                                                        100000000LL,
+                                                        1000000000LL,
+                                                        10000000000LL,
+                                                        100000000000LL,
+                                                        1000000000000LL,
+                                                        10000000000000LL,
+                                                        100000000000000LL,
+                                                        1000000000000000LL,
+                                                        10000000000000000LL,
+                                                        100000000000000000LL };
+                    ISC_INT64 i; /* significand */
+                    ISC_INT64 divisor, remainder;
+                    char buf[22]; /* NUMERIC(18,2) = -92233720368547758.08 + '\0' */
+                    i = *((ISC_INT64 *) (var->sqldata));
+                    divisor   = scales[-var->sqlscale];
+                    remainder = (i%divisor);
+                    if (remainder < 0) remainder = -remainder;
 
-                    /*
-                     * I deliberately use two integers instead
-                     * of casting the scaled int64 to a double.
-                     * This avoids rounding errors in conversions
-                     * to IEEE float, which is the whole reason
-                     * for InterBase support of INT64.
+                    /* We use the system snprintf(3) and system-specific
+                     * format codes. :(  On my perl, I was unable to
+                     * persuafe sv_setpvf to handle INT64 values with
+                     * IVdf (and there is no I64f).
+                     *  - MJP 2010-03-25
                      */
-/*
- * Define INT64 printf formats for various platforms
- * using #defines eases the adding of a new platform (compiler/library)
- */
-
 #if defined(_MSC_VER)        /* Microsoft C compiler/library */
-#  define P_INT64_RPEC "%.*I64f"
-#  define P_INT64_FULL "%s%I64d%s"
+#  define DBD_IB_INT64f "I64d"
 #elif defined(__BORLANDC__)  /* Borland compiler/library */
-#  define P_INT64_RPEC "%.*Lf"
-#  define P_INT64_FULL "%s%Ld%s"
+#  define DBD_IB_INT64f "Ld"
 #elif defined (__FreeBSD__)  /* FreeBSD */
-#  define P_INT64_RPEC "%.*Lf"
-#  define P_INT64_FULL "%s%qd%s"
+#  define DBD_IB_INT64f "qd"
 #else                        /* others: linux, various unices */
-#  define P_INT64_RPEC "%.*Lf"
-#  define P_INT64_FULL "%s%lld%s"
+#  define DBD_IB_INT64f "lld"
 #endif
-
-                    prec = abs((int) (q % (int)
-                      pow(10.0, (double) -var->sqlscale))) /
-                      (long double) pow(10.0, (double) -var->sqlscale);
-
-                    sprintf(prec_buf, P_INT64_RPEC, (int) -var->sqlscale, prec);
-
-                    r = (ISC_INT64) (q / (int) pow(10.0, (double) -var->sqlscale));
-                    sprintf(buf, P_INT64_FULL, ((q < 0) && !(r < 0))? "-": "", r,
-                            prec ? prec_buf + 1 : "");
-
+                    snprintf(buf, sizeof(buf),
+                             "%"DBD_IB_INT64f".%0.*"DBD_IB_INT64f,
+                             i/divisor, -var->sqlscale, remainder);
                     sv_setpvn(sv, buf, strlen(buf));
                 }
                 break;
