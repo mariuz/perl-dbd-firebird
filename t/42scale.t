@@ -48,7 +48,7 @@ my @Tests = (
    [ '0.00001',     12,       4,           0 ],
 );
 
-plan tests => (@Types * @Tests);
+plan tests => (1 + (@Types * @Tests));
 
 my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password,
                        { RaiseError => 1 });
@@ -60,6 +60,11 @@ for my $type (@Types) {
         my ($r) = $dbh->selectrow_array("select $cast from RDB\$DATABASE");
         is(0+$r, $expected, "$cast");
     }
+}
+
+{
+    my ($r) = $dbh->selectrow_array('select 0+1 from RDB$DATABASE');
+    is($r, '1', "0+1"); # No decimal point on implicit zero-scale field
 }
 
 __END__
