@@ -5,7 +5,7 @@
 #
 
 use DBI 1.19; # FetchHashKeyName support (2001-07-20)
-use Test::More tests => 19;
+use Test::More tests => 40;
 use strict;
 
 use constant TI_DBI_FIELDS =>

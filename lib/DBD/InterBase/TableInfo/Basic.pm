@@ -141,11 +141,13 @@ sub list_types {
 # cannot be implemented as "rdb$relation_name LIKE 'F%T'", since, in
 # strict SQL, the padded string 'FOOT   ' is NOT LIKE 'F%T'.
 #
-sub list_tables { my ($self, $dbh, $name_pattern, @types) = @_; my
-    ($name_ok, $type_ok); my @data;
+sub list_tables {
+    my ($self, $dbh, $name_pattern, @types) = @_;
+    my ($name_ok, $type_ok);
+    my @data;
 
     # no warnings 'uninitialized'
-    if ($name_pattern eq '%' or $name_pattern eq '') {
+    if (!defined($name_pattern) or $name_pattern eq '%' or $name_pattern eq '') {
         $name_ok = sub {1};
     } else {
         my $re = quotemeta($name_pattern);
