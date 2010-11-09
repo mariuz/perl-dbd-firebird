@@ -379,6 +379,38 @@ LDDLFLAGS = /LIBPATH:\"$vc_lib\" $cur_lddlflags
     '
     } ";
     }
+    # Support for MinGW ??? :)
+    elsif ($Config::Config{'cc'} eq "gcc") {
+        print "MinGW gcc found?\n";
+        my $MGW_PATH = 'C:/mystrawberry/c';
+
+        # Copy from above
+        my $mingw_inc = $MGW_PATH . "/include";
+        my $mingw_lib = $MGW_PATH . "/lib";
+
+        $INC .= " -I\"$mingw_inc\"";
+
+        my $ib_lib = dir_choice("InterBase lib directory",
+                            [$ib_lib_dir . "SDK\\lib_ms", $ib_lib_dir . "lib"],
+                            [qw(gds32_ms.lib fbclient_ms.lib)]);
+
+        my $cur_libs = $Config::Config{'libs'} ;
+        my $cur_lddlflags = $Config::Config{'lddlflags'} ;
+
+        my $lib;
+        if (-f "$ib_lib/fbclient_ms.lib")
+            { $lib = "$ib_lib/fbclient_ms.lib"; }
+     else
+            { $lib = "$ib_lib/gds32_ms.lib"; }
+
+        eval "
+    sub MY::const_loadlibs {
+    '
+LDLOADLIBS = \"$lib\" $cur_libs
+LDDLFLAGS = /LIBPATH:\"$mingw_lib\" $cur_lddlflags
+    '
+    } ";
+    }
     else
     {
         # Borland C++ 5.5
