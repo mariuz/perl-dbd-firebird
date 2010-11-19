@@ -15,7 +15,7 @@ DBD::InterBase -- DBI driver for Firebird and InterBase RDBMS server.
 REQUIREMENTS:
   - Perl 5.004 installed
   - Perl DBI (1.41 and higher)
-  - Firebird 
+  - Firebird (2.1 and higher)
   - A C compiler
     * UN*X
       GCC 2.95.2 (tested, older may or may not work) or other capable
@@ -35,14 +35,14 @@ REQUIREMENTS:
 
   - Remember to *read* the DBI README file!
 
-  - Make sure that Firebird server is running (for testing)
+  - Make sure that Firebird server is running (for testing telnet localhost 3050)
 
 
 BUILDING:
-  Win32 with Strawberry 
+  Win32/Win64 with Strawberry 
     type 'make' from the console 
 
-  Win32 with MS compiler:
+  Win32/Win64 with MS compiler:
     type 'nmake', not just 'make'
 
   To Configure and build the DBD:
