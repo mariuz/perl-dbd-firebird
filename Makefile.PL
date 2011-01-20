@@ -82,8 +82,8 @@ if ($Config::Config{osname} eq 'MSWin32')
 else
 {
     $isql_name = 'isql';
-    @ib_bin_dirs = (qw(/usr/interbase/bin /opt/interbase/bin /opt/firebird/bin /usr/bin /usr/local/bin));
-    @ib_inc_dirs = (qw(/usr/interbase/include /opt/interbase/include /opt/firebird/include /usr/include));
+    @ib_bin_dirs = (qw(/opt/firebird/bin /usr/bin /usr/local/bin));
+    @ib_inc_dirs = (qw(/opt/firebird/include /usr/include));
 }
 
 sub locate_dbi_arch_dir {
@@ -362,7 +362,7 @@ if ($os eq 'MSWin32')
 {
     # set up PPM package parameters
     $MakeParams{'AUTHOR'}   = 'Edwin Pratomo (edpratomo@users.sourceforge.net)';
-    $MakeParams{'ABSTRACT'} = 'DBD::InterBase is a DBI driver for Firebird and InterBase, written using InterBase C API.';
+    $MakeParams{'ABSTRACT'} = 'DBD::InterBase is a DBI driver for Firebird , written using Firebird C API.';
 
     my $vc_dir = '';
     if ($Config::Config{'cc'} eq "cl")
@@ -459,52 +459,8 @@ LDDLFLAGS =  -L\"$mingw_lib\" $cur_lddlflags
     }
     else
     {
-        # Borland C++ 5.5
-        my $bcc = $Config::Config{'bcc_path'} . "\\";
-
-        my $BCC_PATH = dir_choice("Borland C++ directory",
-            [qw(c:/borland/bcc55), $bcc],
-            [qw(bin/bcc32.exe)]);
-
-        unless(-x $BCC_PATH)
-        {
-            carp "I can't find your Borland C++ installation.\nDBD::InterBase cannot build.\n";
-            exit 1;
-        }
-
-        my $ib_lib = dir_choice("InterBase lib directory",
-                            [$ib_lib_dir . "SDK\\lib", $ib_lib_dir . "lib"],
-                            [qw(gds32.lib fbclient.lib fbclient_ms.lib)]);
-
-        my $lib;
-        if (-f "$ib_lib/fbclient.lib")
-            { $lib = "$ib_lib/fbclient.lib"; }
-        elsif (-f "$ib_lib/fbclient_ms.lib")
-        {
-            # the borland compiler want omf format libs
-            system("\"$BCC_PATH\\bin\\coff2omf\"",
-                   "$ib_lib/fbclient_ms.lib",
-                   "$ib_lib/fbclient.lib");
-            $lib = "$ib_lib/fbclient.lib";
-        }
-        else
-            { $lib = "$ib_lib/gds32.lib"; }
-
-        my $bcc_inc = $BCC_PATH . "include";
-        $MakeParams{'CCFLAGS'}    = '-a4 -w- -DWIN32 -DNO_STRICT -DNDEBUG -D_CONSOLE -DHAVE_DES_FCRYPT -DPERL_IMPLICIT_CONTEXT -DPERL_IMPLICIT_SYS -DPERL_MSVCRT_READFIX';
-        $MakeParams{'OPTIMIZE'}   = "-O2";
-        $MakeParams{'INC'}       .= " -I\"$bcc_inc\"";
-
-        eval "
-    sub MY::const_loadlibs {
-  '
-LDLOADLIBS = \$(LIBC) import32.lib $lib cw32.lib
-LDDLFLAGS =  -L\"$ib_lib\" -L\"$BCC_PATH\\lib\"
-  '
-  }
-    ";
+	
     }
-    # Will I need Cygwin rules too?
 }
 elsif ($os eq 'solaris')
 {
@@ -513,7 +469,7 @@ elsif ($os eq 'solaris')
 elsif (($os eq 'linux') || ($os eq 'freebsd'))
 {
     my $ib_lib = dir_choice("InterBase/Firebird lib directory",
-    [qw(/usr/firebird/lib /opt/firebird/lib /usr/interbase/lib /opt/interbase/lib /usr/lib /usr/local/lib)],
+    [qw(/usr/firebird/lib /opt/firebird/lib /usr/lib /usr/local/lib)],
     [qw(libgds.a libgds.so libfbclient.so libfbembed.so)]);
     my $lib;
 
@@ -539,27 +495,10 @@ elsif (($os eq 'linux') || ($os eq 'freebsd'))
 
     $MakeParams{'LIBS'} = "-L$ib_lib -l$lib $ldl ";
 
-    # o Commercial IB 5.1.1 for Red Hat Linux 6.x
-    #   requires a compatibilty library to resolve
-    #   symbols such as _xstat that were removed
-    #   from glibc 2.1.  IB 5.6 and later don't need
-    #   this, but it doesn't hurt to list the library.
-    if (-f ('/lib/libNoVersion-2.1.2.so'))
-  {
-     $MakeParams{'LIBS'} .= ' -lNoVersion-2.1.2'
-  }
 }
 elsif ($os eq 'hpux')
 {
     $MakeParams{'LIBS'} = '-lgds -ldld';
-}
-elsif ($os eq 'sco')
-{
-    # Uncomment this line if you use InterBase 4.0 for SCO OSR5:
-    # $LIBS = '-b elf -B dynamic -lgds -lsocket -lcrypt_i';
-
-    # Uncomment this line if you use InterBase 5.5 for SCO OSR5:
-    $MakeParams{'LIBS'} = '-lgds -lsocket -lcrypt_i -lc -lm';
 }
 elsif ($os eq 'sunos')
 {

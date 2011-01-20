@@ -12,7 +12,6 @@ Makefile.PL
 README
 dbdimp.c
 dbdimp.h
-PatchBCC
 typemap
 t/00base.t
 t/10dsnlist.t
