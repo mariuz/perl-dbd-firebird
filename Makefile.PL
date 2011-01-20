@@ -17,6 +17,7 @@ use Config;
 use Carp;
 use strict;
 use File::Basename;
+use File::Spec;
 use vars qw($Registry);
 
 
@@ -94,7 +95,7 @@ sub locate_dbi_arch_dir {
     return $xst[0];
 }
 
-sub ISQL_EXE
+sub get_isql_path
 {
     # try to find isql
     return $isql_path if $isql_path;
@@ -118,7 +119,7 @@ sub ISQL_EXE
         die "Unable to execute isql. Aborting..";
     }
 
-    $isql_path;
+    return File::Spec->canonpath($isql_path);
 }
 
 ################################################################################
@@ -187,54 +188,86 @@ sub make_test_conf
 
     # ask for database path
     DBPATH: {
-        for (1..3) {
-            last if $path = prompt("\nFull path to test database to create or use: ", $path);
+        for ( 1 .. 3 ) {
+            last
+              if $path =
+                  prompt( "\nFull path to test database to create or use: ",
+                      $path );
         }
         die "Must specify a test database" unless $path;
 
+        $path = File::Spec->canonpath($path); # correct path on all platforms
+        print "paths is $path\n";
         ($db, $host) = reverse split /:/, $path;
         $user = prompt("Username :", $user);
         $pass = prompt("Password :", $pass);
 
-        my $isql = ISQL_EXE;
-		my $dialect = undef;
+        my $isql = get_isql_path();
+        # print "isql is $isql\n";
+        my $dialect;
+        my $database_ok = 1;
 
-        if (open(*ISQL, "\Q$isql\E -u \Q$user\E -p \Q$pass\E -x \Q$path\E |")) {
-			while (<ISQL>) {
-				if (/DIALECT (\d)/i) {
-					$dialect = $1;
-					last;
-				}
-			}
-			close(ISQL);
-		} else {
-			# Assume target db did not exist
-			create_test_db($path, $user, $pass);
-		}
+        # Using isql CLI to connect to the database and retrieve the
+        # dialect.  If I/O error then just create a new database
+        my $ocmd = qq($isql -u $user -p $pass -x $path 2>&1);
+        eval {
+            #print "cmd is  $ocmd\n";
+            open my $fh, '-|', $ocmd;
+          OPEN:
+            while (<$fh>) {
+                my $line = $_;
+                # print " $line\n";
+                # check for I/O error
+                if ($line =~ /error/i) {
+                    $database_ok = 0;
+                    last OPEN;
+                }
+                # check for I/O error
+                if ($line =~ /Firebird login/i) {
+                    print "!!! Check your Firebird login parameters !!!\n";
+                    $path = undef, goto DBPATH; # should change this!
+                }
+                # get dialect if got here
+                if ($line =~ /DIALECT (\d)/i) {
+                    $dialect = $1;
+                    last OPEN;
+                }
+            }
+            close $fh;
+        };
+        if ($@) {
+            die "isql open error!\n";
+        }
 
-		unless (defined $dialect) {
-			print <<"EOM";
+        unless ($database_ok) {
+            print "Creating new database: $path\n";
+            create_test_db($path, $user, $pass);
+            last DBPATH;
+        }
+
+        unless (defined $dialect) {
+            print <<"EOM";
 
 Dialect of $path is UNKNOWN.
 This test requires a database of dialect 3. You may specify a non-existent database to create a new one.
 EOM
-			my $is_proceed = prompt("Proceed anyway or create a NEW test database (P/N)?", "P");
-			last DBPATH if $is_proceed =~ /P/i;
-			$path = undef, goto DBPATH;
-		}
-		unless ($dialect == 3) {
-			print <<"EOM";
+            my $is_proceed = prompt("Proceed anyway or create a NEW test database (P/N)?", "P");
+            last DBPATH if $is_proceed =~ /P/i;
+            $path = undef, goto DBPATH;
+        }
+        unless ($dialect == 3) {
+            print <<"EOM";
 The dialect of $path is: $dialect !!.
 This test requires a database of dialect 3. Please specify a non-existent database to create a new one.
 EOM
-			$path = undef, goto DBPATH;
-		}
-	}
+            $path = undef, goto DBPATH;
+        }
+    }
 
     # save test config to file
-    open F, ">$test_conf" or die "Can't write $test_conf: $!";
-    print F 'dbi:InterBase:' . ($host ? "host=$host;" : '') . "db=$db;ib_dialect=3;ib_charset=ISO8859_1\n$user\n$pass\n";
-    close F;
+    open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
+    print { $t_fh } 'dbi:InterBase:' . ($host ? "host=$host;" : '') . "db=$db;ib_dialect=3;ib_charset=ISO8859_1\n$user\n$pass\n";
+    close $t_fh;
 }
 
 ################################################################################
@@ -250,20 +283,33 @@ sub create_test_db
     my ($path, $user, $pass) = @_;
 
     # create the SQL file with CREATE statement
-    open(T, ">./t/create.sql") or die "Can't write to t/create.sql";
+    open my $t_fh, '>', './t/create.sql' or die "Can't write to t/create.sql";
     while(<DATA>)
     {
         s/__TESTDB__/$path/;
         s/__USER__/$user/;
         s/__PASS__/$pass/;
-        print T;
+        print {$t_fh} $_;
     }
-    close T;
+    close $t_fh;
 
     # try to execute isql and create the test database
-	my $isql = ISQL_EXE;
-    system($isql, '-sql_dialect', 3, '-i', './t/create.sql') == 0
-        or die "Fail calling $isql -i t/create/sql: $?";
+    my $isql = get_isql_path();
+    # system($isql, '-sql_dialect', 3, '-i', './t/create.sql') == 0
+    #     or die "Fail calling $isql -i t/create/sql: $?";
+    my $ocmd = qq($isql -sql_dialect 3 -i ./t/create.sql 2>&1);
+    eval {
+        # print "cmd is  $ocmd\n";
+        open my $isql_fh, '-|', $ocmd;
+        while (<$isql_fh>) {
+            # For debug:
+            #print "> $_\n";
+        }
+        close $isql_fh;
+    };
+    if ($@) {
+        die "ISQL open error!\n";
+    }
 }
 
 ################################################################################
@@ -334,7 +380,7 @@ if ($os eq 'MSWin32')
 
             # We have to check more than one keys, because different
             # releases of Visual C++ have used different key hierarchies.
-            my $key = 
+            my $key =
                 $sw->{"Microsoft/VisualStudio/6.0/Setup/Microsoft Visual C++"} ||
                 $sw->{"Microsoft/VisualStudio/7.0/Setup/VC"};
 
@@ -358,7 +404,7 @@ if ($os eq 'MSWin32')
 
         $INC .= " -I\"$vc_inc\"";
 
-        my $ib_lib = dir_choice("InterBase lib directory", 
+        my $ib_lib = dir_choice("InterBase lib directory",
                             [$ib_lib_dir . "SDK\\lib_ms", $ib_lib_dir . "lib"],
                             [qw(gds32_ms.lib fbclient_ms.lib)]);
 
@@ -375,18 +421,18 @@ if ($os eq 'MSWin32')
     sub MY::const_loadlibs {
     '
 LDLOADLIBS = \"$lib\" $cur_libs
-LDDLFLAGS = /LIBPATH:\"$vc_lib\" $cur_lddlflags
+LDDLFLAGS =  -L\"$vc_lib\" $cur_lddlflags
     '
     } ";
     }
-    # Support for MinGW ??? :)
+    # Support for MinGW with hard wired Strawberry default paths
     elsif ($Config::Config{'cc'} eq "gcc") {
-        print "MinGW gcc found?\n";
-        my $MGW_PATH = 'C:/mystrawberry/c';
+        print "Using MinGW gcc (hard wired Strawberry default paths)\n";
+        my $MGW_PATH = 'C:\\strawberry\\c';
 
         # Copy from above
-        my $mingw_inc = $MGW_PATH . "/include";
-        my $mingw_lib = $MGW_PATH . "/lib";
+        my $mingw_inc = $MGW_PATH . "\\include";
+        my $mingw_lib = $MGW_PATH . "\\lib";
 
         $INC .= " -I\"$mingw_inc\"";
 
@@ -407,7 +453,7 @@ LDDLFLAGS = /LIBPATH:\"$vc_lib\" $cur_lddlflags
     sub MY::const_loadlibs {
     '
 LDLOADLIBS = \"$lib\" $cur_libs
-LDDLFLAGS = /LIBPATH:\"$mingw_lib\" $cur_lddlflags
+LDDLFLAGS =  -L\"$mingw_lib\" $cur_lddlflags
     '
     } ";
     }
@@ -426,7 +472,7 @@ LDDLFLAGS = /LIBPATH:\"$mingw_lib\" $cur_lddlflags
             exit 1;
         }
 
-        my $ib_lib = dir_choice("InterBase lib directory", 
+        my $ib_lib = dir_choice("InterBase lib directory",
                             [$ib_lib_dir . "SDK\\lib", $ib_lib_dir . "lib"],
                             [qw(gds32.lib fbclient.lib fbclient_ms.lib)]);
 
@@ -453,7 +499,7 @@ LDDLFLAGS = /LIBPATH:\"$mingw_lib\" $cur_lddlflags
     sub MY::const_loadlibs {
   '
 LDLOADLIBS = \$(LIBC) import32.lib $lib cw32.lib
-LDDLFLAGS = -L\"$ib_lib\" -L\"$BCC_PATH\\lib\"
+LDDLFLAGS =  -L\"$ib_lib\" -L\"$BCC_PATH\\lib\"
   '
   }
     ";
