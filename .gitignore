@@ -11,3 +11,5 @@ inc/
 *.bs
 *.o
 *.xsi
+InterBase.c
+t/test.conf
