@@ -17,7 +17,7 @@ $::test_password = '';
 my $file;
 do {
     if (-f ($file = "t/InterBase.dbtest") ||
-        -f ($file = "InterBase.dbtest")) 
+        -f ($file = "InterBase.dbtest"))
     {
         eval { require $file };
         if ($@) {
@@ -29,12 +29,12 @@ do {
 
 sub find_new_table {
     my $dbh = shift;
-    my $try_name = 'TESTAA';
+    my $try_name = 'TESTAC';
     my %tables = map { uc($_) => 1 } $dbh->tables;
     while (exists $tables{$try_name}) {
         ++$try_name;
     }
-    $try_name;  
+    $try_name;
 }
 
 my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password, {AutoCommit => 1});
@@ -67,7 +67,7 @@ ok($table);
         ok($sth1->execute);
 
         while (my $row = $sth1->fetchrow_arrayref) {
-            ok($sth2->execute($row->[0])); 
+            ok($sth2->execute($row->[0]));
 
             my $res = $sth2->fetchall_arrayref;
             ok($res and @$res);
@@ -95,7 +95,7 @@ $dbh->{ib_softcommit} = 1;
     ok($sth1->execute);
 
     while (my $row = $sth1->fetchrow_arrayref) {
-        ok($sth2->execute($row->[0])); 
+        ok($sth2->execute($row->[0]));
 
         my $res = $sth2->fetchall_arrayref;
         ok($res and @$res);

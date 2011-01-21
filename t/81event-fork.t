@@ -17,7 +17,7 @@ $::test_password = '';
 my $file;
 do {
     if (-f ($file = "t/InterBase.dbtest") ||
-        -f ($file = "InterBase.dbtest")) 
+        -f ($file = "InterBase.dbtest"))
     {
         eval { require $file };
         if ($@) {
@@ -29,12 +29,12 @@ do {
 
 sub find_new_table {
     my $dbh = shift;
-    my $try_name = 'TESTAA';
+    my $try_name = 'TESTAE';
     my %tables = map { uc($_) => 1 } $dbh->tables;
     while (exists $tables{$try_name}) {
         ++$try_name;
     }
-    $try_name;  
+    $try_name;
 }
 
 my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password);
@@ -92,17 +92,17 @@ SKIP: {
         my $evh = $dbh->func('foo_inserted', 'foo_deleted', 'ib_init_event');
         ok($evh);
 
-        ok($dbh->func($evh, 
-            sub { 
+        ok($dbh->func($evh,
+            sub {
                 my $posted_events = shift;
                 while (my ($k, $v) = each %$posted_events) {
                     $::CNT{$k} += $v;
                 }
                 1;
-            }, 
+            },
             'ib_register_callback'
         ));
- 
+
         kill SIGHUP => $pid;
         is(wait, $pid);
         # then wait until foo_deleted gets posted
@@ -117,7 +117,7 @@ SKIP: {
         $::SLEEP = 1;
         while ($::SLEEP) {}
 
-        my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password, 
+        my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password,
             {AutoCommit => 1 }) or return 0;
         for (1..5) {
             $dbh->do(qq{INSERT INTO $table VALUES($_, 'bar')});

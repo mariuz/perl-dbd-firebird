@@ -21,10 +21,10 @@ foreach $file ("lib.pl", "t/lib.pl", "DBD-~~dbd_driver~~/t/lib.pl") {
     last;
     }
 }
-if ($mdriver eq 'pNET'  ||  $mdriver eq 'Adabas') {
-    print "1..0\n";
-    exit 0;
-}
+# if ($mdriver eq 'pNET'  ||  $mdriver eq 'Adabas') {
+#     print "1..0\n";
+#     exit 0;
+# }
 print "Driver is $mdriver\n";
 
 sub ServerError() {
@@ -61,20 +61,20 @@ while (Testing()) {
     #
     #   Try different DSN's
     #
-    my(@dsnList);
-    if (($mdriver eq 'mysql'  or  $mdriver eq 'mSQL')
-    and  $test_dsn eq "DBI:$mdriver:test") {
-    @dsnList = ("DBI:$mdriver:test:localhost",
-            "DBI:$mdriver:test;localhost",
-            "DBI:$mdriver:database=test;host=localhost");
-    }
-    my($dsn);
-    foreach $dsn (@dsnList) {
-    Test($state or ($dbh = DBI->connect($dsn, $test_user,
-                        $test_password)))
-        or print "Cannot connect to DSN $dsn: ${DBI::errstr}\n";
-    Test($state or $dbh->disconnect());
-    }
+    # my(@dsnList);
+    # if (($mdriver eq 'mysql'  or  $mdriver eq 'mSQL')
+    # and  $test_dsn eq "DBI:$mdriver:test") {
+    # @dsnList = ("DBI:$mdriver:test:localhost",
+    #         "DBI:$mdriver:test;localhost",
+    #         "DBI:$mdriver:database=test;host=localhost");
+    # }
+    # my($dsn);
+    # foreach $dsn (@dsnList) {
+    # Test($state or ($dbh = DBI->connect($dsn, $test_user,
+    #                     $test_password)))
+    #     or print "Cannot connect to DSN $dsn: ${DBI::errstr}\n";
+    # Test($state or $dbh->disconnect());
+    # }
 }
 
 exit 0;
