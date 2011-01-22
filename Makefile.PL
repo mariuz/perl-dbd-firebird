@@ -182,6 +182,7 @@ if ($ENV{DBDFB_GCCDEBUG}) {
 }
 
 ### Should change the name of the module to DBD::Firebird, ASAP
+##  Check this options !!!
 my %opts =
     (
      NAME           => 'DBD::InterBase',
@@ -202,18 +203,17 @@ my %opts =
      NEEDS_LINKING  => 1,
      NO_META        => 1,
      NORECURS       => 1,
-     clean          => { FILES => 'trace.txt InterBase.xsi' },
-     #realclean      => { FILES => 'dbdfb_test_database/' },
+     clean          => { FILES => "*.xsc *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/InterBase/*~ lib/DBD/InterBase/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old" },
+     realclean       => { FILES => "t/test.conf" },
 );
 
-### This should be checked: !!!
-
+### This should be checked and extended by platform !!!
 if ($os eq 'hpux') {
-    my $osvers = $Config{osvers};
-    if ($osvers < 10) {
-        print "Warning: Forced to build static not dynamic on $os $osvers.\a\n";
-        $opts{LINKTYPE} = 'static';
-    }
+    # my $osvers = $Config{osvers};
+    # if ($osvers < 10) {
+    #     print "Warning: Forced to build static not dynamic on $os $osvers.\a\n";
+    #     $opts{LINKTYPE} = 'static';
+    # }
 }
 elsif ($os =~ /Win32/) {
     # my $msdir = $FIREBIRD_LIB;
@@ -241,7 +241,7 @@ sub constants {
     return $new_constants;
 }
 
-### What is this for, does apply to Firebird? !!!
+### What is this for?, does apply to DBD::Firebird? !!! ;)
 
 # sub MY::postamble { ## no critic ProhibitQualifiedSubDeclarations
 #     no strict 'subs'; ## no critic ProhibitNoStrict
