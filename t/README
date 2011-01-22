@@ -61,25 +61,13 @@ The test suite consists of a lot of files, currently these are:
 
   50commit.t       Checks commit, rollback and the "AutoCommit" attribute.
 
-  mysql.mtest      These files are used for setting up the DBMS specific
-  mysql.dbtest     part for the 'mysql' database with constants (dsn
+  InterBase.mtest      These files are used for setting up the DBMS specific
+  InterBase.dbtest     part for the 'InterBase' database with constants (dsn
 	           definitions, user, password for running tests), a
 	           possibility to create a table from a somewhat abstract
 	           table description, and a function for listing tables.
 	           Additionally some functions for supporting test script
 	           are included. These files are described in detail below.
-
-  mSQL.mtest       Likewise for mSQL.
-  mSQL.dbtest
-
-  pNET.mtest       Likewise for pNET.
-  pNET.dbtest
-
-  Ingres.mtest     Likewise for Ingres.
-  Ingres.dbtest
-
-  ODBC.mtest       Likewise for ODBC.
-  ODBC.dbtest
 
 
 How do I use the test suite for my driver?
@@ -221,7 +209,7 @@ to indicate that 15 tests will follow.
 
 The second pass will indeed run the tests. The Testing() function has
 extended possibilities which I won't describe here, for building groups
-of tests (for example it probably doesn´t make sense to execute a
+of tests (for example it probably doesnï¿½t make sense to execute a
 test if even the connect failed).
 
 The next thing we notice is a first test: Connecting to the DBMS.
@@ -297,28 +285,12 @@ There follows some stuff later, especially dropping the new
 table, but in general leave this as it is.
 
 
-Known problems
-==============
-
-mysql: The blob test fails with blobs larger than 252*256 bytes, you
-       must start the mysql daemon with -Omax_allowed_packet=<bigvalue>.
-
-msql: The null test fails, because the query
-
-	SELECT * FROM $table WHERE id = NULL
-
-      doesn't return anything. Does anyone have an idea, how to modify
-      this?
-
-ODBC: ChopBlank test fail; seems to be a driver problem.
 
 
 What remains to do?
 ===================
 
-Writing test cases! For example I do currently not
-
-  - check transactions (mysql doesn't know about transactions :-(
+Writing test cases! 
 
 I'll be happy to include them into the test suite. Any new tests,
 critics or suggestions welcome:
