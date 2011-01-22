@@ -892,8 +892,13 @@ C<< File::Spec->path >>, as well as the following directories:
 
 sub search_bin_dirs {
 
-    # Check if on WIN32
-    my @path = $_[0]->path_from_registry if WIN32;
+    # Search first the registry if on win win32
+    if (WIN32) {
+        my $reg_path = $_[0]->path_from_registry;
+
+        return shift->SUPER::search_bin_dirs,
+            $u->catdir($reg_path, 'bin');
+    }
 
     return shift->SUPER::search_bin_dirs,
       ( exists $ENV{FIREBIRD_HOME}
@@ -906,23 +911,23 @@ sub search_bin_dirs {
       ),
       $u->path,
           # Are there other possible paths?
-          qw(/opt/firebird/bin /usr/local/firebird/bin),
-              'C:\Program Files\Firebird\bin'; # Better use the registry?
+          qw(/opt/firebird/bin /usr/local/firebird/bin)
 }
 
 sub path_from_registry {
 
-    eval { require Win32::TieRegistry };
-#    my @path = $@ ? () : Apache2::BuildConfig->new->{APXS_BINDIR};
+    my $path;
+    eval {
+        require Win32::TieRegistry;
 
-    my $machKey = Win32::TieRegistry->new(
-"HKEY_LOCAL_MACHINE\\SOFTWARE\\Firebird Project\\Firebird Server\\Instances"
-      || die "Can't access HKEY_LOCAL_MACHINE key: $^E\n";
-    my $keyval = $machKey->GetValue("DefaultInstance");
+        $path = Win32::TieRegistry->new(
+"HKEY_LOCAL_MACHINE\\SOFTWARE\\Firebird Project\\Firebird Server\\Instances")
+            ->GetValue("DefaultInstance")
+        || q{}; # or nothing
+        print " path is $path\n";
+    };
 
-    print "keyval is $keyval\n";
-
-#    return \@path;
+    return $path;
 }
 
 ##############################################################################
