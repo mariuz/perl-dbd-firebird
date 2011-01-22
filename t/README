@@ -62,7 +62,7 @@ The test suite consists of a lot of files, currently these are:
   50commit.t       Checks commit, rollback and the "AutoCommit" attribute.
 
   InterBase.mtest      These files are used for setting up the DBMS specific
-  InterBase.dbtest     part for the '' database with constants (dsn
+  InterBase.dbtest     part for the 'InterBase' database with constants (dsn
 	           definitions, user, password for running tests), a
 	           possibility to create a table from a somewhat abstract
 	           table description, and a function for listing tables.
