@@ -10,6 +10,6 @@ inc/
 *.log
 *.bs
 *.o
-*.xsi
+*.xsc
 InterBase.c
 t/test.conf
