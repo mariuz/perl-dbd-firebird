@@ -5,7 +5,7 @@
 #   You may distribute under the terms of either the GNU General Public
 #   License or the Artistic License, as specified in the Perl README file
 
-require 5.008;
+require 5.004;
 
 package DBD::InterBase;
 use strict;
@@ -50,7 +50,7 @@ sub driver
 }
 
 # taken from JWIED's DBD::mysql, with slight modification
-sub _OdbcParse($$$)
+sub _OdbcParse($$$) 
 {
     my($class, $dsn, $hash, $args) = @_;
     my($var, $val);
@@ -58,34 +58,34 @@ sub _OdbcParse($$$)
     if (!defined($dsn))
        { return; }
 
-    while (length($dsn))
+    while (length($dsn)) 
     {
-        if ($dsn =~ /([^;]*)[;]\r?\n?(.*)/s)
+        if ($dsn =~ /([^;]*)[;]\r?\n?(.*)/s) 
         {
             $val = $1;
             $dsn = $2;
-        }
-        else
+        } 
+        else 
         {
             $val = $dsn;
             $dsn = '';
         }
-        if ($val =~ /([^=]*)=(.*)/)
+        if ($val =~ /([^=]*)=(.*)/) 
         {
             $var = $1;
             $val = $2;
-            if ($var eq 'hostname')
-                { $hash->{'host'} = $val; }
-            elsif ($var eq 'db'  ||  $var eq 'dbname')
-                { $hash->{'database'} = $val; }
-            else
+            if ($var eq 'hostname') 
+                { $hash->{'host'} = $val; } 
+            elsif ($var eq 'db'  ||  $var eq 'dbname') 
+                { $hash->{'database'} = $val; } 
+            else 
                 { $hash->{$var} = $val; }
-        }
-        else
+        } 
+        else 
         {
-            foreach $var (@$args)
+            foreach $var (@$args) 
             {
-                if (!defined($hash->{$var}))
+                if (!defined($hash->{$var})) 
                 {
                     $hash->{$var} = $val;
                     last;
@@ -100,7 +100,7 @@ sub _OdbcParse($$$)
 
 package DBD::InterBase::dr;
 
-sub connect
+sub connect 
 {
     my($drh, $dsn, $dbuser, $dbpasswd, $attr) = @_;
 
@@ -123,7 +123,7 @@ sub connect
     # second attr args will be retrieved using DBIc_IMP_DATA
     my $dbh = DBI::_new_dbh($drh, {}, $private_attr_hash);
 
-    DBD::InterBase::db::_login($dbh, $dsn, $dbuser, $dbpasswd, $attr)
+    DBD::InterBase::db::_login($dbh, $dsn, $dbuser, $dbpasswd, $attr) 
         or return undef;
 
     $dbh;
@@ -133,27 +133,27 @@ package DBD::InterBase::db;
 use strict;
 use Carp;
 
-sub do
+sub do 
 {
     my($dbh, $statement, $attr, @params) = @_;
     my $rows;
-    if (@params)
+    if (@params) 
     {
         my $sth = $dbh->prepare($statement, $attr) or return undef;
         $sth->execute(@params) or return undef;
         $rows = $sth->rows;
-    }
-    else
+    } 
+    else 
     {
         $rows = DBD::InterBase::db::_do($dbh, $statement, $attr) or return undef;
     }
     ($rows == 0) ? "0E0" : $rows;
 }
 
-sub prepare
+sub prepare 
 {
     my ($dbh, $statement, $attribs) = @_;
-
+    
     my $sth = DBI::_new_sth($dbh, {'Statement' => $statement });
     DBD::InterBase::st::_prepare($sth, $statement, $attribs)
         or return undef;
@@ -273,8 +273,8 @@ access to Firebird and InterBase databases.
 
 =head1 MODULE DOCUMENTATION
 
-This documentation describes driver specific behavior and restrictions.
-It is not supposed to be used as the only reference for the user. In any
+This documentation describes driver specific behavior and restrictions. 
+It is not supposed to be used as the only reference for the user. In any 
 case consult the DBI documentation first !
 
 =head1 THE DBI CLASS
@@ -285,8 +285,8 @@ case consult the DBI documentation first !
 
 =item B<connect>
 
-To connect to a database with a minimum of parameters, use the
-following syntax:
+To connect to a database with a minimum of parameters, use the 
+following syntax: 
 
   $dbh = DBI->connect("dbi:InterBase:dbname=$dbname", $user, $password);
 
@@ -298,7 +298,7 @@ environment variable ISC_DATABASE is substituted.
 
 The DSN may take several optional parameters, which may be split
 over multiple lines.  Here is an example of connect statement which
-uses all possible parameters:
+uses all possible parameters: 
 
    $dsn =<< "DSN";
  dbi:InterBase:dbname=$dbname;
@@ -331,17 +331,17 @@ respective meanings:
     ib_cache        number of database cache buffers        optional
     ib_dbkey_scope  change default duration of RDB$DB_KEY   optional
 
-B<database> could be used interchangebly with B<dbname> and B<db>.
-To connect to a remote host, use the B<host> parameter.
+B<database> could be used interchangebly with B<dbname> and B<db>. 
+To connect to a remote host, use the B<host> parameter. 
 Here is an example of DSN to connect to a remote Windows host:
 
  $dsn = "dbi:InterBase:db=C:/temp/test.gdb;host=rae.cumi.org;ib_dialect=3";
 
-Database file alias introduced in Firebird 1.5 can be used too. In the following
+Database file alias introduced in Firebird 1.5 can be used too. In the following 
 example, "billing" is defined in aliases.conf:
 
  $dsn = 'dbi:InterBase:hostname=192.168.88.5;db=billing;ib_dialect=3';
-
+ 
 Firebird as of version 1.0 listens on port specified within the services
 file. To connect to port other than the default 3050, add the port number at
 the end of host name, separated by a slash. Example:
@@ -358,7 +358,7 @@ controls how InterBase interprets:
  - new 6.0 reserved keywords
 
 Valid values for B<ib_dialect> are 1, 2, and 3. The driver's default value is
-1.
+1. 
 
 B<ib_role> specifies the role of the connecting user. B<SQL role> is
 implemented by InterBase to make database administration easier when dealing
@@ -366,8 +366,8 @@ with lots of users. A detailed reading can be found at:
 
  http://www.ibphoenix.com/ibp_sqlroles.html
 
-If B<ib_cache> is not specified, the default database's cache size value will be
-used. The InterBase Operation Guide discusses in full length the importance of
+If B<ib_cache> is not specified, the default database's cache size value will be 
+used. The InterBase Operation Guide discusses in full length the importance of 
 this parameter to gain the best performance.
 
 =item B<available_drivers>
@@ -391,7 +391,7 @@ Implemented by DBI, no driver-specific impact.
 
 =head2 DBI Dynamic Attributes
 
-See Common Methods.
+See Common Methods. 
 
 =head1 METHODS COMMON TO ALL DBI HANDLES
 
@@ -401,13 +401,13 @@ See Common Methods.
 
   $rv = $h->err;
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<errstr>
 
   $str = $h->errstr;
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<state>
 
@@ -442,9 +442,9 @@ Implemented by DBI, no driver-specific impact.
 
 =item B<Active> (boolean, read-only)
 
-Supported by the driver as proposed by DBI. A database
-handle is active while it is connected and  statement
-handle is active until it is finished.
+Supported by the driver as proposed by DBI. A database 
+handle is active while it is connected and  statement 
+handle is active until it is finished. 
 
 =item B<Kids> (integer, read-only)
 
@@ -460,7 +460,7 @@ Implemented by DBI, no driver-specific impact.
 
 =item B<CompatMode> (boolean, inherited)
 
-Not used by this driver.
+Not used by this driver. 
 
 =item B<InactiveDestroy> (boolean)
 
@@ -476,11 +476,11 @@ Implemented by DBI, no driver-specific impact.
 
 =item B<ChopBlanks> (boolean, inherited)
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<LongReadLen> (integer, inherited)
 
-Supported by the driver as proposed by DBI.The default value is 80 bytes.
+Supported by the driver as proposed by DBI.The default value is 80 bytes. 
 
 =item B<LongTruncOk> (boolean, inherited)
 
@@ -524,15 +524,15 @@ Supported by the driver as proposed by DBI.
 When AutoCommit is On, this method implicitly starts a new transaction,
 which will be automatically committed after the following execute() or the
 last fetch(), depending on the statement type. For select statements,
-commit automatically takes place after the last fetch(), or by explicitly
+commit automatically takes place after the last fetch(), or by explicitly 
 calling finish() method if there are any rows remaining. For non-select
-statements, execute() will implicitly commits the transaction.
+statements, execute() will implicitly commits the transaction. 
 
 =item B<prepare_cached>
 
   $sth = $dbh->prepare_cached($statement, \%attr);
 
-Implemented by DBI, no driver-specific impact.
+Implemented by DBI, no driver-specific impact. 
 
 =item B<do>
 
@@ -548,33 +548,33 @@ better to call prepare() once, and execute() many times.
 
 See the notes for the execute method elsewhere in this document. Unlike the
 execute method, currently this method doesn't return the number of affected
-rows.
+rows. 
 
 =item B<commit>
 
   $rc  = $dbh->commit;
 
-Supported by the driver as proposed by DBI. See also the
-notes about B<Transactions> elsewhere in this document.
+Supported by the driver as proposed by DBI. See also the 
+notes about B<Transactions> elsewhere in this document. 
 
 =item B<rollback>
 
   $rc  = $dbh->rollback;
 
-Supported by the driver as proposed by DBI. See also the
-notes about B<Transactions> elsewhere in this document.
+Supported by the driver as proposed by DBI. See also the 
+notes about B<Transactions> elsewhere in this document. 
 
 =item B<disconnect>
 
   $rc  = $dbh->disconnect;
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<ping>
 
   $rc = $dbh->ping;
 
-This driver supports the ping-method, which can be used to check the
+This driver supports the ping-method, which can be used to check the 
 validity of a database-handle. This is especially required by
 C<Apache::DBI>.
 
@@ -621,22 +621,22 @@ Returns a list of tables, excluding any 'SYSTEM TABLE' types.
 
   $type_info_all = $dbh->type_info_all;
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
-For further details concerning the InterBase specific data-types
-please read the L<InterBase Data Definition Guide>.
+For further details concerning the InterBase specific data-types 
+please read the L<InterBase Data Definition Guide>. 
 
 =item B<type_info>
 
   @type_info = $dbh->type_info($data_type);
 
-Implemented by DBI, no driver-specific impact.
+Implemented by DBI, no driver-specific impact. 
 
 =item B<quote>
 
   $sql = $dbh->quote($value, $data_type);
 
-Implemented by DBI, no driver-specific impact.
+Implemented by DBI, no driver-specific impact. 
 
 =back
 
@@ -646,19 +646,19 @@ Implemented by DBI, no driver-specific impact.
 
 =item B<AutoCommit>  (boolean)
 
-Supported by the driver as proposed by DBI. According to the
-classification of DBI, InterBase is a database, in which a
-transaction must be explicitly started. Without starting a
-transaction, every change to the database becomes immediately
-permanent. The default of AutoCommit is on, which corresponds
-to the DBI's default. When setting AutoCommit to off, a transaction
-will be started and every commit or rollback
-will automatically start a new transaction. For details see the
-notes about B<Transactions> elsewhere in this document.
+Supported by the driver as proposed by DBI. According to the 
+classification of DBI, InterBase is a database, in which a 
+transaction must be explicitly started. Without starting a 
+transaction, every change to the database becomes immediately 
+permanent. The default of AutoCommit is on, which corresponds 
+to the DBI's default. When setting AutoCommit to off, a transaction 
+will be started and every commit or rollback 
+will automatically start a new transaction. For details see the 
+notes about B<Transactions> elsewhere in this document. 
 
 =item B<Driver>  (handle)
 
-Implemented by DBI, no driver-specific impact.
+Implemented by DBI, no driver-specific impact. 
 
 =item B<Name>  (string, read-only)
 
@@ -675,12 +675,12 @@ to FALSE). Soft commit retains the internal transaction handle when
 committing a transaction, while the default commit behavior always closes
 and invalidates the transaction handle.
 
-Since the transaction handle is still open, there is no need to start a new transaction
-upon every commit, so applications can gain performance improvement. Using soft commit is also
-desirable when dealing with nested statement handles under AutoCommit on.
+Since the transaction handle is still open, there is no need to start a new transaction 
+upon every commit, so applications can gain performance improvement. Using soft commit is also 
+desirable when dealing with nested statement handles under AutoCommit on. 
 
-Switching the attribute's value from TRUE to FALSE will force hard commit thus
-closing the current transaction.
+Switching the attribute's value from TRUE to FALSE will force hard commit thus 
+closing the current transaction. 
 
 =back
 
@@ -692,54 +692,54 @@ closing the current transaction.
 
 =item B<bind_param>
 
-Supported by the driver as proposed by DBI.
-The SQL data type passed as the third argument is ignored.
+Supported by the driver as proposed by DBI. 
+The SQL data type passed as the third argument is ignored. 
 
 =item B<bind_param_inout>
 
-Not supported by this driver.
+Not supported by this driver. 
 
 =item B<execute>
 
   $rv = $sth->execute(@bind_values);
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<fetchrow_arrayref>
 
   $ary_ref = $sth->fetchrow_arrayref;
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<fetchrow_array>
 
   @ary = $sth->fetchrow_array;
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<fetchrow_hashref>
 
   $hash_ref = $sth->fetchrow_hashref;
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<fetchall_arrayref>
 
   $tbl_ary_ref = $sth->fetchall_arrayref;
 
-Implemented by DBI, no driver-specific impact.
+Implemented by DBI, no driver-specific impact. 
 
 =item B<finish>
 
   $rc = $sth->finish;
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<rows>
 
   $rv = $sth->rows;
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 It returns the number of B<fetched> rows for select statements, otherwise
 it returns -1 (unknown number of affected rows).
 
@@ -747,19 +747,19 @@ it returns -1 (unknown number of affected rows).
 
   $rc = $sth->bind_col($column_number, \$var_to_bind, \%attr);
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<bind_columns>
 
   $rc = $sth->bind_columns(\%attr, @list_of_refs_to_vars_to_bind);
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<dump_results>
 
   $rows = $sth->dump_results($maxlen, $lsep, $fsep, $fh);
 
-Implemented by DBI, no driver-specific impact.
+Implemented by DBI, no driver-specific impact. 
 
 =back
 
@@ -769,74 +769,74 @@ Implemented by DBI, no driver-specific impact.
 
 =item B<NUM_OF_FIELDS>  (integer, read-only)
 
-Implemented by DBI, no driver-specific impact.
+Implemented by DBI, no driver-specific impact. 
 
 =item B<NUM_OF_PARAMS>  (integer, read-only)
 
-Implemented by DBI, no driver-specific impact.
+Implemented by DBI, no driver-specific impact. 
 
 =item B<NAME>  (array-ref, read-only)
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<NAME_lc>  (array-ref, read-only)
 
-Implemented by DBI, no driver-specific impact.
+Implemented by DBI, no driver-specific impact. 
 
 =item B<NAME_uc>  (array-ref, read-only)
 
-Implemented by DBI, no driver-specific impact.
+Implemented by DBI, no driver-specific impact. 
 
 =item B<TYPE>  (array-ref, read-only)
 
-Supported by the driver as proposed by DBI, with
+Supported by the driver as proposed by DBI, with 
 the restriction, that the types are InterBase
-specific data-types which do not correspond to
+specific data-types which do not correspond to 
 international standards.
 
 =item B<PRECISION>  (array-ref, read-only)
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<SCALE>  (array-ref, read-only)
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<NULLABLE>  (array-ref, read-only)
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<CursorName>  (string, read-only)
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<Statement>  (string, read-only)
 
-Supported by the driver as proposed by DBI.
+Supported by the driver as proposed by DBI. 
 
 =item B<RowCache>  (integer, read-only)
 
-Not supported by the driver.
+Not supported by the driver. 
 
 =back
 
 =head1 TRANSACTION SUPPORT
 
-The transaction behavior is controlled with the attribute AutoCommit.
-For a complete definition of AutoCommit please refer to the DBI documentation.
+The transaction behavior is controlled with the attribute AutoCommit. 
+For a complete definition of AutoCommit please refer to the DBI documentation. 
 
-According to the DBI specification the default for AutoCommit is TRUE.
-In this mode, any change to the database becomes valid immediately. Any
-commit() or rollback() will be rejected.
+According to the DBI specification the default for AutoCommit is TRUE. 
+In this mode, any change to the database becomes valid immediately. Any 
+commit() or rollback() will be rejected. 
 
 If AutoCommit is switched-off, immediately a transaction will be started.
-A rollback() will rollback and close the active transaction, then implicitly
-start a new transaction. A disconnect will issue a rollback.
+A rollback() will rollback and close the active transaction, then implicitly 
+start a new transaction. A disconnect will issue a rollback. 
 
 InterBase provides fine control over transaction behavior, where users can
-specify the access mode, the isolation level, the lock resolution, and the
+specify the access mode, the isolation level, the lock resolution, and the 
 table reservation (for a specified table). For this purpose,
-C<ib_set_tx_param()> database handle method is available.
+C<ib_set_tx_param()> database handle method is available. 
 
 Upon a successful C<connect()>, these default parameter values will be used
 for every SQL operation:
@@ -849,19 +849,19 @@ Any of the above value can be changed using C<ib_set_tx_param()>.
 
 =over 4
 
-=item B<ib_set_tx_param>
+=item B<ib_set_tx_param> 
 
- $dbh->func(
+ $dbh->func( 
     -access_mode     => 'read_write',
     -isolation_level => 'read_committed',
     -lock_resolution => 'wait',
     'ib_set_tx_param'
  );
 
-Valid value for C<-access_mode> is C<read_write>, or C<read_only>.
+Valid value for C<-access_mode> is C<read_write>, or C<read_only>. 
 
-Valid value for C<-lock_resolution> is C<wait>, or C<no_wait>.
-In Firebird 2.0, a timeout value for wait is introduced. This can be
+Valid value for C<-lock_resolution> is C<wait>, or C<no_wait>. 
+In Firebird 2.0, a timeout value for wait is introduced. This can be 
 specified using hash ref as lock_resolution value:
 
  $dbh->func(
@@ -870,12 +870,12 @@ specified using hash ref as lock_resolution value:
  );
 
 C<-isolation_level> may be: C<read_committed>, C<snapshot>,
-C<snapshot_table_stability>.
+C<snapshot_table_stability>. 
 
 If C<read_committed> is to be used with C<record_version> or
 C<no_record_version>, then they should be inside an anonymous array:
 
- $dbh->func(
+ $dbh->func( 
     -isolation_level => ['read_committed', 'record_version'],
     'ib_set_tx_param'
  );
@@ -884,7 +884,7 @@ Table reservation is supported since C<DBD::InterBase 0.30>. Names of the
 tables to reserve as well as their reservation params/values are specified
 inside a hashref, which is then passed as the value of C<-reserving>.
 
-The following example reserves C<foo_table> with C<read> lock and C<bar_table>
+The following example reserves C<foo_table> with C<read> lock and C<bar_table> 
 with C<read> lock and C<protected> access:
 
  $dbh->func(
@@ -921,7 +921,7 @@ Valid values are C<read> or C<write>.
 Under C<AutoCommit> mode, invoking this method doesn't only change the
 transaction parameters (as with C<AutoCommit> off), but also commits the
 current transaction. The new transaction parameters will be used in
-any newly started transaction.
+any newly started transaction. 
 
 C<ib_set_tx_param()> can also be invoked with no parameter in which it resets
 transaction parameters to the default value.
@@ -931,14 +931,14 @@ transaction parameters to the default value.
 =head1 DATE, TIME, and TIMESTAMP FORMATTING SUPPORT
 
 C<DBD::InterBase> supports various formats for query results of DATE, TIME,
-and TIMESTAMP types.
+and TIMESTAMP types. 
 
 By default, it uses "%c" for TIMESTAMP, "%x" for DATE, and "%X" for TIME,
 and pass them to ANSI C's strftime() function to format your query results.
 These values are respectively stored in ib_timestampformat, ib_dateformat,
 and ib_timeformat attributes, and may be changed in two ways:
 
-=over
+=over 
 
 =item * At $dbh level
 
@@ -957,7 +957,7 @@ This overrides the default values only for the currently prepared statement. Exa
     ib_dateformat => '%m-%d-%Y',
     ib_timeformat => '%H:%M',
  };
- # then, pass it to prepare() method.
+ # then, pass it to prepare() method. 
  $sth = $dbh->prepare($sql, $attr);
 
 =back
@@ -967,7 +967,7 @@ is designed to be portable across different locales, you may consider using thes
 two special formats: 'TM' and 'ISO'. C<TM> returns a 9-element list, much like
 Perl's localtime(). The C<ISO> format applies sprintf()'s pattern
 "%04d-%02d-%02d %02d:%02d:%02d.%04d" for TIMESTAMP, "%04d-%02d-%02d" for
-DATE, and "%02d:%02d:%02d.%04d" for TIME.
+DATE, and "%02d:%02d:%02d.%04d" for TIME. 
 
 C<$dbh-E<gt>{ib_time_all}> can be used to specify all of the three formats at
 once. Example:
@@ -990,7 +990,7 @@ posted event received.
 
  $evh = $dbh->func(@event_names, 'ib_init_event');
 
-Creates an event handle from a list of event names.
+Creates an event handle from a list of event names. 
 
 =item C<ib_wait_event>
 
@@ -1010,20 +1010,20 @@ or undef on failure.
 
  # or anonyomus subroutine
  $dbh->func(
-   $evh,
-   sub { my ($pe) = @_; ++$::COUNT < 6 },
+   $evh, 
+   sub { my ($pe) = @_; ++$::COUNT < 6 }, 
    'ib_register_callback'
  );
 
 Associates an event handle with an asynchronous callback. A callback will be
 passed a hashref as its argument, this hashref contains pair(s) of posted event's name
-and its corresponding count.
+and its corresponding count. 
 
-It is safe to call C<ib_register_callback> multiple times for the same event handle. In this
+It is safe to call C<ib_register_callback> multiple times for the same event handle. In this 
 case, the previously registered callback will be automatically cancelled.
 
 If the callback returns FALSE, the registered callback will be no longer invoked, but internally
-it is still there until the event handle goes out of scope (or undef-ed), or you call
+it is still there until the event handle goes out of scope (or undef-ed), or you call 
 C<ib_cancel_callback> to actually disassociate it from the event handle.
 
 =item C<ib_cancel_callback>
@@ -1033,7 +1033,7 @@ C<ib_cancel_callback> to actually disassociate it from the event handle.
 Unregister a callback from an event handle. This function has a limitation,
 however, that it can't be called from inside a callback. In many cases, you won't
 need this function, since when an event handle goes out of scope, its associated callback(s)
-will be automatically cancelled before it is cleaned up.
+will be automatically cancelled before it is cleaned up. 
 
 
 =back
@@ -1053,13 +1053,13 @@ Retrieve information about current active transaction.
  $hash_ref = $dbh->func(@info, 'ib_database_info');
  $hash_ref = $dbh->func([@info], 'ib_database_info');
 
-Retrieve database information from current connection.
+Retrieve database information from current connection. 
 
 =item C<ib_plan>
 
  $plan = $sth->func('ib_plan');
 
-Retrieve query plan from a prepared SQL statement.
+Retrieve query plan from a prepared SQL statement. 
 
  my $sth = $dbh->prepare('SELECT * FROM foo');
  print $sth->func('ib_plan'); # PLAN (FOO NATURAL)
@@ -1069,7 +1069,7 @@ Retrieve query plan from a prepared SQL statement.
 
 =head1 UNSUPPORTED SQL STATEMENTS
 
-Here is a list of SQL statements which can't be used. But this shouldn't be a
+Here is a list of SQL statements which can't be used. But this shouldn't be a 
 problem, because their functionality are already provided by the DBI methods.
 
 =over 4
@@ -1093,30 +1093,30 @@ Calling do() method without bind value(s) will do the same.
 
 $sth->{CursorName} is automagically available upon executing a "SELECT .. FOR
 UPDATE" statement. A cursor is closed after the last fetch(), or by calling
-$sth->finish().
+$sth->finish(). 
 
 =item * PREPARE, EXECUTE, FETCH
 
-Similar functionalities are obtained by using prepare(), execute(), and
+Similar functionalities are obtained by using prepare(), execute(), and 
 fetch() methods.
 
 =back
 
-=head1 COMPATIBILITY WITH DBIx::* MODULES
+=head1 COMPATIBILITY WITH DBIx::* MODULES 
 
 C<DBD::InterBase> is known to work with C<DBIx::Recordset> 0.21, and
-C<Apache::DBI> 0.87. Yuri Vasiliev <I<yuri.vasiliev@targuscom.com>> reported
-successful usage with Apache::AuthDBI (part of C<Apache::DBI> 0.87
+C<Apache::DBI> 0.87. Yuri Vasiliev <I<yuri.vasiliev@targuscom.com>> reported 
+successful usage with Apache::AuthDBI (part of C<Apache::DBI> 0.87 
 distribution).
 
-The driver is untested with C<Apache::Session::DBI>. Doesn't work with
-C<Tie::DBI>. C<Tie::DBI> calls $dbh->prepare("LISTFIELDS $table_name") on
-which InterBase fails to parse. I think that the call should be made within
+The driver is untested with C<Apache::Session::DBI>. Doesn't work with 
+C<Tie::DBI>. C<Tie::DBI> calls $dbh->prepare("LISTFIELDS $table_name") on 
+which InterBase fails to parse. I think that the call should be made within 
 an eval block.
 
 =head1 FAQ
 
-=head2 Why do some operations performing positioned update and delete fail when AutoCommit is on?
+=head2 Why do some operations performing positioned update and delete fail when AutoCommit is on? 
 
 For example, the following code snippet fails:
 
@@ -1124,7 +1124,7 @@ For example, the following code snippet fails:
  "SELECT * FROM ORDERS WHERE user_id < 5 FOR UPDATE OF comment");
  $sth->execute;
  while (@res = $sth->fetchrow_array) {
-     $dbh->do("UPDATE ORDERS SET comment = 'Wonderful' WHERE
+     $dbh->do("UPDATE ORDERS SET comment = 'Wonderful' WHERE 
      CURRENT OF $sth->{CursorName}");
  }
 
@@ -1216,18 +1216,18 @@ PRODUCE_ID with increment size of 1.
 
 =head2 How can I perform LIMIT clause as I usually do in MySQL?
 
-C<LIMIT> clause let users to fetch only a portion rather than the whole
-records as the result of a query. This is particularly efficient and useful
-for paging feature on web pages, where users can navigate back and forth
-between pages.
+C<LIMIT> clause let users to fetch only a portion rather than the whole 
+records as the result of a query. This is particularly efficient and useful 
+for paging feature on web pages, where users can navigate back and forth 
+between pages. 
 
 Using InterBase (Firebird is explained later), this can be emulated by writing a
-stored procedure. For example, to display a portion of table_forum, first create
+stored procedure. For example, to display a portion of table_forum, first create 
 the following procedure:
 
  CREATE PROCEDURE PAGING_FORUM (start INTEGER, num INTEGER)
  RETURNS (id INTEGER, title VARCHAR(255), ctime DATE, author VARCHAR(255))
- AS
+ AS 
  DECLARE VARIABLE counter INTEGER;
  BEGIN
    counter = 0;
@@ -1238,7 +1238,7 @@ the following procedure:
       IF (counter = :start + :num) THEN EXIT;
       ELSE
          IF (counter >= :start) THEN SUSPEND;
-      counter = counter + 1;
+      counter = counter + 1;          
    END
  END !!
  SET TERM ; !!
@@ -1248,13 +1248,13 @@ And within your application:
  # fetch record 1 - 5:
  $res = $dbh->selectall_arrayref("SELECT * FROM paging_forum(0,5)");
 
- # fetch record 6 - 10:
+ # fetch record 6 - 10: 
  $res = $dbh->selectall_arrayref("SELECT * FROM paging_forum(5,5)");
 
 But never expect this to work:
 
  $sth = $dbh->prepare(<<'SQL');
- EXECUTE PROCEDURE paging_forum(5,5)
+ EXECUTE PROCEDURE paging_forum(5,5) 
  RETURNING_VALUES :id, :title, :ctime, :author
  SQL
 
@@ -1263,7 +1263,7 @@ With Firebird 1 RCx and later, you can use C<SELECT FIRST>:
  SELECT FIRST 10 SKIP 30 * FROM table_forum;
 
 C<FIRST x> and C<SKIP x> are both optional. C<FIRST> limits the number of
-rows to return, C<SKIP> ignores (skips) the first x rows in resultset.
+rows to return, C<SKIP> ignores (skips) the first x rows in resultset. 
 
 
 =head2 How can I use the date/time formatting attributes?
@@ -1277,7 +1277,7 @@ Examples:
     ib_timeformat => '%H:%M',
  };
 
-Then, pass it to prepare() method.
+Then, pass it to prepare() method. 
 
  $sth = $dbh->prepare($stmt, $attr);
  # followed by execute() and fetch(), or:
@@ -1294,11 +1294,11 @@ probably I'll add this capability for the next release.
 
 =head2 Can I change ib_dialect after DBI->connect ?
 
-No. If this is a problem to you, let me know, and probably I'll add this
+No. If this is a problem to you, let me know, and probably I'll add this 
 capability for the next release.
 
 
-=head2 Why do execute(), do() method and rows() method always return -1 upon
+=head2 Why do execute(), do() method and rows() method always return -1 upon 
 a successful operation?
 
 Incorrect question. $sth->rows returns the number of fetched rows after a
@@ -1308,7 +1308,7 @@ will change in future release.
 
 =head1 OBSOLETE FEATURES
 
-=over
+=over 
 
 =item Private Method
 
@@ -1344,8 +1344,8 @@ C<set_tx_param()> is obsoleted by C<ib_set_tx_param()>.
 
 =item FirebirdSS 1.5.2.4731 for Windows, Linux
 
-=item FirebirdSS 2.0 RC4 for Linux. The AMD64 (64-bit) version is also tested. Should also
-work with Intel EM64T.
+=item FirebirdSS 2.0 RC4 for Linux. The AMD64 (64-bit) version is also tested. Should also 
+work with Intel EM64T. 
 
 
 =back
@@ -1356,7 +1356,7 @@ work with Intel EM64T.
 
 =item * DBI by Tim Bunce <Tim.Bunce@pobox.com>
 
-=item * DBD::InterBase by Edwin Pratomo <edpratomo@cpan.org> and Daniel Ritz
+=item * DBD::InterBase by Edwin Pratomo <edpratomo@cpan.org> and Daniel Ritz 
 <daniel.ritz@gmx.ch>.
 
 This module is originally based on the work of Bill Karwin's IBPerl.
@@ -1365,7 +1365,7 @@ This module is originally based on the work of Bill Karwin's IBPerl.
 
 =head1 BUGS/LIMITATIONS
 
-Please report bugs and feature suggestions using
+Please report bugs and feature suggestions using 
 http://rt.cpan.org/Public/Dist/Display.html?Name=DBD-InterBase.
 
 This module doesn't work with MSWin32 ActivePerl iThreads, and its emulated
@@ -1374,7 +1374,7 @@ process will block in unpredictable manner.
 
 Under Linux, this module has been tested with several different iThreads
 enabled Perl releases: perl-5.8.0-88 from RedHat 9, perl-5.8.5-9 from Fedora
-Core 3, perl-5.8.6-15 from Fedora Core 4, and Perl 5.8.[78].
+Core 3, perl-5.8.6-15 from Fedora Core 4, and Perl 5.8.[78]. 
 
 No problem occurred so far.. until you try to share a DBI handle ;-)
 
@@ -1403,7 +1403,7 @@ DBI(3).
 The DBD::InterBase module is Copyright (c) 1999-2008 Edwin Pratomo.
 Portions Copyright (c) 2001-2005 Daniel Ritz.
 
-The DBD::InterBase module is free software.
+The DBD::InterBase module is free software. 
 You may distribute under the terms of either the GNU General Public
 License or the Artistic License, as specified in the Perl README file,
 with the exception that it cannot be placed on a CD-ROM or similar media
@@ -1414,7 +1414,7 @@ for commercial distribution without the prior approval of the author.
 An attempt to enumerate all who have contributed patches (may misses some):
 Michael Moehle, Igor Klingen, Sergey Skvortsov, Ilya Verlinsky, Pavel
 Zheltouhov, Peter Wilkinson, Mark D. Anderson, Michael Samanov, Michael
-Arnett, Flemming Frandsen, Mike Shoyher, Christiaan Lademann.
+Arnett, Flemming Frandsen, Mike Shoyher, Christiaan Lademann.  
 
 
 =cut
