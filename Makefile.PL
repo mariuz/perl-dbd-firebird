@@ -239,47 +239,6 @@ sub make_test_conf
             die "isql open error!\n";
         }
 
-<<<<<<< HEAD
-### Should change the name of the module to DBD::Firebird, ASAP
-##  Check this options !!!
-my %opts =
-    (
-     NAME           => 'DBD::InterBase',
-     VERSION_FROM   => 'InterBase.pm',
-     INC            => "-I". $fb->inc_dir . " -I$dbi_arch_dir",
-     OBJECT         => "InterBase\$(OBJ_EXT) dbdimp\$(OBJ_EXT)",
-     LIBS           => [ $fb->libs . ' -ldl'],
-     AUTHOR         => 'Edwin Pratomo',
-     ABSTRACT       => 'InterBase database driver for the DBI module',
-     PREREQ_PM      => {
-                        'ExtUtils::MakeMaker' => '6.11',
-                        'DBI'                 => '1.52',
-                        'Test::More'          => '0.61',
-                        'version'             => '0',
-                       },
-     CCFLAGS        => $comp_opts,
-     PERL_MALLOC_OK => 1,
-     NEEDS_LINKING  => 1,
-     NO_META        => 1,
-     NORECURS       => 1,
-     clean          => { FILES => "*.xsc *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/InterBase/*~ lib/DBD/InterBase/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old" },
-     realclean       => { FILES => "t/test.conf" },
-);
-
-### This should be checked and extended by platform !!!
-if ($os eq 'hpux') {
-    # my $osvers = $Config{osvers};
-    # if ($osvers < 10) {
-    #     print "Warning: Forced to build static not dynamic on $os $osvers.\a\n";
-    #     $opts{LINKTYPE} = 'static';
-    # }
-}
-elsif ($os =~ /Win32/) {
-    # my $msdir = $FIREBIRD_LIB;
-    # $msdir =~ s{"$}{/ms"};
-    # $opts{LIBS}[0] .= " -L$msdir -lsecur32";
-}
-=======
         unless ($database_ok) {
             print "Creating new database: $path\n";
             create_test_db($path, $user, $pass);
@@ -304,7 +263,6 @@ EOM
             $path = undef, goto DBPATH;
         }
     }
->>>>>>> parent of 091d130... New Makefile.PL from the old one used in DBD::Pg :)
 
     # save test config to file
     open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
@@ -354,13 +312,9 @@ sub create_test_db
     }
 }
 
-<<<<<<< HEAD
-### What is this for?, does apply to DBD::Firebird? !!! ;)
-=======
 ################################################################################
 # MAIN
 ################################################################################
->>>>>>> parent of 091d130... New Makefile.PL from the old one used in DBD::Pg :)
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.

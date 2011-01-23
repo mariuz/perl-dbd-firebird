@@ -6,8 +6,6 @@
 #
 
 use strict;
-use warnings;
-
 use DBI;
 use Test::More tests => 14;
 
@@ -19,7 +17,7 @@ $::test_password = '';
 my $file;
 do {
     if (-f ($file = "t/InterBase.dbtest") ||
-        -f ($file = "InterBase.dbtest"))
+        -f ($file = "InterBase.dbtest")) 
     {
         eval { require $file };
         if ($@) {
@@ -30,17 +28,13 @@ do {
 };
 
 sub find_new_table {
-    my $dbh      = shift;
-
-    my $try_name = 'TESTAB';
-    my %tables   = map { uc($_) => 1 } $dbh->tables;
-    # diag explain \%tables;
-
-    while ( exists $tables{$try_name} ) {
-        $try_name++;
+    my $dbh = shift;
+    my $try_name = 'TESTAA';
+    my %tables = map { uc($_) => 1 } $dbh->tables;
+    while (exists $tables{$try_name}) {
+        ++$try_name;
     }
-
-    return $try_name;
+    $try_name;  
 }
 
 my $dbh2 = DBI->connect($::test_dsn, $::test_user, $::test_password);
@@ -50,7 +44,7 @@ SKIP: {
     my $r = $dbh2->func(
         -lock_resolution => { 'wait' => 2 },
         'ib_set_tx_param');
-
+        
     defined $r or skip "wait timeout is not available", 12;
 
     my $dbh1 = DBI->connect($::test_dsn, $::test_user, $::test_password);
@@ -58,10 +52,9 @@ SKIP: {
 
     my $table = find_new_table($dbh1);
     ok($table);
-    diag($table);
 
     {
-        my $def = "CREATE TABLE $table (id INTEGER NOT NULL, cnt INTEGER DEFAULT 0 NOT NULL)";
+        my $def = "CREATE TABLE $table(id INTEGER NOT NULL, cnt INTEGER DEFAULT 0 NOT NULL)";
         ok($dbh1->do($def));
     }
 
@@ -100,8 +93,9 @@ SKIP: {
         ok($dbh1->commit, "1st tx committed");
     }
 
-    ok($dbh2->disconnect);
+	ok($dbh2->disconnect);
 
     ok($dbh1->do("DROP TABLE $table"), "DROP TABLE $table");
-    ok($dbh1->disconnect);
+    ok($dbh1->disconnect);    
 } # - SKIP {}
+

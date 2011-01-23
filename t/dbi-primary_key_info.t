@@ -1,40 +1,26 @@
 #!perl -w
 # vim: ft=perl
 
-# Changes 2011-01-21   stefansbv:
-# - use testlib.pl instead of lib.pl
-
-use strict;
-use warnings;
-
-use Test::More tests => 13;
+use Test::More;
 use DBI;
+use strict;
+use lib 't', '.';
+require 'lib.pl';
+$|= 1;
 
-# FIXME - consolidate this duplicated code
-
-# Make -w happy
-$::test_dsn = '';
-$::test_user = '';
-$::test_password = '';
-
-for my $file ('t/testlib.pl', 'testlib.pl') {
-    next unless -f $file;
-    eval { require $file };
-    BAIL_OUT("Cannot load testlib.pl\n") if $@;
-    last;
-}
-
+use vars qw($table $test_dsn $test_user $test_password);
 my $dbh;
-eval {$dbh= DBI->connect($::test_dsn, $::test_user, $::test_password,
-                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });};
+eval {$dbh= DBI->connect($test_dsn, $test_user, $test_password,
+                      { RaiseError => 1, PrintError => 0, AutoCommit => 0 });};
+
 if ($@) {
     plan skip_all => "ERROR: $DBI::errstr. Can't continue test";
 }
-ok($dbh);
+plan tests => 12;
 
 ok(defined $dbh, "Connected to database for key info tests");
 
-my $table = find_new_table($dbh);
+$table = FindNewTable($dbh);
 
 ok($dbh->do(<<__eosql), "CREATE TABLE $table");
   CREATE TABLE $table(

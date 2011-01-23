@@ -20,7 +20,6 @@ my $upper_bound = 'TESTZZ';
 
 sub find_new_table {
     my $dbh = shift;
-
     my $try_name = 'TESTAA';
     my $try_name_quoted = $dbh->quote_identifier($try_name);
 
@@ -33,7 +32,7 @@ sub find_new_table {
         }
     }
 
-    return $try_name;
+    $try_name;
 }
 
 __END__
