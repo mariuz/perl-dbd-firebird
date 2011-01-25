@@ -1,0 +1,15 @@
+# Lines starting with '#' are considered comments.
+Makefile
+META.yml
+pm_to_blib
+blib/
+inc/
+*.tmp
+*~
+*.sqlite
+*.log
+*.bs
+*.o
+*.xsc
+InterBase.c
+t/test.conf

@@ -17,6 +17,7 @@ use Config;
 use Carp;
 use strict;
 use File::Basename;
+use File::Spec;
 use vars qw($Registry);
 
 
@@ -81,8 +82,8 @@ if ($Config::Config{osname} eq 'MSWin32')
 else
 {
     $isql_name = 'isql';
-    @ib_bin_dirs = (qw(/usr/interbase/bin /opt/interbase/bin /opt/firebird/bin /usr/bin /usr/local/bin));
-    @ib_inc_dirs = (qw(/usr/interbase/include /opt/interbase/include /opt/firebird/include /usr/include));
+    @ib_bin_dirs = (qw(/opt/firebird/bin /usr/bin /usr/local/bin));
+    @ib_inc_dirs = (qw(/opt/firebird/include /usr/include));
 }
 
 sub locate_dbi_arch_dir {
@@ -94,7 +95,7 @@ sub locate_dbi_arch_dir {
     return $xst[0];
 }
 
-sub ISQL_EXE
+sub get_isql_path
 {
     # try to find isql
     return $isql_path if $isql_path;
@@ -118,7 +119,7 @@ sub ISQL_EXE
         die "Unable to execute isql. Aborting..";
     }
 
-    $isql_path;
+    return File::Spec->canonpath($isql_path);
 }
 
 ################################################################################
@@ -187,54 +188,86 @@ sub make_test_conf
 
     # ask for database path
     DBPATH: {
-        for (1..3) {
-            last if $path = prompt("\nFull path to test database to create or use: ", $path);
+        for ( 1 .. 3 ) {
+            last
+              if $path =
+                  prompt( "\nFull path to test database to create or use: ",
+                      $path );
         }
         die "Must specify a test database" unless $path;
 
+        $path = File::Spec->canonpath($path); # correct path on all platforms
+        print "paths is $path\n";
         ($db, $host) = reverse split /:/, $path;
         $user = prompt("Username :", $user);
         $pass = prompt("Password :", $pass);
 
-        my $isql = ISQL_EXE;
-		my $dialect = undef;
+        my $isql = get_isql_path();
+        # print "isql is $isql\n";
+        my $dialect;
+        my $database_ok = 1;
 
-        if (open(*ISQL, "\Q$isql\E -u \Q$user\E -p \Q$pass\E -x \Q$path\E |")) {
-			while (<ISQL>) {
-				if (/DIALECT (\d)/i) {
-					$dialect = $1;
-					last;
-				}
-			}
-			close(ISQL);
-		} else {
-			# Assume target db did not exist
-			create_test_db($path, $user, $pass);
-		}
+        # Using isql CLI to connect to the database and retrieve the
+        # dialect.  If I/O error then just create a new database
+        my $ocmd = qq($isql -u $user -p $pass -x $path 2>&1);
+        eval {
+            #print "cmd is  $ocmd\n";
+            open my $fh, '-|', $ocmd;
+          OPEN:
+            while (<$fh>) {
+                my $line = $_;
+                # print " $line\n";
+                # check for I/O error
+                if ($line =~ /error/i) {
+                    $database_ok = 0;
+                    last OPEN;
+                }
+                # check for I/O error
+                if ($line =~ /Firebird login/i) {
+                    print "!!! Check your Firebird login parameters !!!\n";
+                    $path = undef, goto DBPATH; # should change this!
+                }
+                # get dialect if got here
+                if ($line =~ /DIALECT (\d)/i) {
+                    $dialect = $1;
+                    last OPEN;
+                }
+            }
+            close $fh;
+        };
+        if ($@) {
+            die "isql open error!\n";
+        }
 
-		unless (defined $dialect) {
-			print <<"EOM";
+        unless ($database_ok) {
+            print "Creating new database: $path\n";
+            create_test_db($path, $user, $pass);
+            last DBPATH;
+        }
+
+        unless (defined $dialect) {
+            print <<"EOM";
 
 Dialect of $path is UNKNOWN.
 This test requires a database of dialect 3. You may specify a non-existent database to create a new one.
 EOM
-			my $is_proceed = prompt("Proceed anyway or create a NEW test database (P/N)?", "P");
-			last DBPATH if $is_proceed =~ /P/i;
-			$path = undef, goto DBPATH;
-		}
-		unless ($dialect == 3) {
-			print <<"EOM";
+            my $is_proceed = prompt("Proceed anyway or create a NEW test database (P/N)?", "P");
+            last DBPATH if $is_proceed =~ /P/i;
+            $path = undef, goto DBPATH;
+        }
+        unless ($dialect == 3) {
+            print <<"EOM";
 The dialect of $path is: $dialect !!.
 This test requires a database of dialect 3. Please specify a non-existent database to create a new one.
 EOM
-			$path = undef, goto DBPATH;
-		}
-	}
+            $path = undef, goto DBPATH;
+        }
+    }
 
     # save test config to file
-    open F, ">$test_conf" or die "Can't write $test_conf: $!";
-    print F 'dbi:InterBase:' . ($host ? "host=$host;" : '') . "db=$db;ib_dialect=3;ib_charset=ISO8859_1\n$user\n$pass\n";
-    close F;
+    open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
+    print { $t_fh } 'dbi:InterBase:' . ($host ? "host=$host;" : '') . "db=$db;ib_dialect=3;ib_charset=ISO8859_1\n$user\n$pass\n";
+    close $t_fh;
 }
 
 ################################################################################
@@ -250,20 +283,33 @@ sub create_test_db
     my ($path, $user, $pass) = @_;
 
     # create the SQL file with CREATE statement
-    open(T, ">./t/create.sql") or die "Can't write to t/create.sql";
+    open my $t_fh, '>', './t/create.sql' or die "Can't write to t/create.sql";
     while(<DATA>)
     {
         s/__TESTDB__/$path/;
         s/__USER__/$user/;
         s/__PASS__/$pass/;
-        print T;
+        print {$t_fh} $_;
     }
-    close T;
+    close $t_fh;
 
     # try to execute isql and create the test database
-	my $isql = ISQL_EXE;
-    system($isql, '-sql_dialect', 3, '-i', './t/create.sql') == 0
-        or die "Fail calling $isql -i t/create/sql: $?";
+    my $isql = get_isql_path();
+    # system($isql, '-sql_dialect', 3, '-i', './t/create.sql') == 0
+    #     or die "Fail calling $isql -i t/create/sql: $?";
+    my $ocmd = qq($isql -sql_dialect 3 -i ./t/create.sql 2>&1);
+    eval {
+        # print "cmd is  $ocmd\n";
+        open my $isql_fh, '-|', $ocmd;
+        while (<$isql_fh>) {
+            # For debug:
+            #print "> $_\n";
+        }
+        close $isql_fh;
+    };
+    if ($@) {
+        die "ISQL open error!\n";
+    }
 }
 
 ################################################################################
@@ -316,7 +362,7 @@ if ($os eq 'MSWin32')
 {
     # set up PPM package parameters
     $MakeParams{'AUTHOR'}   = 'Edwin Pratomo (edpratomo@users.sourceforge.net)';
-    $MakeParams{'ABSTRACT'} = 'DBD::InterBase is a DBI driver for Firebird and InterBase, written using InterBase C API.';
+    $MakeParams{'ABSTRACT'} = 'DBD::InterBase is a DBI driver for Firebird , written using Firebird C API.';
 
     my $vc_dir = '';
     if ($Config::Config{'cc'} eq "cl")
@@ -334,7 +380,7 @@ if ($os eq 'MSWin32')
 
             # We have to check more than one keys, because different
             # releases of Visual C++ have used different key hierarchies.
-            my $key = 
+            my $key =
                 $sw->{"Microsoft/VisualStudio/6.0/Setup/Microsoft Visual C++"} ||
                 $sw->{"Microsoft/VisualStudio/7.0/Setup/VC"};
 
@@ -358,7 +404,7 @@ if ($os eq 'MSWin32')
 
         $INC .= " -I\"$vc_inc\"";
 
-        my $ib_lib = dir_choice("InterBase lib directory", 
+        my $ib_lib = dir_choice("InterBase lib directory",
                             [$ib_lib_dir . "SDK\\lib_ms", $ib_lib_dir . "lib"],
                             [qw(gds32_ms.lib fbclient_ms.lib)]);
 
@@ -375,58 +421,46 @@ if ($os eq 'MSWin32')
     sub MY::const_loadlibs {
     '
 LDLOADLIBS = \"$lib\" $cur_libs
-LDDLFLAGS = /LIBPATH:\"$vc_lib\" $cur_lddlflags
+LDDLFLAGS =  -L\"$vc_lib\" $cur_lddlflags
+    '
+    } ";
+    }
+    # Support for MinGW with hard wired Strawberry default paths
+    elsif ($Config::Config{'cc'} eq "gcc") {
+        print "Using MinGW gcc (hard wired Strawberry default paths)\n";
+        my $MGW_PATH = 'C:\\strawberry\\c';
+
+        # Copy from above
+        my $mingw_inc = $MGW_PATH . "\\include";
+        my $mingw_lib = $MGW_PATH . "\\lib";
+
+        $INC .= " -I\"$mingw_inc\"";
+
+        my $ib_lib = dir_choice("InterBase lib directory",
+                            [$ib_lib_dir . "SDK\\lib_ms", $ib_lib_dir . "lib"],
+                            [qw(gds32_ms.lib fbclient_ms.lib)]);
+
+        my $cur_libs = $Config::Config{'libs'} ;
+        my $cur_lddlflags = $Config::Config{'lddlflags'} ;
+
+        my $lib;
+        if (-f "$ib_lib/fbclient_ms.lib")
+            { $lib = "$ib_lib/fbclient_ms.lib"; }
+     else
+            { $lib = "$ib_lib/gds32_ms.lib"; }
+
+        eval "
+    sub MY::const_loadlibs {
+    '
+LDLOADLIBS = \"$lib\" $cur_libs
+LDDLFLAGS =  -L\"$mingw_lib\" $cur_lddlflags
     '
     } ";
     }
     else
     {
-        # Borland C++ 5.5
-        my $bcc = $Config::Config{'bcc_path'} . "\\";
-
-        my $BCC_PATH = dir_choice("Borland C++ directory",
-            [qw(c:/borland/bcc55), $bcc],
-            [qw(bin/bcc32.exe)]);
-
-        unless(-x $BCC_PATH)
-        {
-            carp "I can't find your Borland C++ installation.\nDBD::InterBase cannot build.\n";
-            exit 1;
-        }
-
-        my $ib_lib = dir_choice("InterBase lib directory", 
-                            [$ib_lib_dir . "SDK\\lib", $ib_lib_dir . "lib"],
-                            [qw(gds32.lib fbclient.lib fbclient_ms.lib)]);
-
-        my $lib;
-        if (-f "$ib_lib/fbclient.lib")
-            { $lib = "$ib_lib/fbclient.lib"; }
-        elsif (-f "$ib_lib/fbclient_ms.lib")
-        {
-            # the borland compiler want omf format libs
-            system("\"$BCC_PATH\\bin\\coff2omf\"",
-                   "$ib_lib/fbclient_ms.lib",
-                   "$ib_lib/fbclient.lib");
-            $lib = "$ib_lib/fbclient.lib";
-        }
-        else
-            { $lib = "$ib_lib/gds32.lib"; }
-
-        my $bcc_inc = $BCC_PATH . "include";
-        $MakeParams{'CCFLAGS'}    = '-a4 -w- -DWIN32 -DNO_STRICT -DNDEBUG -D_CONSOLE -DHAVE_DES_FCRYPT -DPERL_IMPLICIT_CONTEXT -DPERL_IMPLICIT_SYS -DPERL_MSVCRT_READFIX';
-        $MakeParams{'OPTIMIZE'}   = "-O2";
-        $MakeParams{'INC'}       .= " -I\"$bcc_inc\"";
-
-        eval "
-    sub MY::const_loadlibs {
-  '
-LDLOADLIBS = \$(LIBC) import32.lib $lib cw32.lib
-LDDLFLAGS = -L\"$ib_lib\" -L\"$BCC_PATH\\lib\"
-  '
-  }
-    ";
+	
     }
-    # Will I need Cygwin rules too?
 }
 elsif ($os eq 'solaris')
 {
@@ -435,7 +469,7 @@ elsif ($os eq 'solaris')
 elsif (($os eq 'linux') || ($os eq 'freebsd'))
 {
     my $ib_lib = dir_choice("InterBase/Firebird lib directory",
-    [qw(/usr/firebird/lib /opt/firebird/lib /usr/interbase/lib /opt/interbase/lib /usr/lib /usr/local/lib)],
+    [qw(/usr/firebird/lib /opt/firebird/lib /usr/lib /usr/local/lib)],
     [qw(libgds.a libgds.so libfbclient.so libfbembed.so)]);
     my $lib;
 
@@ -461,27 +495,10 @@ elsif (($os eq 'linux') || ($os eq 'freebsd'))
 
     $MakeParams{'LIBS'} = "-L$ib_lib -l$lib $ldl ";
 
-    # o Commercial IB 5.1.1 for Red Hat Linux 6.x
-    #   requires a compatibilty library to resolve
-    #   symbols such as _xstat that were removed
-    #   from glibc 2.1.  IB 5.6 and later don't need
-    #   this, but it doesn't hurt to list the library.
-    if (-f ('/lib/libNoVersion-2.1.2.so'))
-  {
-     $MakeParams{'LIBS'} .= ' -lNoVersion-2.1.2'
-  }
 }
 elsif ($os eq 'hpux')
 {
     $MakeParams{'LIBS'} = '-lgds -ldld';
-}
-elsif ($os eq 'sco')
-{
-    # Uncomment this line if you use InterBase 4.0 for SCO OSR5:
-    # $LIBS = '-b elf -B dynamic -lgds -lsocket -lcrypt_i';
-
-    # Uncomment this line if you use InterBase 5.5 for SCO OSR5:
-    $MakeParams{'LIBS'} = '-lgds -lsocket -lcrypt_i -lc -lm';
 }
 elsif ($os eq 'sunos')
 {
