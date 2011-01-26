@@ -1,4 +1,3 @@
-
 #   $Id: Makefile.PL 394 2008-01-08 05:29:19Z edpratomo $
 #
 #   Copyright (c) 1999-2005 Edwin Pratomo
@@ -8,6 +7,15 @@
 #   License or the Artistic License, as specified in the Perl README file,
 #   with the exception that it cannot be placed on a CD-ROM or similar media
 #   for commercial distribution without the prior approval of the author.
+
+# Changes
+#
+# 2011-01-26, stefansbv:
+# fixed the isql tool path and the command line
+#   (using quotes around parameters and canonpath)
+# when isql error create the test database and inform the user
+# improved support for MinGW (now using the Config module)
+# added support for ActivePerl! :)
 
 BEGIN { $^W = 0 }       # turn warnings off
 BEGIN { require 5.004 } # 5.003 fixes very important bugs
@@ -19,7 +27,6 @@ use strict;
 use File::Basename;
 use File::Spec;
 use vars qw($Registry);
-
 
 # This DBI must be installed before we can build a DBD.
 # For those not using Dynamic loading this means building a
@@ -55,7 +62,8 @@ if ($Config::Config{osname} eq 'MSWin32')
         Win32::TieRegistry->import('$Registry');
         $Registry->Delimiter("/");
 
-        my $sw = $Registry->{"LMachine/Software/"} or die "Can't read LMachine/Software key: $^E\n";
+        my $sw = $Registry->{"LMachine/Software/"}
+            or die "Can't read LMachine/Software key: $^E\n";
         # We have to check more than one keys, because different
         # releases of InterBase have used different key hierarchies.
 
@@ -105,6 +113,7 @@ sub get_isql_path
         next unless $_;
         if (-x "$_/$isql_name") {
             $isql_path = "$_/$isql_name";
+            $isql_path = File::Spec->canonpath($isql_path);
             return $isql_path;
         }
     }
@@ -114,12 +123,13 @@ sub get_isql_path
         for (1..3)
         {
             $isql_path = prompt("Enter full path to isql: ", $isql_path);
+            $isql_path = File::Spec->canonpath($isql_path);
             last EXEC if (-x $isql_path);
         }
         die "Unable to execute isql. Aborting..";
     }
 
-    return File::Spec->canonpath($isql_path);
+    return $isql_path;
 }
 
 ################################################################################
@@ -197,40 +207,39 @@ sub make_test_conf
         die "Must specify a test database" unless $path;
 
         $path = File::Spec->canonpath($path); # correct path on all platforms
-        print "paths is $path\n";
+        print "Test database path is $path\n";
         ($db, $host) = reverse split /:/, $path;
         $user = prompt("Username :", $user);
         $pass = prompt("Password :", $pass);
 
         my $isql = get_isql_path();
-        # print "isql is $isql\n";
+        print "The isql path is $isql\n";
         my $dialect;
         my $database_ok = 1;
 
         # Using isql CLI to connect to the database and retrieve the
         # dialect.  If I/O error then just create a new database
-        my $ocmd = qq($isql -u $user -p $pass -x $path 2>&1);
+        my $ocmd = qq("$isql" -u "$user" -p "$pass" -x "$path" 2>&1);
         eval {
-            #print "cmd is  $ocmd\n";
             open my $fh, '-|', $ocmd;
-          OPEN:
+          LINE:
             while (<$fh>) {
                 my $line = $_;
-                # print " $line\n";
-                # check for I/O error
-                if ($line =~ /error/i) {
+                # Check for I/O error or 'not recognized' ... from cmd.exe
+                # print "II $line\n";
+                if ($line =~ /error|recognized/i) {
                     $database_ok = 0;
-                    last OPEN;
+                    last LINE;
                 }
-                # check for I/O error
+                # Check for Firebird login errors
                 if ($line =~ /Firebird login/i) {
                     print "!!! Check your Firebird login parameters !!!\n";
                     $path = undef, goto DBPATH; # should change this!
                 }
-                # get dialect if got here
+                # Get dialect if got here
                 if ($line =~ /DIALECT (\d)/i) {
                     $dialect = $1;
-                    last OPEN;
+                    last LINE;
                 }
             }
             close $fh;
@@ -240,7 +249,7 @@ sub make_test_conf
         }
 
         unless ($database_ok) {
-            print "Creating new database: $path\n";
+            print "Creating new database: $path ...";
             create_test_db($path, $user, $pass);
             last DBPATH;
         }
@@ -249,7 +258,9 @@ sub make_test_conf
             print <<"EOM";
 
 Dialect of $path is UNKNOWN.
-This test requires a database of dialect 3. You may specify a non-existent database to create a new one.
+This test requires a database of dialect 3. You may specify a
+non-existent database to create a new one.
+
 EOM
             my $is_proceed = prompt("Proceed anyway or create a NEW test database (P/N)?", "P");
             last DBPATH if $is_proceed =~ /P/i;
@@ -257,16 +268,21 @@ EOM
         }
         unless ($dialect == 3) {
             print <<"EOM";
-The dialect of $path is: $dialect !!.
-This test requires a database of dialect 3. Please specify a non-existent database to create a new one.
+The dialect of $path is: $dialect !!!
+This test requires a database of dialect 3. Please specify a
+non-existent database to create a new one.
+
 EOM
             $path = undef, goto DBPATH;
         }
     }
 
     # save test config to file
+    # TODO: consider using utf8 in the future
     open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
-    print { $t_fh } 'dbi:InterBase:' . ($host ? "host=$host;" : '') . "db=$db;ib_dialect=3;ib_charset=ISO8859_1\n$user\n$pass\n";
+    print {$t_fh} 'dbi:InterBase:'
+      . ( $host ? "host=$host;" : '' )
+      . "db=$db;ib_dialect=3;ib_charset=ISO8859_1\n$user\n$pass\n";
     close $t_fh;
 }
 
@@ -295,20 +311,27 @@ sub create_test_db
 
     # try to execute isql and create the test database
     my $isql = get_isql_path();
-    # system($isql, '-sql_dialect', 3, '-i', './t/create.sql') == 0
-    #     or die "Fail calling $isql -i t/create/sql: $?";
-    my $ocmd = qq($isql -sql_dialect 3 -i ./t/create.sql 2>&1);
+
+    my $ocmd = qq("$isql" -sql_dialect 3 -i ./t/create.sql 2>&1);
     eval {
-        # print "cmd is  $ocmd\n";
+        #print "cmd is  $ocmd\n";
         open my $isql_fh, '-|', $ocmd;
         while (<$isql_fh>) {
             # For debug:
-            #print "> $_\n";
+            # print "> $_\n";
         }
         close $isql_fh;
     };
     if ($@) {
         die "ISQL open error!\n";
+    }
+    else {
+        if ( -f $path ) {
+            print " done\n";
+        }
+        else {
+            print " failed!\n";
+        }
     }
 }
 
@@ -425,14 +448,26 @@ LDDLFLAGS =  -L\"$vc_lib\" $cur_lddlflags
     '
     } ";
     }
-    # Support for MinGW with hard wired Strawberry default paths
-    elsif ($Config::Config{'cc'} eq "gcc") {
-        print "Using MinGW gcc (hard wired Strawberry default paths)\n";
-        my $MGW_PATH = 'C:\\strawberry\\c';
+    # Support for MinGW
+    #  ActiveState: cc => V:\absolute\path\to\gcc.exe
+    #  Strawberry : cc => gcc
+    elsif ($Config::Config{'cc'} =~ m{gcc}i ) {
+        print "Using MinGW gcc\n";
 
-        # Copy from above
-        my $mingw_inc = $MGW_PATH . "\\include";
-        my $mingw_lib = $MGW_PATH . "\\lib";
+        # For ActiveState Perl hardwired MinGW path          # other idea?
+        my $mingw_path = 'C:\Perl\site\lib\auto\MinGW';
+
+        # Expecting absolute paths in Straberry Perl
+        my $mingw_inc = $Config::Config{incpath};
+        # For ActiveState Perl is  \include                  # always?
+        if ( $mingw_inc eq '\include' ) {
+            $mingw_inc = File::Spec->catpath($mingw_path,  $mingw_inc);
+        }
+        my $mingw_lib =  $Config::Config{libpth};
+        # For ActiveState Perl is  \lib                      # always?
+        if ( $mingw_lib eq '\lib' ) {
+            $mingw_lib = File::Spec->catpath($mingw_path,  $mingw_lib);
+        }
 
         $INC .= " -I\"$mingw_inc\"";
 
@@ -440,8 +475,8 @@ LDDLFLAGS =  -L\"$vc_lib\" $cur_lddlflags
                             [$ib_lib_dir . "SDK\\lib_ms", $ib_lib_dir . "lib"],
                             [qw(gds32_ms.lib fbclient_ms.lib)]);
 
-        my $cur_libs = $Config::Config{'libs'} ;
-        my $cur_lddlflags = $Config::Config{'lddlflags'} ;
+        my $cur_libs = $Config::Config{libs} ;
+        my $cur_lddlflags = $Config::Config{lddlflags} ;
 
         my $lib;
         if (-f "$ib_lib/fbclient_ms.lib")
@@ -459,7 +494,7 @@ LDDLFLAGS =  -L\"$mingw_lib\" $cur_lddlflags
     }
     else
     {
-	
+
     }
 }
 elsif ($os eq 'solaris')

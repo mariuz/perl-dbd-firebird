@@ -6,10 +6,9 @@ blib/
 inc/
 *.tmp
 *~
-*.sqlite
 *.log
 *.bs
 *.o
-*.xsc
+*.xsi
 InterBase.c
 t/test.conf
