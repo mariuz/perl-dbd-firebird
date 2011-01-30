@@ -1,135 +1,98 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 #   $Id: 30insertfetch.t 326 2005-01-13 23:32:29Z danielritz $
 #
 #   This is a simple insert/fetch test.
 #
-$^W = 1;
+
+# 2011-01-23 stefan(s.bv.)
+# New version based on testlib and InterBase.dbtest
+
+use strict;
+use warnings;
+use DBI;
+use Test::More tests => 13;
 
 #
 #   Make -w happy
 #
-$test_dsn = '';
-$test_user = '';
-$test_password = '';
+$::test_dsn = '';
+$::test_user = '';
+$::test_password = '';
 
-
-#
-#   Include lib.pl
-#
-use DBI;
-#DBI->trace(2, "trace.txt");
-$mdriver = "";
-foreach $file ("lib.pl", "t/lib.pl", "DBD-~~dbd_driver~~/t/lib.pl") {
-    do $file; if ($@) { print STDERR "Error while executing lib.pl: $@\n";
-               exit 10;
-              }
-    if ($mdriver ne '') {
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
     last;
-    }
 }
 
-sub ServerError() {
-    print STDERR ("Cannot connect: ", $DBI::errstr, "\n",
-    "\tEither your server is not up and running or you have no\n",
-    "\tpermissions for acessing the DSN $test_dsn.\n",
-    "\tThis test requires a running server and write permissions.\n",
-    "\tPlease make sure your server is running and you have\n",
-    "\tpermissions, then retry.\n");
-    exit 10;
-}
+# ------- TESTS ------------------------------------------------------------- #
+
+#   Connect to the database
+my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password);
+ok($dbh);
 
 #
-#   Main loop; leave this untouched, put tests after creating
-#   the new table.
+#   Find a possible new table name
 #
-while (Testing()) {
-    #
-    #   Connect to the database
-    Test($state or $dbh = DBI->connect($test_dsn, $test_user, $test_password))
-    or ServerError();
+my $table = find_new_table($dbh);
+ok($table);
 
-    #
-    #   Find a possible new table name
-    #
-    Test($state or $table = FindNewTable($dbh))
-       or DbiError($dbh->err, $dbh->errstr);
+#
+#   Create a new table
+#
+my $def =<<"DEF";
+CREATE TABLE $table (
+    id     INTEGER PRIMARY KEY,
+    name   VARCHAR(20)
+)
+DEF
+ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
 
-    #
-    #   Create a new table; EDIT THIS!
-    #
-    Test($state or ($def = TableDefinition($table,
-                      ["id",   "INTEGER",  4, 0],
-                      ["name", "CHAR",    64, 0]),
-            $dbh->do($def)))
-       or DbiError($dbh->err, $dbh->errstr);
+#
+#   Insert a row into the test table.......
+#
+ok( $dbh->do(qq{INSERT INTO $table VALUES (1, 'Alligator Descartes')}) );
 
+#
+# ... and delete it ...
+#
+ok($dbh->do("DELETE FROM $table WHERE id = 1"), "DELETE FROM $table");
 
-    #
-    #   Insert a row into the test table.......
-    #
-    Test($state or $dbh->do("INSERT INTO $table"
-                . " VALUES(1, 'Alligator Descartes')"))
-       or DbiError($dbh->err, $dbh->errstr);
+#
+#   Now, try SELECT'ing the row out. This should fail.
+#
+ok(my $cursor = $dbh->prepare("SELECT * FROM $table WHERE id = 1"), 'SELECT');
+ok($cursor->execute);
 
-    #
-    #   ...and delete it........
-    #
-    Test($state or $dbh->do("DELETE FROM $table WHERE id = 1"))
-       or DbiError($dbh->err, $dbh->errstr);
+my $row = $cursor->fetchrow_arrayref;
+$cursor->finish;
 
-    #
-    #   Now, try SELECT'ing the row out. This should fail.
-    #
-    Test($state or $cursor = $dbh->prepare("SELECT * FROM $table"
-                       . " WHERE id = 1"))
-       or DbiError($dbh->err, $dbh->errstr);
+#
+#   Insert two new rows
+#
+ok( $dbh->do("INSERT INTO $table VALUES (1, 'Edwin Pratomo')") );
+ok( $dbh->do("INSERT INTO $table VALUES (2, 'Daniel Ritz')") );
 
-    Test($state or $cursor->execute)
-       or DbiError($cursor->err, $cursor->errstr);
+#
+#   Try selectrow_array
+#
+my @array = $dbh->selectrow_array(qq{SELECT * FROM $table WHERE id = 1});
+is( scalar @array, 2, q{TEST selectrow_array} );
 
-    my ($row, $errstr);
-    Test($state or (!defined($row = $cursor->fetchrow_arrayref)  &&
-            (!defined($errstr = $cursor->errstr) ||
-             $cursor->errstr eq '')))
-    or DbiError($cursor->err, $cursor->errstr);
+#
+#   Try fetchall_hashref
+#
+my $hash = $dbh->selectall_hashref( qq{SELECT * FROM $table}, 'ID' );
+is( scalar keys %{$hash}, 2, q{TEST selectall_hashref} );
 
-    Test($state or $cursor->finish, "\$sth->finish failed")
-       or DbiError($cursor->err, $cursor->errstr);
+#
+#   ... and drop it.
+#
+ok($dbh->do("DROP TABLE $table"), "DROP TABLE '$table'");
 
-    Test($state or undef $cursor || 1);
-
-    #
-    #   insert two new rows
-    #
-    Test($state or $dbh->do("INSERT INTO $table"
-                . " VALUES(1, 'Edwin Pratomo')"))
-       or DbiError($dbh->err, $dbh->errstr);
-    Test($state or $dbh->do("INSERT INTO $table"
-                . " VALUES(2, 'Daniel Ritz')"))
-       or DbiError($dbh->err, $dbh->errstr);
-
-    #
-    #   try selectrow_array
-    #
-    Test($state or @array = $dbh->selectrow_array("SELECT * FROM $table"
-                       . " WHERE id = 1"))
-       or DbiError($dbh->err, $dbh->errstr);
-    Test($state or (@array == 2) or DbiError(0, "selectrow_array returned incorrect column count"));
-
-    #
-    #   try fetchall_hashref
-    #
-    Test($state or $hash = $dbh->selectall_hashref("SELECT * FROM $table", 'ID'))
-       or DbiError($dbh->err, $dbh->errstr);
-    Test($state or (defined $hash) or DbiError(0, "selectall_hashref returned undef"));
-
-
-    #
-    #   Finally drop the test table.
-    #
-    Test($state or $dbh->do("DROP TABLE $table"))
-       or DbiError($dbh->err, $dbh->errstr);
-
-}
-
+#
+#   Finally disconnect.
+#
+ok($dbh->disconnect());

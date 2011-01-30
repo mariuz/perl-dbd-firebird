@@ -5,101 +5,64 @@
 #   This is a test for all data types handling.
 #
 
-sub find_new_table {
-    my $dbh = shift;
-    my $try_name = 'TESTAA';
-    my %tables = map { uc($_) => 1 } $dbh->tables;
-    while (exists $tables{$try_name}) {
-        ++$try_name;
-    }
-    $try_name;
-}
+# 2011-01-23 stefansbv
+# New version based on testlib and InterBase.dbtest
+# NOW and TOMORROW tests replaced with simple TIME and DATE tests
+#   there is a separate test for them anyway
 
-#
-#   Make -w happy
-#
-$test_dsn = '';
-$test_user = '';
-$test_password = '';
+use strict;
+use warnings;
 
-# hmm this must be known prior to test. ugly...
-my $num_of_fields = 16;
-
-#
-#   Include lib.pl
-#
 use DBI;
-use vars qw($verbose $timestamp);
+use Test::More tests => 24;
 
-my ($sec, $min, $h, $d, $m, $y) = (localtime())[0..5];
-$y += 1900; $m++;
-$timestamp = sprintf("%04u-%02u-%02u %02u:%02u", $y, $m, $d, $h, $min);
+# Make -w happy
+$::test_dsn = '';
+$::test_user = '';
+$::test_password = '';
 
-#DBI->trace(5, "40alltypes.txt");
-
-$mdriver = "";
-foreach $file ("lib.pl", "t/lib.pl") {
-    do $file; if ($@) { print STDERR "Error while executing lib.pl: $@\n";
-               exit 10;
-              }
-    if ($mdriver ne '') {
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
     last;
-    }
 }
 
-sub ServerError() {
-    print STDERR ("Cannot connect: ", $DBI::errstr, "\n",
-    "\tEither your server is not up and running or you have no\n",
-    "\tpermissions for acessing the DSN $test_dsn.\n",
-    "\tThis test requires a running server and write permissions.\n",
-    "\tPlease make sure your server is running and you have\n",
-    "\tpermissions, then retry.\n");
-    exit 10;
-}
-
-my @is_match = (
-    sub { shift->[0]->[0] == 30000},
-    sub { shift->[0]->[1] == 1000},
-    sub { shift->[0]->[2] eq 'Edwin        '},
-    sub { shift->[0]->[3] eq 'Edwin Pratomo       '},
-    sub { shift->[0]->[4] eq 'A string'},
-    sub { shift->[0]->[5] == 5000},
-    sub { shift->[0]->[6] eq '1.20000004768372'},
-    sub { shift->[0]->[7] == 1.44},
-    sub { shift->[0]->[8] eq $timestamp},
-    sub { shift->[0]->[9] =~ /^\d\d-\d\d-\d{4}$/},
-    sub { shift->[0]->[10] =~ /^\d\d:\d\d$/},
-    sub { shift->[0]->[11] == 32.71},
-    sub { shift->[0]->[12] == -32.71},
-    sub { shift->[0]->[13] == 123456.79},
-    sub { shift->[0]->[14] == -123456.79},
-    sub { shift->[0]->[15] eq '86753090000.868'},
+my %expected = (
+    0  => 30000,
+    1  => 1000,
+    2  => 'Edwin        ',
+    3  => 'Edwin Pratomo       ',
+    4  => 'A string',
+    5  => 5000,
+    6  => '1.20000004768372',
+    7  => 1.44,
+    8  => '2011-01-23 17:14',
+    9  => '2011-01-23',
+    10 => '17:14',
+    11 => 32.71,
+    12 => -32.71,
+    13 => 123456.79,
+    14 => -123456.79,
+    15 => '86753090000.868',
 );
 
 #
-#   Main loop; leave this untouched, put tests after creating
-#   the new table.
+#   Connect to the database
+my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password,
+                       {AutoCommit => 1, PrintError => 0});
+ok($dbh);
+
 #
-while (Testing()) {
-    #
-    #   Connect to the database
-    Test($state or $dbh = DBI->connect($test_dsn, $test_user, $test_password))
-    or ServerError();
+#   Find a possible new table name
+#
+my $table = find_new_table($dbh);
+ok($table);
 
-    #
-    #   Find a possible new table name
-    #
-    # Test($state or $table = FindNewTable($dbh))
-    #   or DbiError($dbh->err, $dbh->errstr);
-
-    #
-    #   Create a new table
-    #
-
-    my ($def, $table, $stmt);
-    $state or do { 
-        $table = find_new_table($dbh);
-        $def =<<"DEF";
+#
+#   Create a new table
+#
+my $def =<<"DEF";
 CREATE TABLE $table (
     INTEGER_    INTEGER,
     SMALLINT_   SMALLINT,
@@ -119,14 +82,15 @@ CREATE TABLE $table (
     A_SIXTYFOUR  NUMERIC(18,3)
 )
 DEF
-    };
-    Test($state or ($dbh->do($def)))
-       or DbiError($dbh->err, $dbh->errstr);
 
-    $state or do { 
-        $stmt =<<"END_OF_QUERY";
-INSERT INTO $table
-    (
+ok($dbh->do($def));
+
+#
+# Prepare insert
+#
+
+my $stmt =<<"END_OF_QUERY";
+INSERT INTO $table (
     INTEGER_,
     SMALLINT_,
     CHAR13_,
@@ -143,15 +107,12 @@ INSERT INTO $table
     NUMERIC_AS_INTEGER,
     NUMERIC_AS_INTEGER2,
     A_SIXTYFOUR
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 END_OF_QUERY
-    };
-    
-    Test($state or $cursor = $dbh->prepare($stmt))
-       or DbiError($dbh->err, $dbh->errstr);
 
-    Test($state or $cursor->execute(
+my $cursor = $dbh->prepare($stmt);
+
+ok($cursor->execute(
     30000,
     1000,
     'Edwin',
@@ -160,53 +121,37 @@ END_OF_QUERY
     5000,
     1.2,
     1.44,
-    $timestamp,
-    'TOMORROW',
-    'NOW',
+    '2011-01-23 17:14',
+    '2011-01-23',
+    '17:14',
     32.71,
     -32.71,
     123456.7895,
     -123456.7895,
-    86753090000.8675309)
-    ) or DbiError($cursor->err, $cursor->errstr);
+    86753090000.8675309
+), "INSERT in $table");
 
-    Test($state or $cursor = $dbh->prepare("SELECT * FROM $table", {
-        ib_timestampformat => '%Y-%m-%d %H:%M',
-        ib_dateformat => '%m-%d-%Y',
-        ib_timeformat => '%H:%M',
-    })) or DbiError($dbh->err, $dbh->errstr);
+my $cursor2 = $dbh->prepare("SELECT * FROM $table", {
+    ib_timestampformat => '%Y-%m-%d %H:%M',
+    ib_dateformat => '%Y-%m-%d',
+    ib_timeformat => '%H:%M',
+});
 
-    Test($state or $cursor->execute)
-        or DbiError($cursor->err, $cursor->errstr);
+ok($cursor2->execute);
 
-    Test($state or ($res = $cursor->fetchall_arrayref))
-        or DbiError($cursor->err, $cursor->errstr);
-    
-    if (!$state) {
-        my ($types, $names, $fields) = @{$cursor}{TYPE, NAME, NUM_OF_FIELDS};
+ok(my $res = $cursor2->fetchall_arrayref, 'FETCHALL arrayref');
 
-        for (my $i = 0; $i < $fields; $i++) {
-            Test($state or ( $is_match[$i]->($res) ))
-                or DbiError(undef,
-                "wrong SELECT result for field $names->[$i]: $res->[0]->[$i]");
-        }
-
-    } else {
-        for (1..$num_of_fields) { Test($state) }
-    }
-
-    #
-    #  Drop the test table
-    #
-    Test($state or ($cursor = $dbh->prepare("DROP TABLE $table")))
-    or DbiError($dbh->err, $dbh->errstr);
-    Test($state or $cursor->execute)
-    or DbiError($cursor->err, $cursor->errstr);
-
-    #  NUM_OF_FIELDS should be zero (Non-Select)
-    Test($state or (!$cursor->{'NUM_OF_FIELDS'}))
-    or !$verbose or printf("NUM_OF_FIELDS is %s, not zero.\n",
-                   $cursor->{'NUM_OF_FIELDS'});
-    Test($state or (undef $cursor) or 1);
-
+my ($types, $names, $fields) = @{$cursor2}{qw(TYPE NAME NUM_OF_FIELDS)};
+for (my $i = 0; $i < $fields; $i++) {
+    is($res->[0][$i], $expected{$i}, "TEST No $i");
 }
+
+#
+#  Drop the test table
+#
+ok($dbh->do("DROP TABLE $table"), "DROP TABLE '$table'");
+
+#
+#   Finally disconnect.
+#
+ok($dbh->disconnect());

@@ -14,28 +14,35 @@ $::test_dsn = '';
 $::test_user = '';
 $::test_password = '';
 
-my $file;
-do {
-    if (-f ($file = "t/InterBase.dbtest") ||
-        -f ($file = "InterBase.dbtest")) 
-    {
-        eval { require $file };
-        if ($@) {
-            diag("Cannot execute $file: $@\n");
-            exit 0;
-        }
-    }
-};
-
-sub find_new_table {
-    my $dbh = shift;
-    my $try_name = 'TESTAA';
-    my %tables = map { uc($_) => 1 } $dbh->tables;
-    while (exists $tables{$try_name}) {
-        ++$try_name;
-    }
-    $try_name;  
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
+    last;
 }
+
+# my $file;
+# do {
+#     if (-f ($file = "t/InterBase.dbtest") ||
+#         -f ($file = "InterBase.dbtest"))
+#     {
+#         eval { require $file };
+#         if ($@) {
+#             diag("Cannot execute $file: $@\n");
+#             exit 0;
+#         }
+#     }
+# };
+
+# sub find_new_table {
+#     my $dbh = shift;
+#     my $try_name = 'TESTAA';
+#     my %tables = map { uc($_) => 1 } $dbh->tables;
+#     while (exists $tables{$try_name}) {
+#         ++$try_name;
+#     }
+#     $try_name;
+# }
 
 my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password, {AutoCommit => 1});
 ok($dbh);
@@ -67,7 +74,7 @@ ok($table);
         ok($sth1->execute);
 
         while (my $row = $sth1->fetchrow_arrayref) {
-            ok($sth2->execute($row->[0])); 
+            ok($sth2->execute($row->[0]));
 
             my $res = $sth2->fetchall_arrayref;
             ok($res and @$res);
@@ -95,7 +102,7 @@ $dbh->{ib_softcommit} = 1;
     ok($sth1->execute);
 
     while (my $row = $sth1->fetchrow_arrayref) {
-        ok($sth2->execute($row->[0])); 
+        ok($sth2->execute($row->[0]));
 
         my $res = $sth2->fetchall_arrayref;
         ok($res and @$res);

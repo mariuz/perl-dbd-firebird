@@ -5,100 +5,89 @@
 #   This is a test for correctly handling NULL values.
 #
 
+# 2011-01-29 stefansbv
+# New version based on t/testlib.pl and InterBase.dbtest
 
-#
-#   Make -w happy
-#
-$test_dsn = '';
-$test_user = '';
-$test_password = '';
+use strict;
 
+BEGIN {
+        $|  = 1;
+        $^W = 1;
+}
 
-#
-#   Include lib.pl
-#
 use DBI;
-use vars qw($COL_NULLABLE);
+use Test::More tests => 12;
+#use Test::NoWarnings;
 
-#DBI->trace(2, "trace.txt");
-$mdriver = "";
-foreach $file ("lib.pl", "t/lib.pl") {
-    do $file; if ($@) { print STDERR "Error while executing lib.pl: $@\n";
-               exit 10;
-              }
-    if ($mdriver ne '') {
+# Make -w happy
+$::test_dsn = '';
+$::test_user = '';
+$::test_password = '';
+
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
     last;
-    }
 }
 
-sub ServerError() {
-    print STDERR ("Cannot connect: ", $DBI::errstr, "\n",
-    "\tEither your server is not up and running or you have no\n",
-    "\tpermissions for acessing the DSN $test_dsn.\n",
-    "\tThis test requires a running server and write permissions.\n",
-    "\tPlease make sure your server is running and you have\n",
-    "\tpermissions, then retry.\n");
-    exit 10;
-}
+#   Connect to the database
+my $dbh =
+  DBI->connect( $::test_dsn, $::test_user, $::test_password,
+    { ChopBlanks => 1 } );
+
+# DBI->trace(4, "trace.txt");
+
+# ------- TESTS ------------------------------------------------------------- #
+
+ok($dbh, 'DBH ok');
 
 #
-#   Main loop; leave this untouched, put tests after creating
-#   the new table.
+#   Find a possible new table name
 #
-while (Testing()) {
-    #
-    #   Connect to the database
-    Test($state or $dbh = DBI->connect($test_dsn, $test_user, $test_password))
-    or ServerError();
-
-    #
-    #   Find a possible new table name
-    #
-    Test($state or $table = FindNewTable($dbh))
-       or DbiError($dbh->err, $dbh->errstr);
-
-    #
-    #   Create a new table; EDIT THIS!
-    #
-    Test($state or ($def = TableDefinition($table,
-                   ["id",   "INTEGER",  4, $COL_NULLABLE],
-                   ["name", "CHAR",    64, 0]),
-            $dbh->do($def)))
-       or DbiError($dbh->err, $dbh->errstr);
+my $table = find_new_table($dbh);
+ok($table, "TABLE is '$table'");
 
 
-    #
-    #   Test whether or not a field containing a NULL is returned correctly
-    #   as undef, or something much more bizarre
-    #
-    Test($state or $dbh->do("INSERT INTO $table VALUES"
-                        . " ( NULL, 'NULL-valued id' )"))
-           or DbiError($dbh->err, $dbh->errstr);
+#
+#   Create a new table
+#
 
-    Test($state or $cursor = $dbh->prepare("SELECT * FROM $table"
-                                       . " WHERE " . IsNull("id")))
-           or DbiError($dbh->err, $dbh->errstr);
+my $def =<<"DEF";
+CREATE TABLE $table (
+    id    INTEGER,
+    name  CHAR(64)
+)
+DEF
 
-    Test($state or $cursor->execute)
-           or DbiError($dbh->err, $dbh->errstr);
+ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
 
-    Test($state or ($rv = $cursor->fetchrow_arrayref) or $dbdriver eq 'CSV')
-           or DbiError($dbh->err, $dbh->errstr);
+#
+#   Test whether or not a field containing a NULL is returned correctly
+#   as undef, or something much more bizarre
+#
+my $sql_insert = qq{INSERT INTO $table VALUES ( NULL, 'NULL-valued id' )};
+ok( $dbh->do($sql_insert), 'DO INSERT' );
 
-    Test($state or (!defined($$rv[0])  and  defined($$rv[1])) or
-     $dbdriver eq 'CSV')
-           or DbiError($dbh->err, $dbh->errstr);
+my $sql_sele = qq{SELECT * FROM $table WHERE id IS NULL};
+ok( my $cursor = $dbh->prepare($sql_sele), 'PREPARE SELECT' );
+ok($cursor->execute, 'EXECUTE SELECT');
 
-    Test($state or $cursor->finish)
-           or DbiError($dbh->err, $dbh->errstr);
+ok(my $rv = $cursor->fetchrow_arrayref, 'FETCHROW');
 
-    Test($state or undef $cursor  ||  1);
+is($$rv[0], undef, 'UNDEFINED id');
+is($$rv[1], 'NULL-valued id', 'DEFINED name');
 
+ok($cursor->finish, 'FINISH');
 
-    #
-    #   Finally drop the test table.
-    #
-    Test($state or $dbh->do("DROP TABLE $table"))
-       or DbiError($dbh->err, $dbh->errstr);
+#
+#  Drop the test table
+#
+$dbh->{AutoCommit} = 1;
 
-}
+ok( $dbh->do("DROP TABLE $table"), "DROP TABLE '$table'" );
+
+#
+#   Finally disconnect.
+#
+ok($dbh->disconnect(), 'DISCONNECT');

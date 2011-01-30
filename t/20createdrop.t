@@ -1,82 +1,59 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 #   $Id: 20createdrop.t 112 2001-04-19 14:56:06Z edpratomo $
 #
-#   This is a skeleton test. For writing new tests, take this file
-#   and modify/extend it.
-#
+
+# 2011-01-21 stefan(s.bv.)
+# New version based on t/testlib.pl and InterBase.dbtest
 
 use strict;
-use vars qw($test_dsn $test_user $test_password $mdriver $dbdriver);
-$DBI::errstr = '';  # Make -w happy
-require DBI;
+use warnings;
 
-#DBI->trace(3, "trace.txt");
-#
-#   Include lib.pl
-#
-$mdriver = "";
-my $file;
-foreach $file ("lib.pl", "t/lib.pl") {
-    do $file; if ($@) { print STDERR "Error while executing lib.pl: $@\n";
-               exit 10;
-              }
-    if ($mdriver ne '') {
+use DBI;
+use Test::More tests => 5;
+
+# Make -w happy
+$::test_dsn = '';
+$::test_user = '';
+$::test_password = '';
+
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
     last;
-    }
 }
 
-sub ServerError() {
-    print STDERR ("Cannot connect: ", $DBI::errstr, "\n",
-    "\tEither your server is not up and running or you have no\n",
-    "\tpermissions for acessing the DSN $test_dsn.\n",
-    "\tThis test requires a running server and write permissions.\n",
-    "\tPlease make sure your server is running and you have\n",
-    "\tpermissions, then retry.\n");
-    exit 10;
-}
+# ------- TESTS ------------------------------------------------------------- #
+
+#   Connect to the database
+my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password);
+ok($dbh);
 
 #
-#   Main loop; leave this untouched, put tests into the loop
+#   Find a possible new table name
 #
-use vars qw($state);
-while (Testing()) {
-    #
-    #   Connect to the database
-    my $dbh;
-    Test($state or $dbh = DBI->connect($test_dsn, $test_user, $test_password))
-    or ServerError();
+my $table = find_new_table($dbh);
+#diag $table;
+ok($table);
 
-    #
-    #   Find a possible new table name
-    #
-    my $table;
-    Test($state or $table = FindNewTable($dbh))
-       or DbiError($dbh->err, $dbh->errstr);
+#
+#   Create a new table
+#
+my $def =<<"DEF";
+CREATE TABLE $table (
+    id     INTEGER NOT NULL PRIMARY KEY,
+    name CHAR(64) CHARACTER SET ISO8859_1
+)
+DEF
+ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
 
-    #
-    #   Create a new table
-    #
-    my $def;
-    if (!$state) {
-    ($def = TableDefinition($table,
-                ["id",   "INTEGER",  4, 0],
-                ["name", "CHAR",    64, 0]));
-    print "Creating table:\n$def\n";
-    }
-    Test($state or $dbh->do($def))
-    or DbiError($dbh->err, $dbh->errstr);
+#
+#   ... and drop it.
+#
+ok( $dbh->do(qq{DROP TABLE $table}), qq{DROP TABLE '$table'} );
 
-
-    #
-    #   ... and drop it.
-    #
-    Test($state or $dbh->do("DROP TABLE $table"))
-       or DbiError($dbh->err, $dbh->errstr);
-
-    #
-    #   Finally disconnect.
-    #
-    Test($state or $dbh->disconnect())
-       or DbiError($dbh->err, $dbh->errstr);
-}
+#
+#   Finally disconnect.
+#
+ok( $dbh->disconnect );

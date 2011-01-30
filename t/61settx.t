@@ -1,170 +1,170 @@
-#!/usr/local/bin/perl -w
+#!/usr/bin/perl -w
 #
 #   $Id: 61settx.t 229 2002-04-05 03:12:51Z edpratomo $
 #
-#   This is a test for set_tx_param() private method.
+#   This is a test for ib_set_tx_param() private method.
 #
+# 2011-01-29 stefan(s. bv)
+# New version based on t/testlib.pl and InterBase.dbtest
+# Note: set_tx_param() is obsoleted by ib_set_tx_param().
 
 use strict;
-use vars qw($mdriver $state $test_dsn $test_user $test_password);
 
-#
-#   Make -w happy
-#
-$test_dsn = '';
-$test_user = '';
-$test_password = '';
+BEGIN {
+    $|  = 1;
+    $^W = 1;
+}
 
-my $rec_num = 2;
-
-#
-#   Include lib.pl
-#
 use DBI;
-use vars qw($verbose);
+use Test::More tests => 23;
 
+# Make -w happy
+$::test_dsn = '';
+$::test_user = '';
+$::test_password = '';
 
-
-$mdriver = "";
-foreach my $file ("lib.pl", "t/lib.pl") {
-    do $file; if ($@) { print STDERR "Error while executing lib.pl: $@\n";
-               exit 10;
-              }
-    if ($mdriver ne '') {
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
     last;
-    }
 }
 
-sub ServerError() {
-    print STDERR ("Cannot connect: ", $DBI::errstr, "\n",
-    "\tEither your server is not up and running or you have no\n",
-    "\tpermissions for acessing the DSN $test_dsn.\n",
-    "\tThis test requires a running server and write permissions.\n",
-    "\tPlease make sure your server is running and you have\n",
-    "\tpermissions, then retry.\n");
-    exit 10;
-}
+#   Connect to the database 1
+my $dbh1 =
+  DBI->connect( $::test_dsn, $::test_user, $::test_password,
+    { ChopBlanks => 1 } );
 
-while (Testing()) {
-    my ($dbh1, $dbh2);
+ok($dbh1, 'dbh1 OK');
 
-    #
-    #   Connect to the database
-    Test($state or $dbh1 = DBI->connect($test_dsn, $test_user, $test_password))
-    or ServerError();
+#   Connect to the database 2
+my $dbh2 =
+  DBI->connect( $::test_dsn, $::test_user, $::test_password,
+    { ChopBlanks => 1 } );
 
-    Test($state or $dbh2 = DBI->connect($test_dsn, $test_user, $test_password))
-    or ServerError();
+ok($dbh2, 'dbh2 OK');
 
-    #
-    #   Find a possible new table name
-    #
-     Test($state or my $table = FindNewTable($dbh1))
-       or DbiError($dbh1->err, $dbh1->errstr);
+# DBI->trace(4, "trace.txt");
 
-    #
-    #   Create a new table
-    #
-    my $def;
-    unless ($state) {
-        $def = "CREATE TABLE $table(id INTEGER, name VARCHAR(20))";
-    }
+# ------- TESTS ------------------------------------------------------------- #
 
-    Test($state or $dbh1->do($def))
-    or DbiError($dbh1->err, $dbh1->errstr);
+#
+#   Find a possible new table name
+#
+my $table = find_new_table($dbh1);
+ok($table, "TABLE is '$table'");
 
-    #
-    #   Changes transaction params
-    #
-    Test($state or $dbh1->func( 
+#
+#   Create a new table
+#
+
+my $def =<<"DEF";
+CREATE TABLE $table (
+    id     INTEGER PRIMARY KEY,
+    name   VARCHAR(20)
+)
+DEF
+ok( $dbh1->do($def), qq{CREATE TABLE '$table'} );
+
+#
+#   Changes transaction params
+#
+ok(
+    $dbh1->func(
         -access_mode     => 'read_write',
         -isolation_level => 'read_committed',
         -lock_resolution => 'wait',
-        'set_tx_param'))
-    or DbiError($dbh1->err, $dbh1->errstr);
+        'ib_set_tx_param'
+    ),
+    'SET tx param for dbh 1'
+);
 
-    Test($state or $dbh2->func(
-#        -isolation_level => 'snapshot_table_stability',
+ok(
+    $dbh2->func(
+        # -isolation_level => 'snapshot_table_stability',
         -access_mode     => 'read_only',
         -lock_resolution => 'no_wait',
-        'set_tx_param'))
-    or DbiError($dbh2->err, $dbh2->errstr);
+        'ib_set_tx_param'
+    ),
+    'SET tx param for dbh 2'
+);
 
-    #DBI->trace(3, "trace.txt");
-    {
-        local $dbh1->{AutoCommit} = 0;
-        local $dbh2->{PrintError} = 0;
+SCOPE: {
 
-        my ($stmt, $select_stmt);
-        unless ($state) {
-            $stmt = "INSERT INTO $table VALUES(?, 'Yustina')";
-            $select_stmt = "SELECT * FROM $table WHERE 1 = 0";
-        }
+    local $dbh1->{AutoCommit} = 0;
+    local $dbh2->{PrintError} = 0;
 
-        Test($state or my $sth2 = $dbh2->prepare($select_stmt))
-            or DbiError($dbh2->err, $dbh2->errstr);
+    my $insert_stmt = qq{ INSERT INTO $table VALUES(?, 'Yustina') };
+    my $select_stmt = qq{ SELECT * FROM $table WHERE 1 = 0 };
 
-        Test($state or $dbh1->do($stmt, undef, 1))
-            or DbiError($dbh1->err, $dbh1->errstr);
+    ok(my $sth2 = $dbh2->prepare($select_stmt), 'PREPARE SELECT');
 
-        # expected failure:
-        Test($state or not $dbh2->do($stmt, undef, 2))
-            or DbiError($dbh2->err, $dbh2->errstr);
+    ok($dbh1->do($insert_stmt, undef, 1), 'DO INSERT (1)');
 
-        # reading should be ok here:
-        Test($state or $sth2->execute)
-            or DbiError($sth2->err, $sth2->errstr);
+    #- Expected failure
 
-        Test($state or $sth2->finish)
-            or DbiError($sth2->err, $sth2->errstr);
+    ok(! $dbh2->do($insert_stmt, undef, 2), 'DO INSERT (2)');
 
-        # committing the first trans
-        Test($state or $dbh1->commit)
-            or DbiError($dbh1->err, $dbh1->errstr);
+    #- Reading should be ok here
 
-        Test($state or $dbh1->func( 
+    ok($sth2->execute, 'EXECUTE sth 2');
+
+    ok($sth2->finish, 'FINISH sth 2');
+
+    #- Committing the first trans
+
+    ok($dbh1->commit, 'COMMIT dbh 1');
+
+    ok(
+        $dbh1->func(
             -access_mode     => 'read_write',
             -isolation_level => 'read_committed',
             -lock_resolution => 'wait',
-            -reserving       =>
-                {
-                    $table => {
-                        lock    => 'write',
-                        access  => 'protected',
-                    },
+            -reserving       => {
+                $table => {
+                    lock   => 'write',
+                    access => 'protected',
                 },
-            'set_tx_param'))
-        or DbiError($dbh1->err, $dbh1->errstr);
+            },
+            'ib_set_tx_param'
+        ),
+        'CHANGE tx param for dbh 1'
+    );
 
-        Test($state or $dbh2->func(
-        #    -isolation_level => 'snapshot_table_stability',
+    ok(
+        $dbh2->func(
+
+            # -isolation_level => 'snapshot_table_stability',
             -lock_resolution => 'no_wait',
-            'set_tx_param'))
-        or DbiError($dbh2->err, $dbh2->errstr);
+            'ib_set_tx_param'
+        ),
+        'CHANGE tx param for dbh 2'
+    );
 
-        Test($state or $dbh1->do($stmt, undef, 2))
-            or DbiError($dbh1->err, $dbh1->errstr);
+    # stefan: This should fail?
+    ok($dbh1->do($insert_stmt, undef, 2), 'DO INSERT (2)');
 
-        Test($state or $dbh2->do($stmt, undef, 3))
-            or DbiError($dbh2->err, $dbh2->errstr);
+    ok($dbh2->do($insert_stmt, undef, 3), 'DO INSERT (3)');
 
-        # committing the first trans
-        Test($state or $dbh1->commit)
-            or DbiError($dbh1->err, $dbh1->errstr);
-
-    }
-    #
-    #  Drop the test table
-    #
-    Test($state or $dbh1->do("DROP TABLE $table"))
-       or DbiError($dbh1->err, $dbh1->errstr);
-
-    #
-    #   Finally disconnect.
-    #
-    Test($state or $dbh1->disconnect())
-       or DbiError($dbh1->err, $dbh1->errstr);
-
-    Test($state or $dbh2->disconnect())
-       or DbiError($dbh2->err, $dbh2->errstr);
+    # Committing the first trans
+    ok($dbh1->commit, 'COMMIT dbh 1');
 }
+
+#
+#  Drop the test table
+#
+
+isa_ok( $dbh1, 'DBI::db' );
+isa_ok( $dbh2, 'DBI::db' );
+
+$dbh1->{AutoCommit} = 1;
+ok($dbh1->{AutoCommit}, 'AutoCommit is on');
+
+# stefan: Why does that fail?
+ok( $dbh1->do("DROP TABLE $table"), "DROP TABLE '$table'" );
+
+#
+#   Finally disconnect.
+#
+ok($dbh1->disconnect, 'DISCONNECT 1');
+ok($dbh2->disconnect, 'DISCONNECT 2');

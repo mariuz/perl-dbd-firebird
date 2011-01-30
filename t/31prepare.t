@@ -4,38 +4,23 @@
 
 use strict;
 use DBI;
+
 use Test::More tests => 36;
-use Data::Dumper;
 #DBI->trace(4, "trace.txt");
+
 # Make -w happy
 $::test_dsn = '';
 $::test_user = '';
 $::test_password = '';
 
-my $file;
-do {
-    if (-f ($file = "t/InterBase.dbtest") ||
-        -f ($file = "InterBase.dbtest")) 
-    {
-        eval { require $file };
-        if ($@) {
-            diag("Cannot execute $file: $@\n");
-            exit 0;
-        }
-    }
-};
-
-sub find_new_table {
-    my $dbh = shift;
-    my $try_name = 'TESTAA';
-    my %tables = map { uc($_) => 1 } $dbh->tables;
-    while (exists $tables{$try_name}) {
-        ++$try_name;
-    }
-    $try_name;  
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
+    last;
 }
 
-my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password, 
+my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password,
                       {AutoCommit => 1, PrintError => 0});
 ok($dbh);
 
@@ -97,7 +82,7 @@ TEST_CACHED: {
 }
 
 ok($dbh->do("DROP TABLE $table"), "DROP TABLE $table");
-ok($dbh->disconnect);    
+ok($dbh->disconnect);
 
 # 4 tests
 sub simpleQuery {

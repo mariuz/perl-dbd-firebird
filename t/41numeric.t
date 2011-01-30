@@ -5,61 +5,56 @@
 #   This is a test for INT64 type.
 #
 
-sub find_new_table {
-    my $dbh = shift;
-    my $try_name = 'TESTAA';
-    my %tables = map { uc($_) => 1 } $dbh->tables;
-    while (exists $tables{$try_name}) {
-        ++$try_name;
-    }
-    $try_name;
+# 2011-01-29 stefansbv
+# New version based on t/testlib.pl and InterBase.dbtest
+
+use strict;
+
+BEGIN {
+        $|  = 1;
+        $^W = 1;
 }
 
-#
-#   Make -w happy
-#
-$test_dsn = '';
-$test_user = '';
-$test_password = '';
-
-# hmm this must be known prior to test. ugly...
-my $num_of_tests = 15;
-
-#
-#   Include lib.pl
-#
 use DBI;
-use vars qw($verbose);
+use Test::More tests => 30;
+#use Test::NoWarnings;
 
-#DBI->trace(2, "41numeric.txt");
+# Make -w happy
+$::test_dsn = '';
+$::test_user = '';
+$::test_password = '';
 
-$mdriver = "";
-foreach $file ("lib.pl", "t/lib.pl") {
-    do $file; if ($@) { print STDERR "Error while executing lib.pl: $@\n";
-               exit 10;
-              }
-    if ($mdriver ne '') {
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
     last;
-    }
 }
 
-sub ServerError() {
-    print STDERR ("Cannot connect: ", $DBI::errstr, "\n",
-    "\tEither your server is not up and running or you have no\n",
-    "\tpermissions for acessing the DSN $test_dsn.\n",
-    "\tThis test requires a running server and write permissions.\n",
-    "\tPlease make sure your server is running and you have\n",
-    "\tpermissions, then retry.\n");
-    exit 10;
-}
+#   Connect to the database
+my $dbh =
+  DBI->connect( $::test_dsn, $::test_user, $::test_password,
+    { ChopBlanks => 1 } );
+
+# DBI->trace(4, "trace.txt");
+
+# ------- TESTS ------------------------------------------------------------- #
+
+ok($dbh, 'DBH ok');
+
+#
+#   Find a possible new table name
+#
+my $table = find_new_table($dbh);
+ok($table, "TABLE is '$table'");
 
 # expected fetched values
 my @correct = (
-    [ 123456.79, 86753090000.868, 11 ],
-    [ -123456.79, -86753090000.868, -11],
-    [ 123456.001, 80.080, 10],
-    [ -123456.001, -80.080, 0],
-    [ 10.9, 10.9, 11],
+    [ 123456.79,   86753090000.868,  11 ],
+    [ -123456.79,  -86753090000.868, -11 ],
+    [ 123456.001,  80.080,           10 ],
+    [ -123456.001, -80.080,          0 ],
+    [ 10.9,        10.9,             11 ],
 );
 
 sub is_match {
@@ -68,124 +63,99 @@ sub is_match {
 }
 
 #
-#   Main loop; leave this untouched, put tests after creating
-#   the new table.
+#   Create a new table
 #
-while (Testing()) {
-    #
-    #   Connect to the database
-    Test($state or $dbh = DBI->connect($test_dsn, $test_user, $test_password))
-    or ServerError();
 
-    #
-    #   Find a possible new table name
-    #
-    # Test($state or $table = FindNewTable($dbh))
-    #   or DbiError($dbh->err, $dbh->errstr);
-
-    #
-    #   Create a new table
-    #
-
-    my ($def, $table, $stmt);
-    $state or do {
-        $table = find_new_table($dbh);
-        $def =<<"DEF";
+my $def =<<"DEF";
 CREATE TABLE $table (
-    NUMERIC_AS_INTEGER NUMERIC(9,3),
+    NUMERIC_AS_INTEGER    NUMERIC(9,3),
     NUMERIC_THREE_DIGITS  NUMERIC(18,3),
-    NUMERIC_NO_DIGITS NUMERIC(10,0)
+    NUMERIC_NO_DIGITS     NUMERIC(10,0)
 )
 DEF
-    };
-    Test($state or ($dbh->do($def)))
-       or DbiError($dbh->err, $dbh->errstr);
+ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
 
-    $state or do {
-        $stmt =<<"END_OF_QUERY";
-INSERT INTO $table
-    (
+#
+#   Insert some values
+#
+
+my $stmt =<<"END_OF_QUERY";
+INSERT INTO $table (
     NUMERIC_AS_INTEGER,
     NUMERIC_THREE_DIGITS,
     NUMERIC_NO_DIGITS
-    )
-    VALUES (?, ?, ?)
+) VALUES (?, ?, ?)
 END_OF_QUERY
-    };
 
-    Test($state or $cursor = $dbh->prepare($stmt))
-       or DbiError($dbh->err, $dbh->errstr);
+ok(my $insert = $dbh->prepare($stmt), 'PREPARE INSERT');
 
-    # insert positive numbers
-    Test($state or $cursor->execute(
+# Insert positive numbers
+ok($insert->execute(
     123456.7895,
     86753090000.8675309,
-    10.9)
-    ) or DbiError($cursor->err, $cursor->errstr);
+    10.9),
+   'INSERT POSITIVE NUMBERS'
+);
 
-    # insert negative numbers
-    Test($state or $cursor->execute(
+# Insert negative numbers
+ok($insert->execute(
     -123456.7895,
     -86753090000.8675309,
-    -10.9)
-    ) or DbiError($cursor->err, $cursor->errstr);
+    -10.9),
+   'INSERT NEGATIVE NUMBERS'
+);
 
-    # insert with some variations in the precision part
-    Test($state or $cursor->execute(
+# Insert with some variations in the precision part
+
+ok($insert->execute(
     123456.001,
     80.080,
-    10.0)
-    ) or DbiError($cursor->err, $cursor->errstr);
+    10.0),
+   'INSERT NUMBERS WITH VARIOUS PREC 1'
+);
 
-    Test($state or $cursor->execute(
+ok($insert->execute(
     -123456.001,
     -80.080,
-    -0.0)
-    ) or DbiError($cursor->err, $cursor->errstr);
+    -0.0),
+   'INSERT NUMBERS WITH VARIOUS PREC 2'
+);
 
-    Test($state or $cursor->execute(
+ok($insert->execute(
     10.9,
     10.9,
-    10.9)
-    ) or DbiError($cursor->err, $cursor->errstr);
+    10.9),
+   'INSERT NUMBERS WITH VARIOUS PREC 3'
+);
 
-    # select..
-    Test($state or $cursor = $dbh->prepare("SELECT * FROM $table")
-    ) or DbiError($dbh->err, $dbh->errstr);
+#
+#   Select the values
+#
+ok( my $cursor = $dbh->prepare( "SELECT * FROM $table", ) );
 
-    Test($state or $cursor->execute)
-        or DbiError($cursor->err, $cursor->errstr);
+ok($cursor->execute, 'EXECUTE SELECT');
 
-    Test($state or ($res = $cursor->fetchall_arrayref))
-        or DbiError($cursor->err, $cursor->errstr);
-    
-    if (!$state) {
-        my ($types, $names, $fields) = @{$cursor}{TYPE, NAME, NUM_OF_FIELDS};
+ok((my $res = $cursor->fetchall_arrayref), 'FETCHALL');
 
-        for (my $i = 0; $i < @$res; $i++) {
-            for (my $j = 0; $j < $fields; $j++) {
-                Test($state or ( is_match($res, $i, $j) ))
-                    or DbiError(undef,
-                    "wrong SELECT result for row $i, field $names->[$j]: '$res->[$i]->[$j], expected: $correct[$i]->[$j]'");
-            }
-        }
+my ($types, $names, $fields) = @{$cursor}{qw(TYPE NAME NUM_OF_FIELDS)};
 
-    } else {
-        for (1..$num_of_tests) { Test($state) }
+for (my $i = 0; $i < @$res; $i++) {
+    for (my $j = 0; $j < $fields; $j++) {
+        ok(is_match($res, $i, $j), "field: $names->[$j] ($types->[$j])");
     }
-
-    #
-    #  Drop the test table
-    #
-    Test($state or ($cursor = $dbh->prepare("DROP TABLE $table")))
-    or DbiError($dbh->err, $dbh->errstr);
-    Test($state or $cursor->execute)
-    or DbiError($cursor->err, $cursor->errstr);
-
-    #  NUM_OF_FIELDS should be zero (Non-Select)
-    Test($state or (!$cursor->{'NUM_OF_FIELDS'}))
-    or !$verbose or printf("NUM_OF_FIELDS is %s, not zero.\n",
-                   $cursor->{'NUM_OF_FIELDS'});
-    Test($state or (undef $cursor) or 1);
-
 }
+
+#
+#  Drop the test table
+#
+$dbh->{AutoCommit} = 1;
+
+ok( $dbh->do("DROP TABLE $table"), "DROP TABLE '$table'" );
+
+#  NUM_OF_FIELDS should be zero (Non-Select)
+ok(($cursor->{'NUM_OF_FIELDS'}), "NUM_OF_FIELDS == 0");
+
+#
+#   Finally disconnect.
+#
+ok($dbh->disconnect());

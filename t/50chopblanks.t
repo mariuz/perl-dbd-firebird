@@ -5,148 +5,120 @@
 #   This driver should check whether 'ChopBlanks' works.
 #
 
+# 2011-01-29 stefansbv
+# New version based on t/testlib.pl and InterBase.dbtest
 
-#
-#   Make -w happy
-#
-use vars qw($test_dsn $test_user $test_password $mdriver $verbose $state
-        $dbdriver);
-use vars qw($COL_NULLABLE $COL_KEY);
-$test_dsn = '';
-$test_user = '';
-$test_password = '';
-
-
-#
-#   Include lib.pl
-#
-use DBI;
 use strict;
-#DBI->trace(4, "trace.txt");
-$mdriver = "";
-{
-    my $file;
-    foreach $file ("lib.pl", "t/lib.pl") {
-    do $file; if ($@) { print STDERR "Error while executing lib.pl: $@\n";
-                exit 10;
-            }
-    if ($mdriver ne '') {
-        last;
-    }
-    }
+
+BEGIN {
+    $|  = 1;
+    $^W = 1;
 }
 
-sub ServerError() {
-    print STDERR ("Cannot connect: ", $DBI::errstr, "\n",
-    "\tEither your server is not up and running or you have no\n",
-    "\tpermissions for acessing the DSN $test_dsn.\n",
-    "\tThis test requires a running server and write permissions.\n",
-    "\tPlease make sure your server is running and you have\n",
-    "\tpermissions, then retry.\n");
-    exit 10;
+use DBI;
+use Test::More tests => 38;
+#use Test::NoWarnings;
+
+# Make -w happy
+$::test_dsn = '';
+$::test_user = '';
+$::test_password = '';
+
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
+    last;
+}
+
+#   Connect to the database
+my $dbh =
+  DBI->connect( $::test_dsn, $::test_user, $::test_password,
+    { ChopBlanks => 1 } );
+
+# DBI->trace(4, "trace.txt");
+
+# ------- TESTS ------------------------------------------------------------- #
+
+ok($dbh, 'dbh OK');
+
+#
+#   Find a possible new table name
+#
+my $table = find_new_table($dbh);
+ok($table, "TABLE is '$table'");
+
+#
+#   Create a new table
+#
+
+my $fld_len = 20;               # length of the name field
+
+my $def =<<"DEF";
+CREATE TABLE $table (
+    id     INTEGER PRIMARY KEY,
+    name   CHAR($fld_len)
+)
+DEF
+ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
+
+my @rows = ( [ 1, '' ], [ 2, ' ' ], [ 3, ' a b c ' ] );
+
+foreach my $ref (@rows) {
+    my ($id, $name) = @{$ref};
+
+    #- Insert
+
+    my $insert = qq{ INSERT INTO $table (id, name) VALUES (?, ?) };
+
+    ok(my $sth1 = $dbh->prepare($insert), 'PREPARE INSERT');
+
+    ok($sth1->execute($id, $name), "EXECUTE INSERT ($id)");
+
+    #- Select
+
+    my $sele = qq{SELECT id, name FROM $table WHERE id = ?};
+
+    ok(my $sth2 = $dbh->prepare($sele), 'PREPARE SELECT');
+
+    #-- First try to retrieve without chopping blanks.
+
+    $sth2->{ChopBlanks} = 0;
+
+    ok($sth2->execute($id), "EXECUTE SELECT 1 ($id)");
+
+    ok(my $nochop = $sth2->fetchrow_arrayref, 'FETCHrow ARRAYref 1');
+
+    # Right padding name to the length of the field
+    my $n_ncb = sprintf("%-*s", $fld_len, $name);
+
+    is($n_ncb, $nochop->[1], 'COMPARE 1');
+
+    ok($sth2->finish, 'FINISH 1');
+
+    #-- Now try to retrieve with chopping blanks.
+
+    $sth2->{ChopBlanks} = 1;
+
+    ok($sth2->execute($id), "EXECUTE SELECT 2 ($id)");
+
+    ( my $n_cb = $name ) =~ s{\s+$}{}g;
+
+    ok(my $chopping = $sth2->fetchrow_arrayref, 'FETCHrow ARRAYref 2');
+
+    is($n_cb, $chopping->[1], 'COMPARE 2');
+
+    ok($sth2->finish, 'FINISH 2');
 }
 
 #
-#   Main loop; leave this untouched, put tests after creating
-#   the new table.
+#  Drop the test table
 #
-while (Testing()) {
-    my ($dbh, $sth, $query);
+$dbh->{AutoCommit} = 1;
 
-    #
-    #   Connect to the database
-    Test($state or ($dbh = DBI->connect($test_dsn, $test_user,
-                    $test_password)))
-       or ServerError();
+ok( $dbh->do("DROP TABLE $table"), "DROP TABLE '$table'" );
 
-    #
-    #   Find a possible new table name
-    #
-    my $table = '';
-    Test($state or $table = FindNewTable($dbh))
-       or ErrMsgF("Cannot determine a legal table name: Error %s.\n",
-              $dbh->errstr);
-
-    #
-    #   Create a new table; EDIT THIS!
-    #
-    Test($state or ($query = TableDefinition($table,
-                      ["id",   "INTEGER",  4, $COL_NULLABLE],
-                      ["name", "CHAR",    64, $COL_NULLABLE]),
-            $dbh->do($query)))
-    or ErrMsgF("Cannot create table: Error %s.\n",
-              $dbh->errstr);
-
-
-    #
-    #   and here's the right place for inserting new tests:
-    #
-    my @rows = ([1, ''],
-        [2, ' '],
-        [3, ' a b c ']);
-    my $ref;
-    foreach $ref (@rows) {
-    my ($id, $name) = @$ref;
-    if (!$state) {
-        $query = sprintf("INSERT INTO $table (id, name) VALUES ($id, %s)",
-                 $dbh->quote($name));
-    }
-    Test($state or $dbh->do($query))
-        or ErrMsgF("INSERT failed: query $query, error %s.\n",
-               $dbh->errstr);
-        $query = "SELECT id, name FROM $table WHERE id = $id\n";
-    Test($state or ($sth = $dbh->prepare($query)))
-        or ErrMsgF("prepare failed: query $query, error %s.\n",
-               $dbh->errstr);
-
-    # First try to retreive without chopping blanks.
-    $sth->{'ChopBlanks'} = 0;
-    Test($state or $sth->execute)
-        or ErrMsgF("execute failed: query %s, error %s.\n", $query,
-               $sth->errstr);
-    Test($state or defined($ref = $sth->fetchrow_arrayref))
-        or ErrMsgF("fetch failed: query $query, error %s.\n",
-               $sth->errstr);
-    Test($state or ($$ref[1] eq $name)
-                or ($name =~ /^$$ref[1]\s+$/  &&
-            ($dbdriver eq 'mysql'  ||  $dbdriver eq 'ODBC')) 
-                or ($$ref[1] =~ /^$name\s+$/ && 
-            ($dbdriver eq 'InterBase'))) 
-        or ErrMsgF("$dbdriver: problems with ChopBlanks = 0:"
-               . " expected '%s', got '%s'.\n",
-               $name, $$ref[1]);
-    Test($state or $sth->finish());
-
-    # Now try to retreive with chopping blanks.
-    $sth->{'ChopBlanks'} = 1;
-    Test($state or $sth->execute)
-        or ErrMsg("execute failed: query $query, error %s.\n",
-              $sth->errstr);
-    my $n = $name;
-    $n =~ s/\s+$//;
-    Test($state or ($ref = $sth->fetchrow_arrayref))
-        or ErrMsgF("fetch failed: query $query, error %s.\n",
-               $sth->errstr);
-    Test($state or ($$ref[1] eq $n))
-        or ErrMsgF("problems with ChopBlanks = 1:"
-               . " expected '%s', got '%s'.\n",
-               $n, $$ref[1]);
-
-    Test($state or $sth->finish)
-        or ErrMsgF("Cannot finish: %s.\n", $sth->errstr);
-    }
-
-    # XXX
-    undef $sth;
-
-    #
-    #   Finally drop the test table.
-    #
-    Test($state or $dbh->do("DROP TABLE $table"))
-       or ErrMsgF("Cannot DROP test table $table: %s.\n",
-              $dbh->errstr);
-
-    #   ... and disconnect
-    Test($state or $dbh->disconnect)
-    or ErrMsgF("Cannot disconnect: %s.\n", $dbh->errmsg);
-}
+#
+#   Finally disconnect.
+#
+ok($dbh->disconnect, 'DISCONNECT');

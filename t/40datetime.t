@@ -5,59 +5,53 @@
 #   This is a test for date/time types handling with localtime() style.
 #
 
-sub find_new_table {
-    my $dbh = shift;
-    my $try_name = 'TESTAA';
-    my %tables = map { uc($_) => 1 } $dbh->tables;
-    while (exists $tables{$try_name}) {
-        ++$try_name;
-    }
-    $try_name;
+# 2011-01-29 stefansbv
+# New version based on t/testlib.pl and InterBase.dbtest
+
+use strict;
+
+BEGIN {
+        $|  = 1;
+        $^W = 1;
 }
 
-#
-#   Make -w happy
-#
-$test_dsn = '';
-$test_user = '';
-$test_password = '';
-
-# hmm this must be known prior to test. ugly...
-my $num_of_fields = 3;
-
-#
-#   Include lib.pl
-#
 use DBI;
-use vars qw($verbose @times);
+use Test::More tests => 14;
+#use Test::NoWarnings;
 
-@times = localtime();
+# Make -w happy
+$::test_dsn = '';
+$::test_user = '';
+$::test_password = '';
 
-#DBI->trace(5, "40alltypes.txt");
-
-$mdriver = "";
-foreach $file ("lib.pl", "t/lib.pl") {
-    do $file; if ($@) { print STDERR "Error while executing lib.pl: $@\n";
-               exit 10;
-              }
-    if ($mdriver ne '') {
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
     last;
-    }
 }
 
-sub ServerError() {
-    print STDERR ("Cannot connect: ", $DBI::errstr, "\n",
-    "\tEither your server is not up and running or you have no\n",
-    "\tpermissions for acessing the DSN $test_dsn.\n",
-    "\tThis test requires a running server and write permissions.\n",
-    "\tPlease make sure your server is running and you have\n",
-    "\tpermissions, then retry.\n");
-    exit 10;
-}
+#   Connect to the database
+my $dbh =
+  DBI->connect( $::test_dsn, $::test_user, $::test_password,
+    { ChopBlanks => 1 } );
+
+# DBI->trace(4, "trace.txt");
+
+# ------- TESTS ------------------------------------------------------------- #
+
+ok($dbh, 'DBH ok');
+
+#
+#   Find a possible new table name
+#
+my $table = find_new_table($dbh);
+ok($table, "TABLE is '$table'");
+
+my @times = localtime();
 
 my @is_match = (
-    sub
-    {
+    sub {
         my $ref = shift->[0]->[0];
         return ($$ref[0] == $times[0]) &&
                ($$ref[1] == $times[1]) &&
@@ -66,15 +60,13 @@ my @is_match = (
                ($$ref[4] == $times[4]) &&
                ($$ref[5] == $times[5]);
     },
-    sub
-    {
+    sub {
         my $ref = shift->[0]->[1];
         return ($$ref[3] == $times[3]) &&
                ($$ref[4] == $times[4]) &&
                ($$ref[5] == $times[5]);
     },
-    sub
-    {
+    sub {
         my $ref = shift->[0]->[2];
         return ($$ref[0] == $times[0]) &&
                ($$ref[1] == $times[1]) &&
@@ -83,41 +75,23 @@ my @is_match = (
 );
 
 #
-#   Main loop; leave this untouched, put tests after creating
-#   the new table.
+#   Create a new table
 #
-while (Testing()) {
-    #
-    #   Connect to the database
-    Test($state or $dbh = DBI->connect($test_dsn, $test_user, $test_password))
-    or ServerError();
 
-    #
-    #   Find a possible new table name
-    #
-    # Test($state or $table = FindNewTable($dbh))
-    #   or DbiError($dbh->err, $dbh->errstr);
-
-    #
-    #   Create a new table
-    #
-
-    my ($def, $table, $stmt);
-    $state or do {
-        $table = find_new_table($dbh);
-        $def =<<"DEF";
+my $def =<<"DEF";
 CREATE TABLE $table (
     A_TIMESTAMP  TIMESTAMP,
     A_DATE       DATE,
     A_TIME       TIME
 )
 DEF
-    };
-    Test($state or ($dbh->do($def)))
-       or DbiError($dbh->err, $dbh->errstr);
 
-    $state or do {
-        $stmt =<<"END_OF_QUERY";
+ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
+
+#
+#   Insert some values
+#
+my $stmt =<<"END_OF_QUERY";
 INSERT INTO $table
     (
     A_TIMESTAMP,
@@ -126,52 +100,46 @@ INSERT INTO $table
     )
     VALUES (?, ?, ?)
 END_OF_QUERY
-    };
-    
-    Test($state or $cursor = $dbh->prepare($stmt))
-       or DbiError($dbh->err, $dbh->errstr);
 
-    Test($state or $cursor->execute(
-    \@times, \@times, \@times)
-    ) or DbiError($cursor->err, $cursor->errstr);
+ok(my $insert = $dbh->prepare($stmt), 'PREPARE INSERT');
 
-    Test($state or $cursor = $dbh->prepare("SELECT * FROM $table", {
-        ib_timestampformat => 'TM',
-        ib_dateformat => 'TM',
-        ib_timeformat => 'TM',
-    })) or DbiError($dbh->err, $dbh->errstr);
+ok($insert->execute(\@times, \@times, \@times));
 
-    Test($state or $cursor->execute)
-        or DbiError($cursor->err, $cursor->errstr);
-
-    Test($state or ($res = $cursor->fetchall_arrayref))
-        or DbiError($cursor->err, $cursor->errstr);
-    
-    if (!$state) {
-        my ($types, $names, $fields) = @{$cursor}{TYPE, NAME, NUM_OF_FIELDS};
-
-        for (my $i = 0; $i < $fields; $i++) {
-            Test($state or ( $is_match[$i]->($res) ))
-                or DbiError(undef,
-                "wrong SELECT result for field $names->[$i]: $res->[0]->[$i]");
+#
+#   Select the values
+#
+ok(
+    my $cursor = $dbh->prepare(
+        "SELECT * FROM $table",
+        {
+            ib_timestampformat => 'TM',
+            ib_dateformat      => 'TM',
+            ib_timeformat      => 'TM',
         }
+    )
+);
 
-    } else {
-        for (1..$num_of_fields) { Test($state) }
-    }
+ok($cursor->execute);
 
-    #
-    #  Drop the test table
-    #
-    Test($state or ($cursor = $dbh->prepare("DROP TABLE $table")))
-    or DbiError($dbh->err, $dbh->errstr);
-    Test($state or $cursor->execute)
-    or DbiError($cursor->err, $cursor->errstr);
+ok((my $res = $cursor->fetchall_arrayref), 'FETCHALL');
 
-    #  NUM_OF_FIELDS should be zero (Non-Select)
-    Test($state or (!$cursor->{'NUM_OF_FIELDS'}))
-    or !$verbose or printf("NUM_OF_FIELDS is %s, not zero.\n",
-                   $cursor->{'NUM_OF_FIELDS'});
-    Test($state or (undef $cursor) or 1);
+my ($types, $names, $fields) = @{$cursor}{qw(TYPE NAME NUM_OF_FIELDS)};
 
+for (my $i = 0; $i < $fields; $i++) {
+    ok(( $is_match[$i]->($res) ), "field: $names->[$i] ($types->[$i])");
 }
+
+#
+#  Drop the test table
+#
+$dbh->{AutoCommit} = 1;
+
+ok( $dbh->do("DROP TABLE $table"), "DROP TABLE '$table'" );
+
+#  NUM_OF_FIELDS should be zero (Non-Select)
+ok(($cursor->{'NUM_OF_FIELDS'}), "NUM_OF_FIELDS == 0");
+
+#
+#   Finally disconnect.
+#
+ok($dbh->disconnect());

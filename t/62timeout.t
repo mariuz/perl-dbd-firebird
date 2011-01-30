@@ -14,28 +14,35 @@ $::test_dsn = '';
 $::test_user = '';
 $::test_password = '';
 
-my $file;
-do {
-    if (-f ($file = "t/InterBase.dbtest") ||
-        -f ($file = "InterBase.dbtest")) 
-    {
-        eval { require $file };
-        if ($@) {
-            diag("Cannot execute $file: $@\n");
-            exit 0;
-        }
-    }
-};
-
-sub find_new_table {
-    my $dbh = shift;
-    my $try_name = 'TESTAA';
-    my %tables = map { uc($_) => 1 } $dbh->tables;
-    while (exists $tables{$try_name}) {
-        ++$try_name;
-    }
-    $try_name;  
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
+    last;
 }
+
+# my $file;
+# do {
+#     if (-f ($file = "t/InterBase.dbtest") ||
+#         -f ($file = "InterBase.dbtest"))
+#     {
+#         eval { require $file };
+#         if ($@) {
+#             diag("Cannot execute $file: $@\n");
+#             exit 0;
+#         }
+#     }
+# };
+
+# sub find_new_table {
+#     my $dbh = shift;
+#     my $try_name = 'TESTAA';
+#     my %tables = map { uc($_) => 1 } $dbh->tables;
+#     while (exists $tables{$try_name}) {
+#         ++$try_name;
+#     }
+#     $try_name;
+# }
 
 my $dbh2 = DBI->connect($::test_dsn, $::test_user, $::test_password);
 ok($dbh2);
@@ -44,7 +51,7 @@ SKIP: {
     my $r = $dbh2->func(
         -lock_resolution => { 'wait' => 2 },
         'ib_set_tx_param');
-        
+
     defined $r or skip "wait timeout is not available", 12;
 
     my $dbh1 = DBI->connect($::test_dsn, $::test_user, $::test_password);
@@ -96,6 +103,5 @@ SKIP: {
 	ok($dbh2->disconnect);
 
     ok($dbh1->do("DROP TABLE $table"), "DROP TABLE $table");
-    ok($dbh1->disconnect);    
+    ok($dbh1->disconnect);
 } # - SKIP {}
-

@@ -1,191 +1,134 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 #   $Id: 40bindparam.t 328 2005-08-09 08:34:17Z edpratomo $
 #
-#   This is a skeleton test. For writing new tests, take this file
-#   and modify/extend it.
-#
 
-$^W = 1;
+# 2011-01-24 stefansbv
+# New version based on t/testlib.pl and InterBase.dbtest
 
+use strict;
+#use warnings;
+BEGIN {
+        $|  = 1;
+        $^W = 1;
+}
 
-#
-#   Make -w happy
-#
-$test_dsn = '';
-$test_user = '';
-$test_password = '';
+use DBI qw(:sql_types);
+use Test::More tests => 38;
+use Test::NoWarnings;
 
+# Make -w happy
+$::test_dsn = '';
+$::test_user = '';
+$::test_password = '';
 
-#
-#   Include lib.pl
-#
-use DBI ();
-use vars qw($COL_NULLABLE);
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
+    last;
+}
+
+# ------- TESTS ------------------------------------------------------------- #
 
 #DBI->trace(4, "trace.txt");
-$mdriver = "";
-foreach $file ("lib.pl", "t/lib.pl") {
-    do $file; if ($@) { print STDERR "Error while executing lib.pl: $@\n";
-               exit 10;
-              }
-    if ($mdriver ne '') {
-    last;
-    }
-}
-if ($mdriver eq 'pNET') {
-    print "1..0\n";
-    exit 0;
-}
 
-sub ServerError() {
-    my $err = $DBI::errstr;  # Hate -w ...
-    print STDERR ("Cannot connect: ", $DBI::errstr, "\n",
-    "\tEither your server is not up and running or you have no\n",
-    "\tpermissions for acessing the DSN $test_dsn.\n",
-    "\tThis test requires a running server and write permissions.\n",
-    "\tPlease make sure your server is running and you have\n",
-    "\tpermissions, then retry.\n");
-    exit 10;
-}
-
-if (!defined(&SQL_VARCHAR)) {
-    eval "sub SQL_VARCHAR { 12 }";
-}
-if (!defined(&SQL_INTEGER)) {
-    eval "sub SQL_INTEGER { 4 }";
-}
+#   Connect to the database
+my $dbh =
+  DBI->connect( $::test_dsn, $::test_user, $::test_password,
+    { ChopBlanks => 1 } );
+ok($dbh);
 
 #
-#   Main loop; leave this untouched, put tests after creating
-#   the new table.
+#   Find a possible new table name
 #
-while (Testing()) {
-    #
-    #   Connect to the database
-    Test($state or $dbh = DBI->connect($test_dsn, $test_user,
-$test_password, {ChopBlanks => 1}))
-    or ServerError();
+my $table = find_new_table($dbh);
+#diag $table;
+ok($table);
 
-    #
-    #   Find a possible new table name
-    #
-    Test($state or $table = FindNewTable($dbh))
-       or DbiError($dbh->err, $dbh->errstr);
+#
+#   Create the new table
+#
+my $def = qq{
+CREATE TABLE $table (
+    id   INTEGER NOT NULL,
+    name CHAR(64) CHARACTER SET ISO8859_1
+)
+};
+ok($dbh->do($def), "CREATE TABLE '$table'");
 
-    #
-    #   Create a new table; EDIT THIS!
-    #
-    Test($state or ($def = TableDefinition($table,
-                       ["id",   "INTEGER",  4, 0],
-                       ["name", "CHAR",    64, $COL_NULLABLE, 'CHARACTER SET ISO8859_1']),
-            $dbh->do($def)))
-       or DbiError($dbh->err, $dbh->errstr);
+ok(my $cursor = $dbh->prepare("INSERT INTO $table VALUES (?, ?)"));
 
+#
+#   Insert some rows
+#
 
-    Test($state or $cursor = $dbh->prepare("INSERT INTO $table"
-                                       . " VALUES (?, ?)"))
-       or DbiError($dbh->err, $dbh->errstr);
+# Automatic type detection
+my $numericVal = 1;
+my $charVal    = 'Alligator Descartes';
+ok($cursor->execute($numericVal, $charVal));
 
-    #
-    #   Insert some rows
-    #
+# Does the driver remember the automatically detected type?
+ok($cursor->execute("3", "Jochen Wiedmann"));
 
-    # Automatic type detection
-    my $numericVal = 1;
-    my $charVal = "Alligator Descartes";
-    Test($state or $cursor->execute($numericVal, $charVal))
-       or DbiError($dbh->err, $dbh->errstr);
+$numericVal = 2;
+$charVal    = "Tim Bunce";
+ok($cursor->execute($numericVal, $charVal));
 
-    # Does the driver remember the automatically detected type?
-    Test($state or $cursor->execute("3", "Jochen Wiedmann"))
-       or DbiError($dbh->err, $dbh->errstr);
-    $numericVal = 2;
-    $charVal = "Tim Bunce";
-    Test($state or $cursor->execute($numericVal, $charVal))
-       or DbiError($dbh->err, $dbh->errstr);
+# Now try the explicit type settings
+ok($cursor->bind_param(1, ' 4', SQL_INTEGER()));
+ok($cursor->bind_param(2, 'Andreas König'));
+ok($cursor->execute);
 
-    # Now try the explicit type settings
-    Test($state or $cursor->bind_param(1, " 4", SQL_INTEGER()))
-    or DbiError($dbh->err, $dbh->errstr);
-    Test($state or $cursor->bind_param(2, "Andreas König"))
-    or DbiError($dbh->err, $dbh->errstr);
-    Test($state or $cursor->execute)
-       or DbiError($dbh->err, $dbh->errstr);
+# Works undef -> NULL?
+ok($cursor->bind_param(1, 5, SQL_INTEGER()));
+ok($cursor->bind_param(2, undef));
+ok($cursor->execute);
 
-    # Works undef -> NULL?
-    Test($state or $cursor->bind_param(1, 5, SQL_INTEGER()))
-    or DbiError($dbh->err, $dbh->errstr);
-    Test($state or $cursor->bind_param(2, undef))
-    or DbiError($dbh->err, $dbh->errstr);
-    Test($state or $cursor->execute)
-    or DbiError($dbh->err, $dbh->errstr);
+#
+#   Try various mixes of question marks, single and double quotes
+#
+ok($dbh->do("INSERT INTO $table VALUES (6, '?')"));
 
-    #
-    #   Try various mixes of question marks, single and double quotes
-    #
-    Test($state or $dbh->do("INSERT INTO $table VALUES (6, '?')"))
-       or DbiError($dbh->err, $dbh->errstr);
-    if ($mdriver eq 'mysql') {
-    Test($state or $dbh->do("INSERT INTO $table VALUES (7, \"?\")"))
-        or DbiError($dbh->err, $dbh->errstr);
-    }
+#
+#   And now retreive the rows using bind_columns
+#
+ok($cursor = $dbh->prepare("SELECT * FROM $table ORDER BY id"));
+ok($cursor->execute);
 
-    Test($state or undef $cursor  ||  1);
+my ($id, $name);
+ok($cursor->bind_columns(undef, \$id, \$name), 'Bind columns');
 
-    #
-    #   And now retreive the rows using bind_columns
-    #
-    Test($state or $cursor = $dbh->prepare("SELECT * FROM $table"
-                       . " ORDER BY id"))
-       or DbiError($dbh->err, $dbh->errstr);
+ok($cursor->fetch);
+is($id, 1, 'Check id 1');
+is($name, 'Alligator Descartes', 'Check name');
 
-    Test($state or $cursor->execute)
-       or DbiError($dbh->err, $dbh->errstr);
+ok($cursor->fetch);
+is($id, 2, 'Check id 2');
+is($name, 'Tim Bunce', 'Check name');
 
-    Test($state or $cursor->bind_columns(undef, \$id, \$name))
-       or DbiError($dbh->err, $dbh->errstr);
+ok($cursor->fetch);
+is($id, 3, 'Check id 3');
+is($name, 'Jochen Wiedmann', 'Check name');
 
-    Test($state or ($ref = $cursor->fetch)  &&  $id == 1  &&
-     $name eq 'Alligator Descartes')
-    or printf("Query returned id = %s, name = %s, ref = %s, %d\n",
-          $id, $name, $ref, scalar(@$ref));
+ok($cursor->fetch);
+is($id, 4, 'Check id 4');
+is($name, 'Andreas König', 'Check name');
 
-    Test($state or (($ref = $cursor->fetch)  &&  $id == 2  &&
-            $name eq 'Tim Bunce'))
-    or printf("Query returned id = %s, name = %s, ref = %s, %d\n",
-          $id, $name, $ref, scalar(@$ref));
+ok($cursor->fetch);
+is($id, 5, 'Check id 5');
+is($name, undef, 'Check name');
 
-    Test($state or (($ref = $cursor->fetch)  &&  $id == 3  &&
-            $name eq 'Jochen Wiedmann'))
-    or printf("Query returned id = %s, name = %s, ref = %s, %d\n",
-          $id, $name, $ref, scalar(@$ref));
+ok($cursor->fetch);
+is($id, 6, 'Check id 6');
+is($name, '?', 'Check name');
 
-    Test($state or (($ref = $cursor->fetch)  &&  $id == 4  &&
-            $name eq 'Andreas König'))
-    or printf("Query returned id = %s, name = %s, ref = %s, %d\n",
-          $id, $name, $ref, scalar(@$ref));
+# Have to call finish
+ok($cursor->finish);
 
-    Test($state or (($ref = $cursor->fetch)  &&  $id == 5  &&
-            !defined($name)))
-    or printf("Query returned id = %s, name = %s, ref = %s, %d\n",
-          $id, $name, $ref, scalar(@$ref));
+#
+#   Finally drop the test table.
+#
+ok($dbh->do("DROP TABLE $table"), "DROP TABLE '$table'");
 
-    Test($state or (($ref = $cursor->fetch)  &&  $id == 6  &&
-           $name eq '?'))
-    or print("Query returned id = $id, name = $name, expected 6,?\n");
-    if ($mdriver eq 'mysql') {
-    Test($state or (($ref = $cursor->fetch)  &&  $id == 7  &&
-            $name eq '?'))
-        or print("Query returned id = $id, name = $name, expected 7,?\n");
-    }
-
-    Test($state or undef $cursor  or  1);
-
-
-    #
-    #   Finally drop the test table.
-    #
-    Test($state or $dbh->do("DROP TABLE $table"))
-       or DbiError($dbh->err, $dbh->errstr);
-}
+# -- end test

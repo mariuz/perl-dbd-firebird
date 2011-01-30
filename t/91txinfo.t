@@ -15,7 +15,7 @@ $::test_password = '';
 my $file;
 do {
     if (-f ($file = "t/InterBase.dbtest") ||
-        -f ($file = "InterBase.dbtest")) 
+        -f ($file = "InterBase.dbtest"))
     {
         eval { require $file };
         if ($@) {
@@ -32,7 +32,7 @@ sub find_new_table {
     while (exists $tables{$try_name}) {
         ++$try_name;
     }
-    $try_name;  
+    $try_name;
 }
 
 my $dbh1 = DBI->connect($::test_dsn, $::test_user, $::test_password, {AutoCommit => 0});
@@ -50,7 +50,7 @@ ok($dbh1->commit);
 ok($dbh1->func(
     -isolation_level => 'read_committed',
     'ib_set_tx_param'
-    ), 
+    ),
     "change isolation level"
 );
 

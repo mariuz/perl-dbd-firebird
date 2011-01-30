@@ -21,28 +21,35 @@ $::test_dsn = '';
 $::test_user = '';
 $::test_password = '';
 
-my $file;
-do {
-    if (-f ($file = "t/InterBase.dbtest") ||
-        -f ($file = "InterBase.dbtest")) 
-    {
-        eval { require $file };
-        if ($@) {
-            diag("Cannot execute $file: $@\n");
-            exit 0;
-        }
-    }
-};
-
-sub find_new_table {
-    my $dbh = shift;
-    my $try_name = 'TESTAA';
-    my %tables = map { uc($_) => 1 } $dbh->tables;
-    while (exists $tables{$try_name}) {
-        ++$try_name;
-    }
-    $try_name;  
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
+    last;
 }
+
+# my $file;
+# do {
+#     if (-f ($file = "t/InterBase.dbtest") ||
+#         -f ($file = "InterBase.dbtest"))
+#     {
+#         eval { require $file };
+#         if ($@) {
+#             diag("Cannot execute $file: $@\n");
+#             exit 0;
+#         }
+#     }
+# };
+
+# sub find_new_table {
+#     my $dbh = shift;
+#     my $try_name = 'TESTAA';
+#     my %tables = map { uc($_) => 1 } $dbh->tables;
+#     while (exists $tables{$try_name}) {
+#         ++$try_name;
+#     }
+#     $try_name;
+# }
 
 my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password);
 ok($dbh);
@@ -105,21 +112,21 @@ SKIP: {
 
     %::CNT = ();
 
-    ok($dbh->func($evh, 
-        sub { 
+    ok($dbh->func($evh,
+        sub {
             my $posted_events = shift;
             while (my ($k, $v) = each %$posted_events) {
                 $::CNT{$k} += $v;
             }
             1;
-        }, 
+        },
         'ib_register_callback'
     ));
 
     my $t = threads->create($worker, $table, $::test_dsn, $::test_user, $::test_password);
     ok($t);
     ok($t->join);
-    
+
     while (not exists $::CNT{'foo_deleted'}) {}
     ok($dbh->func($evh, 'ib_cancel_callback'));
     is($::CNT{'foo_inserted'}, 5);

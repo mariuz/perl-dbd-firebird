@@ -5,142 +5,96 @@
 #   This is a test for CursorName attribute.
 #
 
+# 2011-01-29 stefansbv
+# New version based on t/testlib.pl and InterBase.dbtest
 
-#
-#   Make -w happy
-#
-$test_dsn = '';
-$test_user = '';
-$test_password = '';
+use strict;
 
-my $rec_num = 2;
+BEGIN {
+        $|  = 1;
+        $^W = 1;
+}
 
-#
-#   Include lib.pl
-#
 use DBI;
-use vars qw($verbose);
+use Test::More tests => 17;
+#use Test::NoWarnings;
 
-$mdriver = "";
-foreach $file ("lib.pl", "t/lib.pl") {
-    do $file; if ($@) { print STDERR "Error while executing lib.pl: $@\n";
-               exit 10;
-              }
-    if ($mdriver ne '') {
+# Make -w happy
+$::test_dsn = '';
+$::test_user = '';
+$::test_password = '';
+
+for my $file ('t/testlib.pl', 'testlib.pl') {
+    next unless -f $file;
+    eval { require $file };
+    BAIL_OUT("Cannot load testlib.pl\n") if $@;
     last;
-    }
 }
 
-sub ServerError() {
-    print STDERR ("Cannot connect: ", $DBI::errstr, "\n",
-    "\tEither your server is not up and running or you have no\n",
-    "\tpermissions for acessing the DSN $test_dsn.\n",
-    "\tThis test requires a running server and write permissions.\n",
-    "\tPlease make sure your server is running and you have\n",
-    "\tpermissions, then retry.\n");
-    exit 10;
+#   Connect to the database
+my $dbh =
+  DBI->connect( $::test_dsn, $::test_user, $::test_password,
+    { ChopBlanks => 1 } );
+
+# DBI->trace(4, "trace.txt");
+
+# ------- TESTS ------------------------------------------------------------- #
+
+ok($dbh, 'DBH ok');
+
+#$dbh->{ib_softcommit} = 1;
+
+#
+#   Find a possible new table name
+#
+my $table = find_new_table($dbh);
+ok($table, "TABLE is '$table'");
+
+my $def = qq{ CREATE TABLE $table (user_id INTEGER, comment VARCHAR(20)) };
+my %values = (
+    1 => 'Lazy',
+    2 => 'Hubris',
+    6 => 'Impatience',
+);
+
+ok($dbh->do($def), "CREATE TABLE '$table'");
+
+my $sql_insert = qq{INSERT INTO $table VALUES (?, ?)};
+ok(my $cursor = $dbh->prepare($sql_insert), 'PREPARE INSERT');
+
+ok($cursor->execute($_, $values{$_}), "INSERT id $_") for (keys %values);
+
+$dbh->{AutoCommit} = 0;
+
+my $sql_sele = qq{SELECT * FROM $table WHERE user_id < 5 FOR UPDATE OF comment};
+ok(my $cursor2 = $dbh->prepare($sql_sele), 'PREPARE SELECT');
+
+ok($cursor2->execute, 'EXCUTE SELECT');
+
+# Before..
+while (my @res = $cursor2->fetchrow_array) {
+    ok($dbh->do(
+        "UPDATE $table SET comment = 'Zzzzz...' WHERE
+                CURRENT OF $cursor2->{CursorName}"),
+       "DO UPDATE where cursor name is '$cursor2->{CursorName}'"
+   );
 }
 
-while (Testing()) {
-    #
-    #   Connect to the database
-    Test($state or $dbh = DBI->connect($test_dsn, $test_user, $test_password))
-    or ServerError();
+ok(my $cursor3 = $dbh->prepare(
+    "SELECT * FROM $table WHERE user_id < 5"), 'PREPARE SELECT');
 
-    #
-    #   Find a possible new table name
-    #
-    # Test($state or $table = FindNewTable($dbh))
-    #   or DbiError($dbh->err, $dbh->errstr);
+ok($cursor3->execute, 'EXECUTE SELECT');
 
-    #
-    #   Create a new table
-    #
-
-    my $table = 'orders';
-
-    my $def = "CREATE TABLE $table(user_id INTEGER, comment VARCHAR(20))";
-    my %values = (
-        '1', 'Lazy',
-        '2', 'Hubris',
-        '6', 'Impatience',
-    );
-
-    Test($state or ($dbh->do($def)))
-       or DbiError($dbh->err, $dbh->errstr);
-
-    my $stmt = "INSERT INTO $table VALUES (?, ?)";
-
-    Test($state or $cursor = $dbh->prepare($stmt))
-       or DbiError($dbh->err, $dbh->errstr);
-
-    for (keys %values) {
-        Test($state or $cursor->execute($_, $values{$_}))
-            or DbiError($cursor->err, $cursor->errstr);
-    }
-
-    $dbh->{AutoCommit} = 0;
-
-    $stmt = "SELECT * FROM $table WHERE user_id < 5 FOR UPDATE OF comment";
-
-    Test($state or ($cursor = $dbh->prepare($stmt)))
-        or DbiError($dbh->err, $dbh->errstr);
-
-    Test($state or $cursor->execute)
-        or DbiError($cursor->err, $cursor->errstr);
-
-    if ($state) {
-        for (1..$rec_num) { Test($state) }
-    } else {
-
-    print "Before..\n";
-        while (my @res = $cursor->fetchrow_array) {
-            print join(", ", @res), "\n";
-            Test ($dbh->do(
-                "UPDATE ORDERS SET comment = 'Zzzzz...' WHERE
-                CURRENT OF $cursor->{CursorName}")
-            ) or DbiError($dbh->err, $dbh->errstr);
-        }
-    }
-
-    Test($state or $cursor = $dbh->prepare(
-        "SELECT * FROM $table WHERE user_id < 5"))
-        or DbiError($dbh->err, $dbh->errstr);
-
-    Test($state or $cursor->execute)
-        or DbiError($cursor->err, $cursor->errstr);
-
-    if ($state) {
-        for (1..$rec_num) { Test($state) }
-    } else {
-        print "After..\n";
-        while (@res = $cursor->fetchrow_array) {
-            print join(", ", @res), "\n";
-            Test($res[1] eq 'Zzzzz...') 
-                or DbiError(undef, "Unexpected SELECT result: $res[1]"); 
-        }
-    }
-
-    Test($state or $dbh->commit)
-        or DbiError($dbh->err, $dbh->errstr);
-
-    #
-    #  Drop the test table
-    #
-    Test($state or ($cursor = $dbh->prepare("DROP TABLE $table")))
-    or DbiError($dbh->err, $dbh->errstr);
-
-    Test($state or $cursor->execute)
-    or DbiError($cursor->err, $cursor->errstr);
-
-    Test($state or $dbh->commit)
-    or DbiError($dbh->err, $dbh->errstr);
-
-    #  NUM_OF_FIELDS should be zero (Non-Select)
-    Test($state or (!$cursor->{'NUM_OF_FIELDS'}))
-    or !$verbose or printf("NUM_OF_FIELDS is %s, not zero.\n",
-                   $cursor->{'NUM_OF_FIELDS'});
-
-    Test($state or (undef $cursor) or 1);
-
+# After..
+while (my @res = $cursor3->fetchrow_array) {
+    is($res[1], 'Zzzzz...', 'FETCHROW result check');
 }
+
+ok($dbh->commit, 'COMMIT');
+
+#
+#  Drop the test table
+#
+$dbh->{AutoCommit} = 1;
+
+ok( $dbh->do("DROP TABLE $table"), "DROP TABLE '$table'" );
