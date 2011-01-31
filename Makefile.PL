@@ -18,8 +18,8 @@
 # added support for ActivePerl! :)
 
 BEGIN { $^W = 0 }       # turn warnings off
-BEGIN { require 5.004 } # 5.003 fixes very important bugs
 
+use 5.008_001;
 use ExtUtils::MakeMaker 5.16, qw(prompt &WriteMakefile $Verbose);
 use Config;
 use Carp;
