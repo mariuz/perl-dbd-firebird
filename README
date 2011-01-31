@@ -13,7 +13,7 @@ DBD::InterBase -- DBI driver for Firebird and InterBase RDBMS server.
    WARNING: THIS IS BETA SOFTWARE. Your mileage may vary.
 
 REQUIREMENTS:
-  - Perl 5.8 installed
+  - Perl (5.8.2 and higher)
   - Perl DBI (1.41 and higher)
   - Firebird (2.1 and higher)
   - A C compiler
