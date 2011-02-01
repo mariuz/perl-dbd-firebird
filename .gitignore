@@ -12,3 +12,4 @@ inc/
 *.xsi
 InterBase.c
 t/test.conf
+t/create.sql
