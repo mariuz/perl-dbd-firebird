@@ -10,6 +10,9 @@
 
 # Changes
 #
+# 2011-01-31, stefansbv:
+# using the three-argument form of open for reading test.conf
+#
 # 2011-01-26, stefansbv:
 # fixed the isql tool path and the command line
 #   (using quotes around parameters and canonpath)
@@ -18,8 +21,8 @@
 # added support for ActivePerl! :)
 
 BEGIN { $^W = 0 }       # turn warnings off
+BEGIN { require 5.004 } # 5.003 fixes very important bugs
 
-use 5.008_001;
 use ExtUtils::MakeMaker 5.16, qw(prompt &WriteMakefile $Verbose);
 use Config;
 use Carp;
@@ -184,16 +187,19 @@ sub make_test_conf
     my ($dsn, $user, $pass, $path, $db, $host);
 
     # read cached config if available
-    if (-r $test_conf)
-    {
+    if (-f $test_conf) {
         print "\nReading cached test configuration...";
-        open F, $test_conf or die "Can't open $test_conf: $!";
-        local @ARGV = ($test_conf);
-        ($dsn, $user, $pass) = map {chomp;$_} <>;
-        ($db) = $dsn =~ /(?:db|database)=([^;]+);/;
+
+        open my $file_fh, '<', $test_conf
+            or croak "Can't open file ", $test_conf, ": $!";
+
+        ( $dsn, $user, $pass ) = map { chomp; $_ } <$file_fh>;
+
+        close $file_fh;
+
+        ($db)   = $dsn =~ /(?:db|database)=([^;]+);/;
         ($host) = $dsn =~ /(?:host|hostname)=([^;]+);/;
-        $path = ($host ? "$host:" : '') . $db;
-        close F;
+        $path = ( $host ? "$host:" : '' ) . $db;
     }
 
     # ask for database path
@@ -279,10 +285,11 @@ EOM
 
     # save test config to file
     # TODO: consider using utf8 in the future
+    my $isql = get_isql_path();    # we need it in readbigdecimal test ;)
     open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
     print {$t_fh} 'dbi:InterBase:'
       . ( $host ? "host=$host;" : '' )
-      . "db=$db;ib_dialect=3;ib_charset=ISO8859_1\n$user\n$pass\n";
+      . "db=$db;ib_dialect=3;ib_charset=ISO8859_1\n$user\n$pass\n$isql\n";
     close $t_fh;
 }
 

@@ -1,22 +1,22 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 #   $Id: 41numeric.t 349 2005-09-10 16:55:31Z edpratomo $
 #
-#   This is a test for INT64 type.
+# 2011-01-29 stefan(s.bv.)
+# Using string comparison with Test::More's 'is'
 #
-
-# 2011-01-29 stefansbv
+# 2011-01-29 stefan(s.bv.)
 # New version based on t/testlib.pl and InterBase.dbtest
 
 use strict;
 
 BEGIN {
-        $|  = 1;
-        $^W = 1;
+    $|  = 1;
+    $^W = 1;
 }
 
 use DBI;
-use Test::More tests => 30;
+use Test::More tests => 29;
 #use Test::NoWarnings;
 
 # Make -w happy
@@ -48,19 +48,42 @@ ok($dbh, 'DBH ok');
 my $table = find_new_table($dbh);
 ok($table, "TABLE is '$table'");
 
-# expected fetched values
-my @correct = (
-    [ 123456.79,   86753090000.868,  11 ],
-    [ -123456.79,  -86753090000.868, -11 ],
-    [ 123456.001,  80.080,           10 ],
-    [ -123456.001, -80.080,          0 ],
-    [ 10.9,        10.9,             11 ],
-);
+# Expected fetched values
+# Need to store the decimal precision for 'sprintf'
+# Prec must also be the same in CREATE TABLE, of course
 
-sub is_match {
-    my ($result, $row, $fieldno) = @_;
-    $result->[$row]->[$fieldno] == $correct[$row]->[$fieldno];
-}
+my $expected = {
+    NUMERIC_2_DIGITS => {
+        prec => 2,
+        test => {
+            0 => 123456.79,
+            1 => -123456.79,
+            2 => 123456.01,
+            3 => -123456.09,
+            4 => 10.9,
+        },
+    },
+    NUMERIC_3_DIGITS => {
+        prec => 3,
+        test => {
+            0 => 86753090000.868,
+            1 => -86753090000.868,
+            2 => 80.080,
+            3 => -80.080,
+            4 => 10.9,
+        },
+    },
+    NUMERIC_NO_DIGITS => {
+        prec => 0,
+        test => {
+            0 => 11,
+            1 => -11,
+            2 => 10,
+            3 => 0,
+            4 => 11,
+        },
+    },
+};
 
 #
 #   Create a new table
@@ -68,9 +91,9 @@ sub is_match {
 
 my $def =<<"DEF";
 CREATE TABLE $table (
-    NUMERIC_AS_INTEGER    NUMERIC(9,3),
-    NUMERIC_THREE_DIGITS  NUMERIC(18,3),
-    NUMERIC_NO_DIGITS     NUMERIC(10,0)
+    NUMERIC_2_DIGITS   NUMERIC( 9, 2),
+    NUMERIC_3_DIGITS   NUMERIC(18, 3),
+    NUMERIC_NO_DIGITS  NUMERIC(10, 0)
 )
 DEF
 ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
@@ -81,8 +104,8 @@ ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
 
 my $stmt =<<"END_OF_QUERY";
 INSERT INTO $table (
-    NUMERIC_AS_INTEGER,
-    NUMERIC_THREE_DIGITS,
+    NUMERIC_2_DIGITS,
+    NUMERIC_3_DIGITS,
     NUMERIC_NO_DIGITS
 ) VALUES (?, ?, ?)
 END_OF_QUERY
@@ -108,16 +131,16 @@ ok($insert->execute(
 # Insert with some variations in the precision part
 
 ok($insert->execute(
-    123456.001,
+    123456.01,
     80.080,
     10.0),
    'INSERT NUMBERS WITH VARIOUS PREC 1'
 );
 
 ok($insert->execute(
-    -123456.001,
+    -123456.09,
     -80.080,
-    -0.0),
+    0.0),
    'INSERT NUMBERS WITH VARIOUS PREC 2'
 );
 
@@ -131,17 +154,20 @@ ok($insert->execute(
 #
 #   Select the values
 #
-ok( my $cursor = $dbh->prepare( "SELECT * FROM $table", ) );
+ok( my $cursor = $dbh->prepare( qq{SELECT * FROM $table}, ), 'PREPARE SELECT' );
 
 ok($cursor->execute, 'EXECUTE SELECT');
 
-ok((my $res = $cursor->fetchall_arrayref), 'FETCHALL');
+ok((my $res = $cursor->fetchall_arrayref), 'FETCHALL arrayref');
 
 my ($types, $names, $fields) = @{$cursor}{qw(TYPE NAME NUM_OF_FIELDS)};
 
 for (my $i = 0; $i < @$res; $i++) {
     for (my $j = 0; $j < $fields; $j++) {
-        ok(is_match($res, $i, $j), "field: $names->[$j] ($types->[$j])");
+        my $prec = $expected->{ $names->[$j] }{prec};
+        my $result = sprintf("%.${prec}f", $res->[$i][$j]);
+        my $corect = sprintf("%.${prec}f", $expected->{$names->[$j]}{test}{$i});
+        is($result, $corect, "Field: $names->[$j]");
     }
 }
 
@@ -152,10 +178,7 @@ $dbh->{AutoCommit} = 1;
 
 ok( $dbh->do("DROP TABLE $table"), "DROP TABLE '$table'" );
 
-#  NUM_OF_FIELDS should be zero (Non-Select)
-ok(($cursor->{'NUM_OF_FIELDS'}), "NUM_OF_FIELDS == 0");
-
 #
 #   Finally disconnect.
 #
-ok($dbh->disconnect());
+ok($dbh->disconnect, 'DISCONNECT');

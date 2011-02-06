@@ -14,8 +14,8 @@ BEGIN {
 }
 
 use DBI qw(:sql_types);
-use Test::More tests => 38;
-use Test::NoWarnings;
+use Test::More tests => 37;
+#use Test::NoWarnings;
 
 # Make -w happy
 $::test_dsn = '';

@@ -3,7 +3,7 @@
 for (qw[test.conf t/test.conf]) {
 	if (-r $_) {
 		open F, $_ or die "Can't open $_: $!";
-		($::test_dsn, $::test_user, $::test_password) = map {chomp;$_} <F>;
+		($::test_dsn, $::test_user, $::test_password, $::test_isql) = map {chomp;$_} <F>;
 		close F;
 	}
 }
