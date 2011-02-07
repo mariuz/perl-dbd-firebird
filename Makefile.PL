@@ -19,7 +19,7 @@
 # added support for ActivePerl! :)
 
 BEGIN { $^W = 0 }       # turn warnings off
-BEGIN { require 5.008_001} # 5.008 is required by latest dbi version 
+BEGIN { require 5.008_001;} # 5.008 is required by latest dbi version 
 
 use ExtUtils::MakeMaker 5.16, qw(prompt &WriteMakefile $Verbose);
 use Config;
@@ -350,7 +350,7 @@ $IB_Bin_path = dir_choice("Firebird bin directory", [@ib_bin_dirs], [qw(gfix gfi
 
 unless(-x $IB_Bin_path)
 {
-    carp "I cannot find your InterBase/Firebird installation.\nDBD::InterBase cannot build or run without InterBase.\n";
+    carp "I cannot find your Firebird installation.\nDBD::InterBase cannot be build or run without Firebird.\n";
     exit 1;
 }
 
