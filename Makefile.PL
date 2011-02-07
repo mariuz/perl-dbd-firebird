@@ -19,7 +19,7 @@
 # added support for ActivePerl! :)
 
 BEGIN { $^W = 0 }       # turn warnings off
-BEGIN { require 5.008_001;} # 5.008 is required by latest dbi version 
+BEGIN { require 5.008_001} # 5.008 is required by latest dbi version 
 
 use ExtUtils::MakeMaker 5.16, qw(prompt &WriteMakefile $Verbose);
 use Config;
