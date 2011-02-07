@@ -19,7 +19,7 @@
 # added support for ActivePerl! :)
 
 BEGIN { $^W = 0 }       # turn warnings off
-BEGIN { require 5.004 } # 5.003 fixes very important bugs
+BEGIN { require 5.008_001;} # 5.008 is required by latest dbi version 
 
 use ExtUtils::MakeMaker 5.16, qw(prompt &WriteMakefile $Verbose);
 use Config;
@@ -54,7 +54,7 @@ if ($Config::Config{osname} eq 'MSWin32')
 {
     $isql_name = 'isql.exe';
 
-    # try to find InterBase installation via the registry
+    # try to find Firebird installation via the registry
     my $ib_bin_dir = '';
 
     eval
@@ -66,11 +66,9 @@ if ($Config::Config{osname} eq 'MSWin32')
         my $sw = $Registry->{"LMachine/Software/"}
             or die "Can't read LMachine/Software key: $^E\n";
         # We have to check more than one keys, because different
-        # releases of InterBase have used different key hierarchies.
+        # releases of Firebird have used different key hierarchies.
 
-        my $key = $sw->{"InterBase Corp/InterBase/CurrentVersion/"} ||
-              $sw->{"Borland/InterBase/CurrentVersion/"} ||
-              $sw->{"Firebird Project/Firebird Server/Instances/"} ||
+        my $key = $sw->{"Firebird Project/Firebird Server/Instances/"} ||
               $sw->{"FirebirdSQL/Firebird/CurrentVersion/"};
 
         if (defined($key))
@@ -348,7 +346,7 @@ sub create_test_db
 # the contents of the Makefile that is written.
 
 # prompt for InterBase bin directory
-$IB_Bin_path = dir_choice("InterBase/Firebird bin directory", [@ib_bin_dirs], [qw(gfix gfix.exe)]);
+$IB_Bin_path = dir_choice("Firebird bin directory", [@ib_bin_dirs], [qw(gfix gfix.exe)]);
 
 unless(-x $IB_Bin_path)
 {
@@ -356,15 +354,15 @@ unless(-x $IB_Bin_path)
     exit 1;
 }
 
-# get InterBase version
+# get Firebird version
 my $IBVERSION;
 my $GFIX_PATH = $IB_Bin_path . "/" . test_files($IB_Bin_path, [qw(gfix gfix.exe)]);
 chop($IBVERSION = `$GFIX_PATH -z 2>&1`);
 $IBVERSION =~ s/^gfix version //o;
 my $is_final = $IBVERSION =~ /\.6\d+$/ ? 1 : 0;
 
-# prompt for IB include dir
-my $ib_inc = dir_choice("InterBase/Firebird include directory", [@ib_inc_dirs], [qw(gds.h ibase.h)]);
+# prompt for Firebird include dir
+my $ib_inc = dir_choice("Firebird include directory", [@ib_inc_dirs], [qw(gds.h ibase.h)]);
 
 
 # we use a hash for the MakeMaker parameters
