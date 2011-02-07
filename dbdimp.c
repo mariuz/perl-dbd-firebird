@@ -1298,8 +1298,6 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                      */
 #if defined(_MSC_VER)        /* Microsoft C compiler/library */
 #  define DBD_IB_INT64f "I64d"
-#elif defined(__BORLANDC__)  /* Borland compiler/library */
-#  define DBD_IB_INT64f "Ld"
 #elif defined (__FreeBSD__)  /* FreeBSD */
 #  define DBD_IB_INT64f "qd"
 #else                        /* others: linux, various unices */
@@ -2346,11 +2344,6 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 #  define S_INT64_NOSCALE     "%%I64d.%%1I64d"
 #  define S_INT64_DEC_FULL    ".%%%dI64d%%1I64d"
 #  define S_INT64_DEC_NOSCALE ".%%1I64d"
-#elif defined(__BORLANDC__)  /* Borland compiler/library)*/
-#  define S_INT64_FULL        "%%Ld.%%%dLd%%1Ld"
-#  define S_INT64_NOSCALE     "%%Ld.%%1Ld"
-#  define S_INT64_DEC_FULL    ".%%%dLd%%1Ld"
-#  define S_INT64_DEC_NOSCALE ".%%1Ld"
 #elif defined (__FreeBSD__)  /* FreeBSD */
 #  define S_INT64_FULL        "%%qd.%%%dqd%%1qd"
 #  define S_INT64_NOSCALE     "%%qd.%%1qd"
