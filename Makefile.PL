@@ -283,7 +283,7 @@ EOM
     # TODO: consider using utf8 in the future
     my $isql = get_isql_path();    # we need it in readbigdecimal test ;)
     open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
-    print {$t_fh} 'dbi:InterBase:'
+    print {$t_fh} 'dbi:Firebird:'
       . ( $host ? "host=$host;" : '' )
       . "db=$db;ib_dialect=3;ib_charset=ISO8859_1\n$user\n$pass\n$isql\n";
     close $t_fh;
@@ -345,12 +345,12 @@ sub create_test_db
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 
-# prompt for InterBase bin directory
+# prompt for Firebird bin directory
 $IB_Bin_path = dir_choice("Firebird bin directory", [@ib_bin_dirs], [qw(gfix gfix.exe)]);
 
 unless(-x $IB_Bin_path)
 {
-    carp "I cannot find your Firebird installation.\nDBD::InterBase cannot be build or run without Firebird.\n";
+    carp "I cannot find your Firebird installation.\nDBD::Firebird cannot be build or run without Firebird.\n";
     exit 1;
 }
 
@@ -367,18 +367,18 @@ my $ib_inc = dir_choice("Firebird include directory", [@ib_inc_dirs], [qw(gds.h 
 
 # we use a hash for the MakeMaker parameters
 my %MakeParams = (
-    'NAME'          => 'DBD::InterBase',
-    'VERSION_FROM'  => 'InterBase.pm', # finds $VERSION
+    'NAME'          => 'DBD::Firebird',
+    'VERSION_FROM'  => 'Firebird.pm', # finds $VERSION
     'C'             => ['dbdimp.c'],
-    'H'             => ['dbdimp.h', 'InterBase.h'],
+    'H'             => ['dbdimp.h', 'Firebird.h'],
     'CCFLAGS'       => '-Wall -fno-strict-aliasing',
     'INC'           => qq(-I"$ib_inc" -I"${\locate_dbi_arch_dir()}"),
-    'OBJECT'        => "InterBase.o dbdimp.o",
+    'OBJECT'        => "Firebird.o dbdimp.o",
     'LIBS'          => [''],
     'OPTIMIZE'      => $Config::Config{'optimize'},
     'XSPROTOARG'    => '-noprototypes',
     'dist'          => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
-    'clean'         => {FILES => "*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/InterBase/*~ lib/DBD/InterBase/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old"},
+    'clean'         => {FILES => "*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD/Firebird/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old"},
     'realclean'     => {FILES => "t/test.conf"},
 );
 
@@ -388,7 +388,7 @@ if ($os eq 'MSWin32')
 {
     # set up PPM package parameters
     $MakeParams{'AUTHOR'}   = 'Edwin Pratomo (edpratomo@users.sourceforge.net)';
-    $MakeParams{'ABSTRACT'} = 'DBD::InterBase is a DBI driver for Firebird , written using Firebird C API.';
+    $MakeParams{'ABSTRACT'} = 'DBD::Firebird is a DBI driver for Firebird , written using Firebird C API.';
 
     my $vc_dir = '';
     if ($Config::Config{'cc'} eq "cl")
@@ -421,7 +421,7 @@ if ($os eq 'MSWin32')
         my $VC_PATH = dir_choice("Visual C++ directory", [@vc_dirs], [qw(cl.exe)]);
 
         unless (-x $VC_PATH){
-            carp "I can't find your MS VC++ installation.\nDBD::InterBase cannot build.\n";
+            carp "I can't find your MS VC++ installation.\nDBD::Firebird cannot build.\n";
             exit 1;
         }
 
@@ -430,7 +430,7 @@ if ($os eq 'MSWin32')
 
         $INC .= " -I\"$vc_inc\"";
 
-        my $ib_lib = dir_choice("InterBase lib directory",
+        my $ib_lib = dir_choice("Firebird lib directory",
                             [$ib_lib_dir . "SDK\\lib_ms", $ib_lib_dir . "lib"],
                             [qw(gds32_ms.lib fbclient_ms.lib)]);
 
@@ -474,7 +474,7 @@ LDDLFLAGS =  -L\"$vc_lib\" $cur_lddlflags
 
         $INC .= " -I\"$mingw_inc\"";
 
-        my $ib_lib = dir_choice("InterBase lib directory",
+        my $ib_lib = dir_choice("Firebird lib directory",
                             [$ib_lib_dir . "SDK\\lib_ms", $ib_lib_dir . "lib"],
                             [qw(gds32_ms.lib fbclient_ms.lib)]);
 
@@ -506,7 +506,7 @@ elsif ($os eq 'solaris')
 }
 elsif (($os eq 'linux') || ($os eq 'freebsd'))
 {
-    my $ib_lib = dir_choice("InterBase/Firebird lib directory",
+    my $ib_lib = dir_choice("Firebird/Firebird lib directory",
     [qw(/usr/firebird/lib /opt/firebird/lib /usr/lib /usr/local/lib)],
     [qw(libgds.a libgds.so libfbclient.so libfbembed.so)]);
     my $lib;
@@ -564,7 +564,7 @@ elsif ($os eq 'sysv')
 }
 else
 {
-    carp "DBD::InterBase is not supported on platform $os.\n";
+    carp "DBD::Firebird is not supported on platform $os.\n";
     exit 1;
 }
 

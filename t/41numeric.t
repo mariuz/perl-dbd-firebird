@@ -6,7 +6,7 @@
 # Using string comparison with Test::More's 'is'
 #
 # 2011-01-29 stefan(s.bv.)
-# New version based on t/testlib.pl and InterBase.dbtest
+# New version based on t/testlib.pl and Firebird.dbtest
 
 use strict;
 

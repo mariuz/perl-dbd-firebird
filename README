@@ -1,4 +1,4 @@
-DBD::InterBase -- DBI driver for Firebird and InterBase RDBMS server.
+DBD::Firebird -- DBI driver for Firebird and Firebird RDBMS server.
 
    $Id: README 360 2005-09-12 03:25:30Z edpratomo $
 

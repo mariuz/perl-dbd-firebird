@@ -5,7 +5,7 @@
 #   This is a test for ib_set_tx_param() private method.
 #
 # 2011-01-29 stefan(s. bv)
-# New version based on t/testlib.pl and InterBase.dbtest
+# New version based on t/testlib.pl and Firebird.dbtest
 # Note: set_tx_param() is obsoleted by ib_set_tx_param().
 
 use strict;

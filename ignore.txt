@@ -8,5 +8,5 @@ pm_to_blib*
 pod2htm*.tmp
 *.xsi
 *.o
-InterBase.bs
-InterBase.c
+Firebird.bs
+Firebird.c

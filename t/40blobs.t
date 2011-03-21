@@ -7,7 +7,7 @@
 #
 
 # 2011-01-29 stefansbv
-# New version based on t/testlib.pl and InterBase.dbtest
+# New version based on t/testlib.pl and Firebird.dbtest
 
 use strict;
 

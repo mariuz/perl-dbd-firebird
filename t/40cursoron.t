@@ -6,7 +6,7 @@
 #
 
 # 2011-01-29 stefansbv
-# New version based on t/testlib.pl and InterBase.dbtest
+# New version based on t/testlib.pl and Firebird.dbtest
 #  same test as 40cursor.t except ib_softcommit is enabled
 
 use strict;

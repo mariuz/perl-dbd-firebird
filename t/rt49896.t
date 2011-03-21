@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 #
-#   Test cases for DBD-InterBase rt.cpan.org #49896
+#   Test cases for DBD-Firebird rt.cpan.org #49896
 #   "Varchar fields accept data one char over field length (but memory
 #   is corrupted)"
 #

@@ -6,7 +6,7 @@
 #
 
 # 2011-01-23 stefan(s.bv.)
-# New version based on testlib and InterBase.dbtest
+# New version based on testlib and Firebird.dbtest
 
 use strict;
 use warnings;

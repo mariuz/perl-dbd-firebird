@@ -6,7 +6,7 @@
 #
 
 # 2011-01-23 stefansbv
-# New version based on testlib and InterBase.dbtest
+# New version based on testlib and Firebird.dbtest
 # NOW and TOMORROW tests replaced with simple TIME and DATE tests
 #   there is a separate test for them anyway
 

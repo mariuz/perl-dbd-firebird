@@ -24,8 +24,8 @@ for my $file ('t/testlib.pl', 'testlib.pl') {
 
 # my $file;
 # do {
-#     if (-f ($file = "t/InterBase.dbtest") ||
-#         -f ($file = "InterBase.dbtest"))
+#     if (-f ($file = "t/Firebird.dbtest") ||
+#         -f ($file = "Firebird.dbtest"))
 #     {
 #         eval { require $file };
 #         if ($@) {

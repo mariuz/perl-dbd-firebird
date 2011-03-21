@@ -3,12 +3,12 @@
 use Test::More;
 
 # testlib.pl
-# Consolidation of code for DBD::InterBase's Test::More tests...
+# Consolidation of code for DBD::Firebird's Test::More tests...
 
 my $file;
 do {
-    if (-f ($file = "t/InterBase.dbtest") ||
-        -f ($file = "InterBase.dbtest"))
+    if (-f ($file = "t/Firebird.dbtest") ||
+        -f ($file = "Firebird.dbtest"))
     {
         eval { require $file };
         BAIL_OUT("Cannot load $file: $@\n") if $@;

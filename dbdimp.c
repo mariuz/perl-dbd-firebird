@@ -10,7 +10,7 @@
 
 */
 
-#include "InterBase.h"
+#include "Firebird.h"
 
 DBISTATE_DECLARE;
 
@@ -163,7 +163,7 @@ int ib_error_check(SV *h, ISC_STATUS *status)
 
 static int ib2sql_type(int ibtype)
 {
-    /* InterBase Internal (not external) types */
+    /* Firebird Internal (not external) types */
     switch(ibtype)
     {
         case SQL_TEXT:
@@ -213,7 +213,7 @@ static int ib2sql_type(int ibtype)
 }
 
 #if 0
-/* from DBI (ANSI/ISO/ODBC) types to InterBase types */
+/* from DBI (ANSI/ISO/ODBC) types to Firebird types */
 static int ib_sql_type(imp_sth_t *imp_sth, char *name, int sql_type)
 {
     /* XXX should detect DBI reserved standard type range here */
@@ -491,7 +491,7 @@ int dbd_db_disconnect(SV *dbh, imp_dbh_t *imp_dbh)
     DBIc_ACTIVE_off(imp_dbh);
 
     /* always do a rollback if there's an open transaction.
-     * InterBase requires to close open transactions before
+     * Firebird requires to close open transactions before
      * detaching a database.
      */
     if (imp_dbh->tr)
@@ -867,10 +867,10 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs)
         case isc_info_sql_stmt_select_for_upd:
             /*
              * Unfortunately, select count item doesn't work
-             * in current versions of InterBase.
+             * in current versions of Firebird.
              * isql does it literally by fetching everything
              * and counting the number of rows it fetched.
-             * InterBase doesn't seem to be able to estimate
+             * Firebird doesn't seem to be able to estimate
              * the number of rows before the client app
              * fetches them all.
              */
@@ -904,7 +904,7 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs)
         case isc_info_sql_stmt_commit:
         case isc_info_sql_stmt_rollback:
         default:
-            do_error(sth, 10, "Statement type is not implemented in this version of DBD::InterBase");
+            do_error(sth, 10, "Statement type is not implemented in this version of DBD::Firebird");
             return FALSE;
             break;
     }
@@ -2467,7 +2467,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             {
                 /*
                  * Coerce the date literal into a CHAR string, so as
-                 * to allow InterBase's internal date-string parsing
+                 * to allow Firebird's internal date-string parsing
                  * to interpret the date.
                  */
                 char *datestring = SvPV(value, len);

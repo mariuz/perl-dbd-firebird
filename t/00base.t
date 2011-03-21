@@ -15,6 +15,6 @@ use Test::More tests => 2;
 
 use_ok('DBI');
 
-use_ok('DBD::InterBase');
+use_ok('DBD::Firebird');
 
 diag("\$DBI::VERSION=$DBI::VERSION");

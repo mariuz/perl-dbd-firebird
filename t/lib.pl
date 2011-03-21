@@ -15,7 +15,7 @@ use vars qw($mdriver $dbdriver $childPid $test_dsn $test_user $test_password);
 #
 #   Driver names; EDIT THIS!
 #
-$mdriver = 'InterBase';
+$mdriver = 'Firebird';
 $dbdriver = $mdriver; # $dbdriver is usually just the same as $mdriver.
                       # The exception is DBD::pNET where we have to
                       # to separate between local driver (pNET) and
