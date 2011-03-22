@@ -256,7 +256,7 @@ __END__
 
 =head1 NAME
 
-DBD::Firebird - DBI driver for Firebird and Firebird RDBMS server
+DBD::Firebird - DBI driver for Firebird RDBMS server
 
 =head1 SYNOPSIS
 
@@ -269,7 +269,7 @@ DBD::Firebird - DBI driver for Firebird and Firebird RDBMS server
 =head1 DESCRIPTION
 
 DBD::Firebird is a Perl module which works with the DBI module to provide
-access to Firebird and Firebird databases.
+access to Firebird databases.
 
 =head1 MODULE DOCUMENTATION
 
@@ -348,14 +348,14 @@ the end of host name, separated by a slash. Example:
 
  $dsn = 'dbi:Firebird:db=/data/test.gdb;host=localhost/3060';
 
-Firebird 6.0 introduces B<SQL dialect> to provide backward compatibility with
+Firebird 1.0 introduces B<SQL dialect> to provide backward compatibility with
 databases created by older versions of Firebird. In short, SQL dialect
 controls how Firebird interprets:
 
  - double quotes
  - the DATE datatype
  - decimal and numeric datatypes
- - new 6.0 reserved keywords
+ - new 1.0 reserved keywords
 
 Valid values for B<ib_dialect> are 1, 2, and 3. The driver's default value is
 1. 
@@ -364,7 +364,7 @@ B<ib_role> specifies the role of the connecting user. B<SQL role> is
 implemented by Firebird to make database administration easier when dealing
 with lots of users. A detailed reading can be found at:
 
- http://www.ibphoenix.com/ibp_sqlroles.html
+ http://www.ibphoenix.com/resources/documents/general/doc_59
 
 If B<ib_cache> is not specified, the default database's cache size value will be 
 used. The Firebird Operation Guide discusses in full length the importance of 
@@ -590,7 +590,7 @@ are ignored.
 
   $sth = $dbh->table_info;
 
-All Interbase/Firebird versions support the basic DBI-specified columns
+All Firebird versions support the basic DBI-specified columns
 (TABLE_NAME, TABLE_TYPE, etc.) as well as C<IB_TABLE_OWNER>.  Peculiar
 versions may return additional fields, prefixed by C<IB_>.
 
@@ -607,7 +607,7 @@ SQL C<LIKE> predicate, which is sensitive to blanks.  That is:
 Future versions of DBD::Firebird may attempt to work around this irritating
 limitation, at the expense of efficiency.
 
-Note that Interbase/Firebird implementations do not presently support the DBI
+Note that Firebird implementations do not presently support the DBI
 concepts of 'catalog' and 'schema', so these parameters are effectively
 ignored.
 
