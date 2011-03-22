@@ -10,6 +10,6 @@ inc/
 *.bs
 *.o
 *.xsi
-InterBase.c
+Firebird.c
 t/test.conf
 t/create.sql
