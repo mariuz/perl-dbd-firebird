@@ -20,7 +20,7 @@ static int _cancel_callback(SV *dbh, IB_EVENT *ev)
     D_imp_dbh(dbh);
 
     int ret = 0;
-    if (ev->exec_cb) 
+    if (ev->exec_cb)
         croak("Can't be called from inside a callback");
     if (ev->perl_cb) {
         ev->state = INACTIVE;
@@ -31,12 +31,12 @@ static int _cancel_callback(SV *dbh, IB_EVENT *ev)
             ret = 0;
         else
             ret = 1;
-    } else 
+    } else
         croak("No callback found for this event handle. Have you called ib_register_callback?");
     return ret;
 }
 
-static int _call_perlsub(IB_EVENT ISC_FAR *ev, short length, 
+static int _call_perlsub(IB_EVENT ISC_FAR *ev, short length,
 #if defined(INCLUDE_TYPES_PUB_H)
 const ISC_UCHAR *updated
 #else
@@ -71,7 +71,7 @@ char ISC_FAR *updated
             *result++ = *updated++;
         isc_event_counts(ecount, ev->epb_length, ev->event_buffer,
                          ev->result_buffer);
-        for (i = 0; i < ev->num; i++) 
+        for (i = 0; i < ev->num; i++)
         {
             if (ecount[i])
             {
@@ -88,7 +88,7 @@ char ISC_FAR *updated
         PUTBACK;
         count = perl_call_sv(ev->perl_cb, G_SCALAR);
         SPAGAIN;
-        if (count > 0) 
+        if (count > 0)
             retval = POPi;
         PUTBACK;
         FREETMPS;
@@ -108,7 +108,7 @@ char ISC_FAR *updated
 
 /* callback function for events, called by Firebird */
 /* static isc_callback _async_callback(IB_EVENT ISC_FAR *ev, short length, char ISC_FAR *updated) */
-static ISC_EVENT_CALLBACK _async_callback(IB_EVENT ISC_FAR *ev, 
+static ISC_EVENT_CALLBACK _async_callback(IB_EVENT ISC_FAR *ev,
 #if defined(INCLUDE_TYPES_PUB_H)
 ISC_USHORT length, const ISC_UCHAR *updated
 #else
@@ -301,7 +301,7 @@ ib_tx_info(dbh)
 {
     D_imp_dbh(dbh);
     char request[] = {
-        isc_info_tra_id, 
+        isc_info_tra_id,
 #if defined(FB_API_VER) && FB_API_VER >= 20
         /* FB 2.0: */
         isc_info_tra_oldest_interesting,
@@ -326,15 +326,15 @@ ib_tx_info(dbh)
     if (!imp_dbh->tr) {
         do_error(dbh, 2, "No active transaction");
         XSRETURN_UNDEF;
-    } 
-    
+    }
+
     /* calc required result buffer size */
     for (p = request; *p != isc_info_end; p++) {
         result_length++; /* identifier (1 byte)*/
         switch (*p) {
 #if defined(FB_API_VER) && FB_API_VER >= 20
             case isc_info_tra_isolation:
-                /* result: 
+                /* result:
                 length (2 bytes) + first content (1 byte) +
                 length (2 bytes) + second content (2 bytes max)
                 */
@@ -357,14 +357,14 @@ ib_tx_info(dbh)
     /* try insufficient result_length:
     result_length = 40;
     */
-    
+
   try_alloc_result_buffer:
     Newxz(result, result_length, char);
     /* PerlIO_printf(PerlIO_stderr(), "result_length: %d\n", result_length); */
 
     /* call */
-    isc_transaction_info(status, &(imp_dbh->tr), 
-                         sizeof(request), request, 
+    isc_transaction_info(status, &(imp_dbh->tr),
+                         sizeof(request), request,
                          result_length, result);
 
     if (ib_error_check(dbh, status)) {
@@ -414,7 +414,7 @@ ib_tx_info(dbh)
                     short length = isc_vax_integer(p, 2);
                     p += 2;
                     /* PerlIO_printf(PerlIO_stderr(), "Content length: %d\n", length); */
-                    
+
                     if (*p == isc_info_tra_consistency) {
                         (void)hv_store(RETVAL, keyname, strlen(keyname), newSVpv("consistency", 0), 0);
                     } else if (*p == isc_info_tra_concurrency) {
@@ -468,7 +468,7 @@ ib_tx_info(dbh)
         }
     }
 }
-    OUTPUT: 
+    OUTPUT:
     RETVAL
     CLEANUP:
     SvREFCNT_dec(RETVAL);
@@ -713,9 +713,10 @@ ib_set_tx_param(dbh, ...)
                     {
                         table_opts = (HV*)SvRV(HeVAL(he));
 
+                        /*
                         if (hv_exists(table_opts, "access", 6))
                         {
-                            /* access is optional */
+                            comment: access is optional
                             sv = *hv_fetch(table_opts, "access", 6, FALSE);
                             if (strnEQ(SvPV_nolen(sv), "shared", 6))
                                 *tpb++ = isc_tpb_shared;
@@ -727,6 +728,7 @@ ib_set_tx_param(dbh, ...)
                                 croak("Invalid -reserving access value");
                             }
                         }
+                        */
 
                         if (hv_exists(table_opts, "lock", 4))
                         {
@@ -757,6 +759,22 @@ ib_set_tx_param(dbh, ...)
                                 *tpb++ = toupper(*table_name++);
                         }
                         *tpb++ = 0;
+
+                        if (hv_exists(table_opts, "access", 6))
+                        {
+                            /* access is optional */
+                            sv = *hv_fetch(table_opts, "access", 6, FALSE);
+                            if (strnEQ(SvPV_nolen(sv), "shared", 6))
+                                *tpb++ = isc_tpb_shared;
+                            else if (strnEQ(SvPV_nolen(sv), "protected", 9))
+                                *tpb++ = isc_tpb_protected;
+                            else
+                            {
+                                Safefree(tmp_tpb);
+                                croak("Invalid -reserving access value");
+                            }
+                        }
+
                     } /* end hashref check*/
                     else
                     {
@@ -1175,7 +1193,7 @@ ib_init_event(dbh, ...)
         for (i = 0; i < MAX_EVENTS; i++)
         {
             if (i < cnt) {
-                /* dangerous! 
+                /* dangerous!
                 *(RETVAL->names + i) = SvPV_nolen(ST(i + 1));
                 */
 				Newx(RETVAL->names[i], SvCUR(ST(i + 1)) + 1, char);
@@ -1236,7 +1254,7 @@ ib_register_callback(dbh, ev, perl_cb)
     DBI_TRACE_imp_xxh(imp_dbh, 2, (DBIc_LOGPIO(imp_dbh), "Entering register_callback()..\n"));
 
     /* save the perl callback function */
-    if (ev->perl_cb == (SV*)NULL) 
+    if (ev->perl_cb == (SV*)NULL)
         ev->perl_cb = newSVsv(perl_cb);
     else {
         if (_cancel_callback(dbh, ev))
@@ -1298,7 +1316,7 @@ ib_wait_event(dbh, ev)
         isc_event_counts(ecount, ev->epb_length, ev->event_buffer,
                          ev->result_buffer);
         RETVAL = newHV();
-        for (i = 0; i < ev->num; i++) 
+        for (i = 0; i < ev->num; i++)
         {
             if (ecount[i])
             {
@@ -1329,7 +1347,7 @@ DESTROY(evh)
     DBI_TRACE_imp_xxh(evh->dbh, 2, (DBIc_LOGPIO(evh->dbh), "Entering DBD::Firebird::Event::DESTROY..\n"));
 #ifdef DBI_USE_THREADS
 	if (PERL_GET_CONTEXT != evh->dbh->context) {
-		DBI_TRACE_imp_xxh(evh->dbh, 2, (DBIc_LOGPIO(evh->dbh), 
+		DBI_TRACE_imp_xxh(evh->dbh, 2, (DBIc_LOGPIO(evh->dbh),
 			"DBD::Firebird::Event::DESTROY ignored because owned by thread %p not current thread %p\n",
 			evh->dbh->context, (PerlInterpreter *)PERL_GET_CONTEXT)
 		);
@@ -1346,13 +1364,13 @@ DESTROY(evh)
         isc_cancel_events(status, &(evh->dbh->db), &(evh->id));
     }
     if (evh->event_buffer)
-#ifdef INCLUDE_TYPES_PUB_H 
+#ifdef INCLUDE_TYPES_PUB_H
         isc_free((ISC_SCHAR*)evh->event_buffer);
 #else
         isc_free(evh->event_buffer);
 #endif
     if (evh->result_buffer)
-#ifdef INCLUDE_TYPES_PUB_H 
+#ifdef INCLUDE_TYPES_PUB_H
         isc_free((ISC_SCHAR*)evh->result_buffer);
 #else
         isc_free(evh->result_buffer);
@@ -1376,7 +1394,7 @@ ib_plan(sth)
     plan_info[0] = isc_info_sql_get_plan;
 
     if (isc_dsql_sql_info(status, &(imp_sth->stmt), sizeof(plan_info), plan_info,
-                  sizeof(plan_buffer), plan_buffer)) 
+                  sizeof(plan_buffer), plan_buffer))
     {
         if (ib_error_check(sth, status))
         {

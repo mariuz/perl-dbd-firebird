@@ -7,6 +7,11 @@
 # 2011-01-29 stefan(s. bv)
 # New version based on t/testlib.pl and Firebird.dbtest
 # Note: set_tx_param() is obsoleted by ib_set_tx_param().
+#
+# Transaction behavior default parameter values:
+#   Access mode:        read_write
+#   Isolation level:    snapshot
+#   Lock resolution:    wait
 
 use strict;
 
@@ -16,7 +21,7 @@ BEGIN {
 }
 
 use DBI;
-use Test::More tests => 23;
+use Test::More tests => 22;
 
 # Make -w happy
 $::test_dsn = '';
@@ -81,7 +86,6 @@ ok(
 
 ok(
     $dbh2->func(
-        # -isolation_level => 'snapshot_table_stability',
         -access_mode     => 'read_only',
         -lock_resolution => 'no_wait',
         'ib_set_tx_param'
@@ -101,7 +105,7 @@ SCOPE: {
 
     ok($dbh1->do($insert_stmt, undef, 1), 'DO INSERT (1)');
 
-    #- Expected failure
+    #- Expected failure ( -access_mode => 'read_only' )
 
     ok(! $dbh2->do($insert_stmt, undef, 2), 'DO INSERT (2)');
 
@@ -133,18 +137,17 @@ SCOPE: {
 
     ok(
         $dbh2->func(
-
-            # -isolation_level => 'snapshot_table_stability',
             -lock_resolution => 'no_wait',
             'ib_set_tx_param'
         ),
         'CHANGE tx param for dbh 2'
     );
 
-    # stefan: This should fail?
-    ok($dbh1->do($insert_stmt, undef, 2), 'DO INSERT (2)');
+    ok($dbh1->do($insert_stmt, undef, 3), 'DO INSERT (2)');
 
-    ok($dbh2->do($insert_stmt, undef, 3), 'DO INSERT (3)');
+    #- Expected failure ( -lock_resolution => 'no_wait' )
+
+    ok(! $dbh2->do($insert_stmt, undef, 4), 'DO INSERT (3)');
 
     # Committing the first trans
     ok($dbh1->commit, 'COMMIT dbh 1');
@@ -157,14 +160,14 @@ SCOPE: {
 isa_ok( $dbh1, 'DBI::db' );
 isa_ok( $dbh2, 'DBI::db' );
 
-$dbh1->{AutoCommit} = 1;
-ok($dbh1->{AutoCommit}, 'AutoCommit is on');
+#
+#   Disconnect 2
+ok($dbh2->disconnect, 'DISCONNECT 2');
 
-# stefan: Why does that fail?
+# AutoCommit is on
 ok( $dbh1->do("DROP TABLE $table"), "DROP TABLE '$table'" );
 
 #
-#   Finally disconnect.
+#   Finally disconnect 1
 #
 ok($dbh1->disconnect, 'DISCONNECT 1');
-ok($dbh2->disconnect, 'DISCONNECT 2');
