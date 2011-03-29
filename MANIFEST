@@ -1,15 +1,10 @@
 Changes
 dbdimp.c
 dbdimp.h
-dbdimp.o
-ignore.txt
-Firebird.bs
-Firebird.c
 Firebird.h
-Firebird.o
 Firebird.pm
 Firebird.xs
-Firebird.xsi
+ignore.txt
 lib/DBD/Firebird/GetInfo.pm
 lib/DBD/Firebird/TableInfo.pm
 lib/DBD/Firebird/TableInfo/Basic.pm
@@ -44,6 +39,11 @@ t/80event-ithreads.t
 t/81event-fork.t
 t/90dbinfo.t
 t/91txinfo.t
+t/bigdecimal.t
+t/bigdecimal_read.t
+t/biginteger.t
+t/biginteger_read.t
+t/create.sql
 t/dbi-primary_key_info.t
 t/dbi-table_info.t
 t/dbi-tables.t
@@ -52,6 +52,5 @@ t/Firebird.mtest
 t/lib.pl
 t/README
 t/rt49896.t
-t/test.conf
 t/testlib.pl
 typemap

@@ -19,7 +19,7 @@
 # added support for ActivePerl! :)
 
 BEGIN { $^W = 0 }       # turn warnings off
-BEGIN { require 5.008_001;} # 5.008 is required by latest dbi version 
+BEGIN { require 5.008_001;} # 5.008 is required by latest dbi version
 
 use ExtUtils::MakeMaker 5.16, qw(prompt &WriteMakefile $Verbose);
 use Config;
@@ -90,7 +90,7 @@ else
 {
     $isql_name = 'isql';
     @ib_bin_dirs = (qw(/opt/firebird/bin /usr/bin /usr/local/bin));
-    @ib_inc_dirs = (qw(/opt/firebird/include /usr/include));
+    @ib_inc_dirs = (qw(/opt/firebird/include /usr/include /usr/include/firebird));
 }
 
 sub locate_dbi_arch_dir {
@@ -531,7 +531,7 @@ elsif (($os eq 'linux') || ($os eq 'freebsd'))
 
     my $ldl = ($os eq 'linux') ? '-ldl' : '';
 
-    $MakeParams{'LIBS'} = "-L$ib_lib -l$lib $ldl ";
+    $MakeParams{'LIBS'} = "-L$ib_lib -L/usr/lib -l$lib $ldl ";
 
 }
 elsif ($os eq 'hpux')
