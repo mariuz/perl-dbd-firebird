@@ -249,7 +249,7 @@ sub locate_firebird {
         if ( -d $dir ) {
 
             # File names specific to the Firebird/bin dir
-            my @fb_files = qw{isql fbsql};
+            my @fb_files = qw{isql fbsql};   # fbsql not yet!
 
             my $found = 0;
             while ( !$found ) {
@@ -260,6 +260,7 @@ sub locate_firebird {
                 if ( -f $file and -x $file ) {
                     # Located
                     check_and_set_devlibs($dir);
+                    save_isql_path($file);
                     last;
                 }
             }
@@ -399,6 +400,31 @@ If all else fails, email <maintainer_email\@here> for help.
 MSG
 
     print $msg;
+}
+
+sub save_isql_path {
+    my $isql_path = shift;
+
+    my $test_conf = './t/test.conf';
+
+    $isql_path = File::Spec->canonpath($isql_path);
+
+    open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
+
+    my $test_time = scalar localtime();
+    my @record = (
+        q{### This is a temporary file used for test setup ###},
+        q{### Time: } . $test_time,
+        qq{isql:$isql_path},
+        q{### Should be automaticaly deleted at tests end! ###},
+    );
+    my $rec = join "\n", @record;
+
+    print {$t_fh} $rec, "\n";
+
+    close $t_fh or die "Can't close $test_conf: $!";
+
+    return;
 }
 
 exit 0;
