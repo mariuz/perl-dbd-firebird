@@ -413,10 +413,12 @@ sub save_isql_path {
 
     my $test_time = scalar localtime();
     my @record = (
-        q{### This is a temporary file used for test setup ###},
-        q{### Time: } . $test_time,
-        qq{isql:$isql_path},
-        q{### Should be automaticaly deleted at tests end! ###},
+        q(### This is a temporary file used for test setup ###),
+        q(### The field separator is :=                    ###),
+        q(### Section 1),
+        q(### Time: ) . $test_time,
+        qq(isql:=$isql_path),
+        q(### Should be automaticaly deleted at tests end! ###),
     );
     my $rec = join "\n", @record;
 
