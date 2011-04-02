@@ -37,7 +37,7 @@ sub tests_init {
         setup_test_parameters($para);
     }
     elsif ( $rec_no <= 0 ) {
-        print " Run Makefile.pl && make, first\n";
+        print "Required config not found, run Makefile.pl && make!\n";
         exit 1;
     }
     else {
@@ -80,7 +80,7 @@ sub setup_test_parameters {
     }
 
     # Format DSN
-    $para->{tdsn} = check_and_format_dsn( $para );
+    $para->{tdsn} = get_dsn( $para );
 
     my $have_testdb = check_database($para);
     unless ($have_testdb) {
@@ -94,27 +94,38 @@ sub setup_test_parameters {
     save_configs($para);
 }
 
-sub check_and_format_dsn {
+sub get_dsn {
+    my $para = shift;
+
+    my $dsn = $para->{tdsn};
+
+    if ($dsn) {
+        # Check user provided DSN
+
+        my ( $scheme, $driver, $attr_string, $attr_hash, $driver_dsn ) =
+            DBI->parse_dsn($dsn)
+                or die "Can't parse DBI DSN '$dsn'";
+
+        die "Wrong scheme name: $scheme" if $scheme !~ m{dbi}; # case sensitive?
+        die "Wrong driver name: $driver" if $driver ne q(Firebird);
+        die "Wrong driver dsn: $driver_dsn" if !$driver_dsn;
+
+        ($para->{path} = $driver_dsn) =~ s{(db(name)?|database|)=}{}; # for isql
+    }
+    else {
+        $dsn = make_dsn($para);
+    }
+
+    return $dsn;
+}
+
+sub make_dsn {
     my $para = shift;
 
     my $path = '/opt/ibdb/testnew.fdb'; # HARDWIRED !!!
     $para->{path} = $path;      # save it for isql
 
-    my $dsn  = $para->{tdsn};
-
-    return "dbi:Firebird:db=$path" if !$dsn;
-
-    my ( $scheme, $driver, $attr_string, $attr_hash, $driver_dsn ) =
-      DBI->parse_dsn($dsn)
-      or die "Can't parse DBI DSN '$dsn'";
-
-    print "scheme = $scheme\n";
-    print "driver = $driver\n";
-    print "attr_s = $attr_string\n";
-    print "attr_h = $attr_hash\n";
-    print "d_dsn  = $driver_dsn\n";
-
-    return $dsn;
+    return "dbi:Firebird:db=$path";
 }
 
 sub find_new_table {
@@ -266,6 +277,7 @@ sub check_database {
     #- Connect to the test database
 
     print "The isql path is $isql\n";
+    print "The databse path is $path\n";
 
     my $dialect;
     my $database_ok = 1;
