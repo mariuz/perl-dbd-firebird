@@ -12,7 +12,7 @@ use warnings;
 use Data::Dumper;
 use Carp;
 
-use DBI 1.43;                   # for parse_dsn
+use DBI 1.43;                   # minimum for parse_dsn
 
 sub connect_to_database {
 
@@ -102,7 +102,7 @@ sub get_dsn {
     if ($dsn) {
         # Check user provided DSN
 
-        my ( $scheme, $driver, $attr_string, $attr_hash, $driver_dsn ) =
+        my ( $scheme, $driver, undef, undef, $driver_dsn ) =
             DBI->parse_dsn($dsn)
                 or die "Can't parse DBI DSN '$dsn'";
 
@@ -110,7 +110,7 @@ sub get_dsn {
         die "Wrong driver name: $driver" if $driver ne q(Firebird);
         die "Wrong driver dsn: $driver_dsn" if !$driver_dsn;
 
-        ($para->{path} = $driver_dsn) =~ s{(db(name)?|database|)=}{}; # for isql
+        ($para->{path} = $driver_dsn) =~ s{(db(name)?|database)=}{}; # for isql
     }
     else {
         $dsn = make_dsn($para);
