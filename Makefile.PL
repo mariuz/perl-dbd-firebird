@@ -1,15 +1,21 @@
 #!/usr/bin/perl
 #
-# 2011-03-30 modified to use environment vars or helper subs to locate
-# Firebird (only MinGW support)
-# Inspired by the App::Info module:
+# 2011-04-03: Added support for VC++ compiler
+# Copy - paste from the old Makefile.PL (not tested, not finished)
+#
+# 2011-03-30: Modified to use environment vars or helper subs to locate
+# Firebird (only MinGW support), inspired by the App::Info module:
 # Info.pm - 2008-07-18 16:17:45Z by david
 #
-# 2011-01-21 addapted for DBD::Firebird by stefansbv from the
+# 2011-01-21: Addapted for DBD::Firebird by stefansbv from the
 # DBD::Pg - Makefile.PL 2010-11-21 04:19:18Z by turnstep
 #
 # Based on:
 # DBD::InterBase - Makefile.PL 2008-01-08 05:29:19Z by edpratomo
+#
+# Notes:
+# MS specific required Firebird installation setting:
+# Copy Firebird client library to <system> directory? - Yes
 
 use strict;
 use warnings;
@@ -22,27 +28,6 @@ use ExtUtils::MakeMaker;
 use Config;
 
 my $os = $^O;
-
-# my $lib;
-# BEGIN {
-#     use vars qw/$sep/;
-#     my %sep = (
-#                MacOS   => ':',
-#                MSWin32 => '\\',
-#                os2     => '\\',
-#                VMS     => '\\',
-#                NetWare => '\\',
-#                dos     => '\\',
-#                );
-#     $sep = $sep{$os} || '/';
-#     $lib = join $sep, 't', 'lib';
-# }
-
-# use lib $lib;
-# if ($VERSION =~ /_/) {
-#     print "WARNING! This is a test version ($VERSION)!\n";
-#     print " Should not be used in production!\n";
-# }
 
 if (grep { /help/ } @ARGV) {
     help_message();
@@ -112,7 +97,7 @@ my %MakeParams = (
     'INC'           => qq(-I"$fb_INC" -I"$dbi_arch_dir"),
     'OBJECT'        => "Firebird.o dbdimp.o",
     'LIBS'          => [''],
-    'OPTIMIZE'      => $Config::Config{'optimize'},
+    'OPTIMIZE'      => $Config{optimize},
     'XSPROTOARG'    => '-noprototypes',
     'dist'          => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
     'clean'         => {FILES => qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD/Firebird/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old dll.*)},
@@ -122,53 +107,71 @@ my %MakeParams = (
 # The OS specific build environment setup
 SWITCH: {
     $os eq 'MSWin32' && do {
-        setup_for_ms();                      # to big to put here ;)
+        # Set up PPM package parameters
+        # Is the mail address still valid?
+        $MakeParams{AUTHOR} =
+          'Edwin Pratomo (edpratomo@users.sourceforge.net)';
+        $MakeParams{ABSTRACT} =
+'DBD::Firebird is a DBI driver for Firebird, written using Firebird C API.';
+
+        # Choices for the compiler
+        if ( $Config{cc} eq q{gcc} ) {
+            setup_for_ms_gcc();
+        }
+        elsif ( $Config{cc} eq q{cl} ) {
+            setup_for_ms_cl();
+        }
+        else {
+            print "No suitable compiler found\n";
+            print "Try: ppm install MinGW, to install MinGW!\n";
+            exit 1;
+        }
         last SWITCH;
     };
     $os eq 'solaris' && do {
-        $MakeParams{'LIBS'} = '-lgdsmt -lm -lc';
+        $MakeParams{LIBS} = '-lgdsmt -lm -lc';
         last SWITCH;
     };
     $os eq 'linux' && do {
         my $lib = 'fbclient';
         my $fb_lib = $fb_LIB;
         my $ldl = ($os eq 'linux') ? '-ldl' : '';
-        $MakeParams{'LIBS'} = "-L$fb_lib -l$lib $ldl ";
+        $MakeParams{LIBS} = "-L$fb_lib -l$lib $ldl ";
         last SWITCH;
     };
     $os eq 'freebsd' && do {
         my $lib = 'fbclient';
         my $fb_lib = $fb_LIB;
         my $ldl = ($os eq 'linux') ? '-ldl' : '';
-        $MakeParams{'LIBS'} = "-L$fb_lib -l$lib $ldl ";
+        $MakeParams{LIBS} = "-L$fb_lib -l$lib $ldl ";
         last SWITCH;
     };
     $os eq 'hpux' && do {
-        $MakeParams{'LIBS'} = '-lgds -ldld';
+        $MakeParams{LIBS} = '-lgds -ldld';
         last SWITCH;
     };
     $os eq 'sunos' && do {
-        $MakeParams{'LIBS'} = '-lgdslib -ldl';
+        $MakeParams{LIBS} = '-lgdslib -ldl';
         last SWITCH;
     };
     $os eq 'irix' && do {
-        $MakeParams{'LIBS'} = '-lgds -lsun';
+        $MakeParams{LIBS} = '-lgds -lsun';
         last SWITCH;
     };
     $os eq 'aix' && do {
-        $MakeParams{'LIBS'} = '-lgdsshr';
+        $MakeParams{LIBS} = '-lgdsshr';
         last SWITCH;
     };
     $os eq 'dgux' && do {
-        $MakeParams{'LIBS'} = '-lgds -lgdsf -ldl -ldgc';
+        $MakeParams{LIBS} = '-lgds -lgdsf -ldl -ldgc';
         last SWITCH;
     };
     $os eq 'osf1' && do {
-        $MakeParams{'LIBS'} = '-lgds';
+        $MakeParams{LIBS} = '-lgds';
         last SWITCH;
     };
     $os eq 'sysv' && do {
-        $MakeParams{'LIBS'} = '-lgds -lnsl -lsocket -ldl';
+        $MakeParams{LIBS} = '-lgds -lnsl -lsocket -ldl';
         last SWITCH;
     };
 
@@ -183,14 +186,7 @@ sub MY::postamble {
     return DBI::DBD->dbd_postamble(@_);
 }
 
-#-- MS specific
-# Copy Firebird client library to <system> directory? Yes
-
-sub setup_for_ms {
-    # Set up PPM package parameters
-    $MakeParams{'AUTHOR'} = 'Edwin Pratomo (edpratomo@users.sourceforge.net)';
-    $MakeParams{'ABSTRACT'} =
-'DBD::Firebird is a DBI driver for Firebird , written using Firebird C API.';
+sub setup_for_ms_gcc {
 
     # Support for MinGW
     #  ActiveState: cc => V:\absolute\path\to\gcc.exe
@@ -201,23 +197,23 @@ sub setup_for_ms {
     my $mingw_path = 'C:\Perl\site\lib\auto\MinGW';
 
     # Expecting absolute paths in Straberry Perl
-    my $mingw_inc = $Config::Config{incpath};
+    my $mingw_inc = $Config{incpath};
 
     # For ActiveState Perl is  \include                  # always?
     if ( $mingw_inc eq '\include' ) {
         $mingw_inc = File::Spec->catpath( $mingw_path, $mingw_inc );
     }
-    my $mingw_lib = $Config::Config{libpth};
+    my $mingw_lib = $Config{libpth};
 
     # For ActiveState Perl is  \lib                      # always?
     if ( $mingw_lib eq '\lib' ) {
         $mingw_lib = File::Spec->catpath( $mingw_path, $mingw_lib );
     }
 
-    # $INC .= " -I\"$mingw_inc\"";
+    $INC .= qq{ -I"$mingw_inc"};
 
-    my $cur_libs      = $Config::Config{libs};
-    my $cur_lddlflags = $Config::Config{lddlflags};
+    my $cur_libs      = $Config{libs};
+    my $cur_lddlflags = $Config{lddlflags};
 
     my $lib;
     if   ( -f "$fb_LIB/fbclient_ms.lib" ) { $lib = "$fb_LIB/fbclient_ms.lib"; }
@@ -230,7 +226,54 @@ sub setup_for_ms {
 LDLOADLIBS = \"$lib\" $cur_libs
 LDDLFLAGS =  -L\"$mingw_lib\" $cur_lddlflags
     '
-    } ";
+} ";
+}
+
+sub setup_for_ms_cl {
+
+    # Try to find Microsoft Visual C++ compiler
+    my $vc_dir = registry_lookup_ms_cl(); # not finished, not tested !!!
+
+    my @vc_dirs = ( $vc_dir . "/bin" );
+
+    my $VC_PATH =
+        dir_choice( "Visual C++ directory", [@vc_dirs], [qw(cl.exe)] );
+
+    unless ( -x $VC_PATH ) {
+        carp
+            "I can't find your MS VC++ installation.\nDBD::Firebird cannot build.\n";
+        exit 1;
+    }
+
+    my $vc_inc = $VC_PATH . "/include";
+    my $vc_lib = $VC_PATH . "/lib";
+
+    $INC .= " -I\"$vc_inc\"";
+
+    my $ib_lib = dir_choice(
+        "Firebird lib directory",
+        [ $fb_LIB . "SDK\\lib_ms", $fb_LIB . "lib" ],
+        [qw(gds32_ms.lib fbclient_ms.lib)]
+    );
+
+    my $cur_libs      = $Config{libs};
+    my $cur_lddlflags = $Config{lddlflags};
+
+    my $lib;
+    if (-f "$fb_LIB/fbclient_ms.lib")
+        { $lib = "$fb_LIB/fbclient_ms.lib"; }
+    else
+        { $lib = "$fb_LIB/gds32_ms.lib"; }
+
+    eval "
+    sub MY::const_loadlibs {
+    '
+LDLOADLIBS = \"$lib\" $cur_libs
+LDDLFLAGS =  -L\"$vc_lib\" $cur_lddlflags
+    '
+} ";
+
+return;
 }
 
 #-- Helper subs
@@ -341,7 +384,7 @@ On Windows use the Registry to locate Firebird.
 
 sub locate_firebird_ms {
 
-    my $hp_ref = reg_dirs();
+    my $hp_ref = registry_lookup_fb();
     if (ref $hp_ref) {
         $fb_HOME = File::Spec->canonpath($hp_ref->[0]);
         $fb_INC  = File::Spec->catdir( $fb_HOME, 'include' );
@@ -349,13 +392,13 @@ sub locate_firebird_ms {
     }
 }
 
-=head2 reg_dirs
+=head2 registry_lookup_fb
 
 Use the Windows registry to locate Firebird.
 
 =cut
 
-sub reg_dirs {
+sub registry_lookup_fb {
 
     my @path;
     eval {
@@ -372,6 +415,35 @@ sub reg_dirs {
     }
 
     return wantarray ? @path : \@path;
+}
+
+sub registry_lookup_ms_cl {
+
+    my @path;
+    eval {
+        require Win32::TieRegistry;
+
+        my $path = Win32::TieRegistry->new("path")
+            ->GetValue("DefaultInstance");
+        push @path, $path if $path;
+    };
+    if ($@) {
+        warn "Only for Win32!";
+        die "Failed to locate Firebird!\n";
+    }
+
+    return wantarray ? @path : \@path;
+
+    # my $sw = $Registry->{"LMachine/Software/"};
+
+    # # We have to check more than one keys, because different
+    # # releases of Visual C++ have used different key hierarchies.
+    # my $key = $sw->{"Microsoft/VisualStudio/6.0/Setup/Microsoft Visual C++"}
+    #   || $sw->{"Microsoft/VisualStudio/7.0/Setup/VC"};
+
+    # if ( defined($key) ) {
+    #     $vc_dir = $key->{"/ProductDir"};
+    # }
 }
 
 sub help_message {
@@ -413,12 +485,12 @@ sub save_isql_path {
 
     my $test_time = scalar localtime();
     my @record = (
-        q(### This is a temporary file used for test setup ###),
-        q(### The field separator is :=                    ###),
-        q(### Section 1),
-        q(### Time: ) . $test_time,
+        q(# This is a temporary file used for test setup #),
+        q(# The field separator is :=                    #),
+        q(# Should be automaticaly deleted at tests end! #),
+        q(# Init section ------ (created by Makefile.PL) #),
+        q(# Time: ) . $test_time,
         qq(isql:=$isql_path),
-        q(### Should be automaticaly deleted at tests end! ###),
     );
     my $rec = join "\n", @record;
 
