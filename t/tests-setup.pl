@@ -13,6 +13,7 @@ use Data::Dumper;
 use Carp;
 
 use DBI 1.43;                   # minimum for parse_dsn
+use File::Spec;
 
 sub connect_to_database {
 
@@ -122,7 +123,10 @@ sub get_dsn {
 sub make_dsn {
     my $para = shift;
 
-    my $path = '/tmp/dbd-fb-testdb.fdb'; # hardwired !!! change this !!!
+    # Using a temp database in the /tmp dir for tests by default
+    my $tmpd = File::Spec->tmpdir();
+    my $path = File::Spec->catfile($tmpd, 'dbd-fb-testdb.fdb');
+
     $para->{path} = $path;      # save it for isql
 
     return "dbi:Firebird:db=$path";
