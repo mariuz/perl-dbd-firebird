@@ -19,58 +19,163 @@
 
 use strict;
 use warnings;
-
-use Carp;
 use 5.008;
+use Carp;
 
+use Getopt::Long;
 use File::Spec;
-use ExtUtils::MakeMaker;
+use File::Basename;
+use ExtUtils::MakeMaker 5.16, qw(prompt &WriteMakefile $Verbose);
 use Config;
 
 my $os = $^O;
 
-if (grep { /help/ } @ARGV) {
+my $interactive;
+my $help;
+
+GetOptions(
+    interactive => \$interactive,
+    help        => \$help,
+);
+
+if ($help) {
     help_message();
-    exit 1;
+    exit;
 }
 
-print "Configuring DBD::Firebird\n";
-print "OS: $os\n";
+welcome_msg();
 
-# We set FIREBIRD_HOME from the first found of:
-# 1. Environment variable
-# 2. Subdirectory of FIREBIRD_HOME
-# 3. Helper subs
+print "Configuring DBD::Firebird (on $os)\n";
 
-# 1. Environment variable
-my $fb_HOME = $ENV{FIREBIRD_HOME};
-my $fb_INC  = $ENV{FIREBIRD_INCLUDE};
-my $fb_LIB  = $ENV{FIREBIRD_LIB};
+my $fb_HOME;
+my $fb_INC;
+my $fb_LIB;
 
-if ($fb_HOME) {
-    print "(Using environment vars)\n";
+if ($interactive) {
 
-    # 2. Subdirectory of FIREBIRD_HOME
-    $fb_INC = $fb_INC || File::Spec->catdir( $fb_HOME, 'include' );
-    $fb_LIB = $fb_LIB || File::Spec->catdir( $fb_HOME, 'lib' );
+    print qq{\nStarting interactive setup, two attempts for each option,\n};
+    print qq{ if both fail, the script will abort ...\n};
+    print qq{\n Enter the full paths to the Firebird instalation:\n};
+    $fb_HOME = prompt_path("      Home:", $fb_HOME);
+
+    $fb_INC = File::Spec->catdir( $fb_HOME, 'include' );
+    $fb_LIB = File::Spec->catdir( $fb_HOME, 'lib' );
+
+    $fb_INC  = prompt_path("   Include:", $fb_INC);
+    $fb_LIB  = prompt_path("       Lib:", $fb_LIB);
+
+    print qq{\n Configuring the test environment ...\n};
+    print qq{\n Enter the full paths to the Firebird tools:\n};
+    my $isql_bin = 'isql';
+    $isql_bin .= '.exe' if ($os eq 'MSWin32');
+    my $isql_path = File::Spec->catfile( $fb_HOME, 'bin', $isql_bin );
+    $isql_path  = prompt_exec("      isql:", $isql_path);
+
+    print qq{\n Enter the full path and file name of the test database (.fdb):\n};
+    my $fb_testdb = prompt_new_file("   Test DB:");
+
+    print qq{\n Enter authentication options:\n};
+    my ($user, $pass) = (qw{SYSDBA masterkey});
+    $user = prompt('  Username:', $user);
+    $pass = prompt('  Password:', $pass);
+    print "\n";
+
+    save_test_parameters($isql_path, $fb_testdb, $user, $pass);
 }
 else {
-    print "(No environment vars set)\n";
 
-    # Try to locate Firebird in the ususal places
-    if ($os eq 'MSWin32') {
-        locate_firebird_ms();
+    # We set FIREBIRD_HOME from the first found of:
+    # 1. Environment variable
+    # 2. Subdirectory of FIREBIRD_HOME
+    # 3. Helper subs
+
+    # 1. Environment variables
+    $fb_HOME = $ENV{FIREBIRD_HOME};
+    $fb_INC  = $ENV{FIREBIRD_INCLUDE};
+    $fb_LIB  = $ENV{FIREBIRD_LIB};
+
+    if ($fb_HOME) {
+        print "(Using environment vars)\n";
+
+        # 2. Subdirectory of FIREBIRD_HOME
+        $fb_INC = $fb_INC || File::Spec->catdir( $fb_HOME, 'include' );
+        $fb_LIB = $fb_LIB || File::Spec->catdir( $fb_HOME, 'lib' );
     }
     else {
-        locate_firebird();
+        print "(No environment vars set)\n";
+
+        # Try to locate Firebird in the ususal places
+        if ($os eq 'MSWin32') {
+            locate_firebird_ms();
+        }
+        else {
+            locate_firebird();
+        }
     }
 }
 
-print "\n";
-print 'FIREBIRD_HOME    : ', $fb_HOME, "\n";
-print 'FIREBIRD_INCLUDE : ', $fb_INC,  "\n";
-print 'FIREBIRD_LIB     : ', $fb_LIB,  "\n";
-print "\n";
+sub prompt_path {
+    my ( $msg, $value ) = @_;
+
+  FBPATH: {
+        for ( 1 .. 2 ) {
+            $value = prompt( $msg, $value );
+            $value = File::Spec->canonpath($value);
+            last FBPATH if ( -d $value );
+        }
+        die "Unable to locate path. Aborting ...";
+    }
+
+    return $value;
+}
+
+sub prompt_exec {
+    my ( $msg, $value ) = @_;
+
+  FBEXEC: {
+        for ( 1 .. 2 ) {
+            $value = prompt( $msg, $value );
+            $value = File::Spec->canonpath($value);
+            last FBEXEC if ( -x $value );
+        }
+        die "Unable to locate executable. Aborting ...";
+    }
+
+    return $value;
+}
+
+=head2 prompt_new_file
+
+Because we can't make difference between a simple path and a path with
+a file name without extension, the fdb extension is required for the
+test database.
+
+=cut
+
+sub prompt_new_file {
+    my ( $msg, $value ) = @_;
+
+  FBPATH: {
+        for ( 1 .. 2 ) {
+            $value = prompt( $msg, $value );
+            $value = File::Spec->canonpath($value);
+            my ($base, $path, $type) = fileparse($value, '\.fdb' );
+            next if $type ne q{.fdb}; # expecting file with fdb extension
+            last FBPATH if ( -d $path and $base );
+        }
+        die "Unable to locate path. Aborting ...";
+    }
+
+    return $value;
+}
+
+if ( !$interactive ) {
+    print "\n";
+    print 'FIREBIRD_HOME    : ', $fb_HOME, "\n";
+    print 'FIREBIRD_INCLUDE : ', $fb_INC,  "\n";
+    print 'FIREBIRD_LIB     : ', $fb_LIB,  "\n";
+    print "\n";
+}
 
 my $dbi_arch_dir;
 {
@@ -303,7 +408,8 @@ sub locate_firebird {
                 if ( -f $file and -x $file ) {
                     # Located
                     check_and_set_devlibs($dir);
-                    save_isql_path($file);
+                    my $isql_path = File::Spec->canonpath($file);
+                    save_test_parameters($isql_path);
                     last;
                 }
             }
@@ -456,16 +562,18 @@ However if that fails or you want to control it yourself, define the
 environment variable FIREBIRD_HOME.
 
 If FIREBIRD_INCLUDE and FIREBIRD_LIB are not sub directories of
-FIREBIRD_HOME, defined them also.
+FIREBIRD_HOME, define them also.
+
+Other option is to execute this script with the interactive option.
 
 The usual steps to install DBD::Firebird:
 
-1.   perl Makefile.PL
-2.   make
-3.   make test
-4.   make install
+% perl Makefile.PL [ -i[nteractive] ]
+% make
+% make test
+% make install
 
-Do steps 1 to 3 as a normal user, not as root!
+Do first 3 steps as a normal user, not as root!
 
 If all else fails, email <maintainer_email\@here> for help.
 
@@ -474,12 +582,10 @@ MSG
     print $msg;
 }
 
-sub save_isql_path {
-    my $isql_path = shift;
+sub save_test_parameters {
+    my ($isql_path, $path, $user, $pass) = @_;
 
     my $test_conf = './t/test.conf';
-
-    $isql_path = File::Spec->canonpath($isql_path);
 
     open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
 
@@ -492,6 +598,13 @@ sub save_isql_path {
         q(# Time: ) . $test_time,
         qq(isql:=$isql_path),
     );
+
+    if ($path and $user and $pass) {
+        push @record, qq(tdsn:=dbi:Firebird:db=$path);
+        push @record, qq(user:=$user);
+        push @record, qq(pass:=$pass);
+    }
+
     my $rec = join "\n", @record;
 
     print {$t_fh} $rec, "\n";
@@ -499,6 +612,16 @@ sub save_isql_path {
     close $t_fh or die "Can't close $test_conf: $!";
 
     return;
+}
+
+sub welcome_msg {
+
+    print "\nWelcome!\n";
+
+    print "This script prepares the instalation of the DBD::Firebird module.\n";
+    print "In the instalation will create a temporary file to store\n";
+    print "the values required for the testing phase, including the password\n";
+    print "for access to the Firebird server\n";
 }
 
 exit 0;
