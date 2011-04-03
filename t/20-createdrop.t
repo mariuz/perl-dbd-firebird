@@ -25,7 +25,7 @@ pass('Connected to the test database');
 #   Find a possible new table name
 #
 my $table = find_new_table($dbh);
-diag $table;
+#diag $table;
 ok($table);
 
 #

@@ -100,17 +100,17 @@ sub get_dsn {
     my $dsn = $para->{tdsn};
 
     if ($dsn) {
-        # Check user provided DSN
 
+        # Check user provided DSN
         my ( $scheme, $driver, undef, undef, $driver_dsn ) =
-            DBI->parse_dsn($dsn)
-                or die "Can't parse DBI DSN '$dsn'";
+          DBI->parse_dsn($dsn)
+          or die "Can't parse DBI DSN '$dsn'";
 
         die "Wrong scheme name: $scheme" if $scheme !~ m{dbi}; # case sensitive?
         die "Wrong driver name: $driver" if $driver ne q(Firebird);
         die "Wrong driver dsn: $driver_dsn" if !$driver_dsn;
 
-        ($para->{path} = $driver_dsn) =~ s{(db(name)?|database)=}{}; # for isql
+        ( $para->{path} = $driver_dsn ) =~ s{(db(name)?|database)=}{}; # isql
     }
     else {
         $dsn = make_dsn($para);
@@ -122,7 +122,7 @@ sub get_dsn {
 sub make_dsn {
     my $para = shift;
 
-    my $path = '/opt/ibdb/testnew.fdb'; # HARDWIRED !!!
+    my $path = '/tmp/dbd-fb-testdb.fdb'; # hardwired !!! change this !!!
     $para->{path} = $path;      # save it for isql
 
     return "dbi:Firebird:db=$path";
@@ -192,11 +192,12 @@ sub save_configs {
 
     my $test_time = scalar localtime();
     my @record = (
-        q(### Section 2),
-        q(### Time: ) . $test_time,
+        q(# Setup section: - (created by tests-setup.pl) #),
+        q(# Time: ) . $test_time,
         qq(tdsn:=$para->{tdsn}),
         qq(user:=$para->{user}),
         qq(pass:=$para->{pass}),
+        q(# This is a temporary file used for test setup #),
     );
     my $rec = join "\n", @record;
 
