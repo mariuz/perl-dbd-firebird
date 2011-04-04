@@ -720,7 +720,7 @@ the password.  Either set DBI_USER and DBI_PASS, or run the script in
 interactive mode. (ISC_USER and ISC_PASSWORD are recognized also).
 For the DSN (DBI_DSN) variable there is a default:
 
-   dbi:Firebird:db=$tmp_path/dbd-fb-testdb.fdb
+   dbi:Firebird:db=OS_tmp_path/dbd-fb-testdb.fdb
 
 If all else fails, email <maintainer_email\@here> for help.
 
