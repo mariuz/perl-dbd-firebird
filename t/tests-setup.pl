@@ -51,19 +51,19 @@ sub tests_init {
 
     my $para = read_cached_configs();
 
+    my $setuptype = $para->{type};
     my $rec_no = scalar keys %{$para};
-    if ( $rec_no == 1 ) {
+    if ( $setuptype eq 'automated' ) {
         $para = after_automated($para);
     }
-    elsif ( $rec_no <= 0 ) {
+    elsif ( $setuptype eq 'interactive') {
+        # after_interactive($para); not needed yet :)
+    }
+    else {
         print "Required config not found, run Makefile.pl && make!\n";
         exit 1;
     }
-    else {
-        after_interactive($para);
-    }
 
-    print Dumper( $para );
     setup_test_database($para);
 
     return $para;
@@ -103,16 +103,6 @@ sub after_automated {
     save_configs($para);
 
     return $para;
-}
-
-=head2 after_interactive
-
-
-
-=cut
-
-sub after_interactive {
-
 }
 
 =head2 setup_test_database
@@ -286,8 +276,6 @@ Create the test database.
 
 sub create_test_database {
     my $para = shift;
-
-    print " create_test_database\n";
 
     my ( $isql, $user, $pass, $path ) =
       ( $para->{isql}, $para->{user}, $para->{pass}, $para->{path} );

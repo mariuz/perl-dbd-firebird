@@ -116,7 +116,7 @@ else {
     print 'FIREBIRD_LIB    : ', $fb_LIB,  "\n";
     print "\n";
 
-    save_test_parameters($isql_path);
+    save_test_parameters();
 }
 
 my $dbi_arch_dir;
@@ -579,7 +579,7 @@ sub registry_lookup_ms_cl {
 }
 
 sub save_test_parameters {
-    my ($isql_path, $path, $user, $pass) = @_;
+    my ($db_path, $user, $pass) = @_;
 
     print "Saving tests params\n";
 
@@ -587,19 +587,22 @@ sub save_test_parameters {
 
     open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
 
+    my $setuptype = $interactive ? 'interactive' : 'automated';
     my $test_time = scalar localtime();
+
     my @record = (
         q(# This is a temporary file used for test setup #),
         q(# The field separator is :=                    #),
         q(# Should be deleted at the end of installation #),
         q(# Init section ------ (created by Makefile.PL) #),
         q(# Time: ) . $test_time,
+        qq(type:=$setuptype),
         qq(isql:=$isql_path),
     );
 
     # Other settings (interactive mode)
-    push @record, qq(path:=$path) if $path;
-    push @record, qq(tdsn:=dbi:Firebird:db=$path) if $path;
+    push @record, qq(path:=$db_path) if $db_path;
+    push @record, qq(tdsn:=dbi:Firebird:db=$db_path) if $db_path;
     push @record, qq(user:=$user) if $user;
     push @record, qq(pass:=$pass) if $pass;
 
@@ -644,22 +647,15 @@ sub prompt_for_settings {
     my $param = read_test_parameters();
 
     my ($user, $pass) = (qw{SYSDBA masterkey}); # some defaults
+    my ($isql, $db_path);
 
-    my $isql;
-    my $path;
     # If saved configs exists set them as defaults
-    if (ref $param) {
-        if ( scalar keys %{$param} >= 1 ) {
-            $user = $param->{user} || $user;
-            $pass = $param->{pass} || $pass;
-            $isql = $param->{isql};
-            $path = $param->{path};
-        }
-    }
-    else {
-        my $isql_bin = 'isql';
-        $isql_bin .= '.exe' if ( $os eq 'MSWin32' );
-        $isql = File::Spec->catfile( $fb_HOME, 'bin', $isql_bin );
+    if ( ref $param ) {
+        $user = $param->{user} || $user;
+        $pass = $param->{pass} || $pass;
+        $isql = $param->{isql} || $isql_path;
+        $db_path = $param->{path}
+          || File::Spec->catfile( File::Spec->tmpdir(), 'dbd-fb-testdb.fdb' );
     }
 
     print qq{\nStarting interactive setup, two attempts for each option,\n};
@@ -679,14 +675,14 @@ sub prompt_for_settings {
 
     print
       qq{\n Enter the full path and file name of the test database (.fdb):\n};
-    $path = prompt_for( 'file', '   Test DB:', $path );
+    $db_path = prompt_for( 'file', '   Test DB:', $db_path );
 
     print qq{\n Enter authentication options:\n};
     $user = prompt_for('str', '   Username:', $user );
     $pass = prompt_for('str', '   Password:', $pass );
     print "\n";
 
-    save_test_parameters($isql, $path, $user, $pass);
+    save_test_parameters($db_path, $user, $pass);
 
     return;
 }
@@ -702,7 +698,7 @@ sub prompt_for {
             my $check_sub = qq{check_$type};
             last LOOP if ( main->$check_sub($value) );
         }
-        die "Unable to locate '$type'. Aborting ...";
+        die "Unable to locate $type. Aborting ...";
     }
 
     return $value;
@@ -723,11 +719,11 @@ test database.
 sub check_file {
     my ($self, $value) = @_;
 
-    my ($base, $path, $type) = fileparse($value, '\.fdb' );
+    my ($base, $db_path, $type) = fileparse($value, '\.fdb' );
 
     return 0 if $type ne q{.fdb}; # expecting file with fdb extension
 
-    return ( -d $path and $base );
+    return ( -d $db_path and $base );
 }
 
 #-- Help and message subs
