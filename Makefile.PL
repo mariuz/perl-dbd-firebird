@@ -380,6 +380,8 @@ my %MakeParams = (
     'dist'          => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
     'clean'         => {FILES => "*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD/Firebird/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old"},
     'realclean'     => {FILES => "t/test.conf"},
+    'AUTHOR'        => 'Edwin Pratomo (edpratomo@users.sourceforge.net)',
+    'ABSTRACT'      => 'DBD::Firebird is a DBI driver for Firebird , written using Firebird C API.',
     LICENSE => 'perl',
     MIN_PERL_VERSION => '5.008001',
     META_MERGE => {
@@ -395,9 +397,6 @@ my %MakeParams = (
 my $os = $Config::Config{'osname'};
 if ($os eq 'MSWin32')
 {
-    # set up PPM package parameters
-    $MakeParams{'AUTHOR'}   = 'Edwin Pratomo (edpratomo@users.sourceforge.net)';
-    $MakeParams{'ABSTRACT'} = 'DBD::Firebird is a DBI driver for Firebird , written using Firebird C API.';
 
     my $vc_dir = '';
     if ($Config::Config{'cc'} eq "cl")
