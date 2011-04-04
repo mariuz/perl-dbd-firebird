@@ -1,21 +1,46 @@
 #!/usr/bin/perl
+#-----------------------------------------------------------------------------
+# Original copyright (year updated):
 #
-# 2011-04-03: Added support for VC++ compiler
-# Copy - paste from the old Makefile.PL (not tested, not finished)
+#   $Id: Makefile.PL 394 2008-01-08 05:29:19Z edpratomo $
 #
-# 2011-03-30: Modified to use environment vars or helper subs to locate
-# Firebird (only MinGW support), inspired by the App::Info module:
-# Info.pm - 2008-07-18 16:17:45Z by david
+#   Copyright (c) 1999-2008 Edwin Pratomo
+#   Portions Copyright (c) 2001-2005 Daniel Ritz
 #
-# 2011-01-21: Addapted for DBD::Firebird by stefansbv from the
-# DBD::Pg - Makefile.PL 2010-11-21 04:19:18Z by turnstep
+#   You may distribute under the terms of either the GNU General Public
+#   License or the Artistic License, as specified in the Perl README file.
 #
-# Based on:
-# DBD::InterBase - Makefile.PL 2008-01-08 05:29:19Z by edpratomo
+#-----------------------------------------------------------------------------
+# Changes:
+#
+# 2011-04-04: Integrated patch from Alexandr Ciornii regarding
+# WriteMakefile sub.
+# Moved prompting to subs, other layout changes.
+#
+# 2011-04-03, Added CLI prompting with optional -interactive command
+# line parameter.
+# Added support for VC++ copy-paste from the original (NOT tested!)
+#
+# 2011-03-30, Refactored.
+# Modified to use environment vars or helper subs to locate Firebird
+# (only MinGW support), removed the CLI prompts.
+# inspired by the App::Info module: Info.pm - 2008-07-18 16:17:45Z by david
+# and             DBD::Pg - Makefile.PL 2010-11-21 04:19:18Z by turnstep
+#
+# 2011-01-31, stefansbv:
+# using the three-argument form of open for reading test.conf
+#
+# 2011-01-26, stefansbv:
+# fixed the isql tool path and the command line
+#   (using quotes around parameters and canonpath)
+# when isql error create the test database and inform the user
+# improved support for MinGW (now using the Config module)
+# added support for ActivePerl! :)
 #
 # Notes:
 # MS specific required Firebird installation setting:
 # Copy Firebird client library to <system> directory? - Yes
+#
 
 use strict;
 use warnings;
@@ -51,129 +76,50 @@ my $fb_HOME;
 my $fb_INC;
 my $fb_LIB;
 
-if ($interactive) {
+# We set FIREBIRD_HOME from the first found of:
+# 1. Environment variable
+# 2. Subdirectory of FIREBIRD_HOME
+# 3. Helper subs (search Firebird in the known locations)
 
-    print qq{\nStarting interactive setup, two attempts for each option,\n};
-    print qq{ if both fail, the script will abort ...\n};
-    print qq{\n Enter the full paths to the Firebird instalation:\n};
-    $fb_HOME = prompt_path("      Home:", $fb_HOME);
+# 1. Environment variables
+$fb_HOME = $ENV{FIREBIRD_HOME};
+$fb_INC  = $ENV{FIREBIRD_INCLUDE};
+$fb_LIB  = $ENV{FIREBIRD_LIB};
 
-    $fb_INC = File::Spec->catdir( $fb_HOME, 'include' );
-    $fb_LIB = File::Spec->catdir( $fb_HOME, 'lib' );
+if ($fb_HOME) {
 
-    $fb_INC  = prompt_path("   Include:", $fb_INC);
-    $fb_LIB  = prompt_path("       Lib:", $fb_LIB);
-
-    print qq{\n Configuring the test environment ...\n};
-    print qq{\n Enter the full paths to the Firebird tools:\n};
-    my $isql_bin = 'isql';
-    $isql_bin .= '.exe' if ($os eq 'MSWin32');
-    my $isql_path = File::Spec->catfile( $fb_HOME, 'bin', $isql_bin );
-    $isql_path  = prompt_exec("      isql:", $isql_path);
-
-    print qq{\n Enter the full path and file name of the test database (.fdb):\n};
-    my $fb_testdb = prompt_new_file("   Test DB:");
-
-    print qq{\n Enter authentication options:\n};
-    my ($user, $pass) = (qw{SYSDBA masterkey});
-    $user = prompt('  Username:', $user);
-    $pass = prompt('  Password:', $pass);
-    print "\n";
-
-    save_test_parameters($isql_path, $fb_testdb, $user, $pass);
+    # 2. Subdirectory of FIREBIRD_HOME
+    $fb_INC = $fb_INC || File::Spec->catdir( $fb_HOME, 'include' );
+    $fb_LIB = $fb_LIB || File::Spec->catdir( $fb_HOME, 'lib' );
 }
 else {
+    # No environment vars set? Realy ...
+    # What if FIREBIRD_INCLUDE or FIREBIRD_LIB are set? :)    TODO
 
-    # We set FIREBIRD_HOME from the first found of:
-    # 1. Environment variable
-    # 2. Subdirectory of FIREBIRD_HOME
-    # 3. Helper subs
-
-    # 1. Environment variables
-    $fb_HOME = $ENV{FIREBIRD_HOME};
-    $fb_INC  = $ENV{FIREBIRD_INCLUDE};
-    $fb_LIB  = $ENV{FIREBIRD_LIB};
-
-    if ($fb_HOME) {
-        print "(Using environment vars)\n";
-
-        # 2. Subdirectory of FIREBIRD_HOME
-        $fb_INC = $fb_INC || File::Spec->catdir( $fb_HOME, 'include' );
-        $fb_LIB = $fb_LIB || File::Spec->catdir( $fb_HOME, 'lib' );
+    # Try to locate Firebird in the ususal places
+    if ($os eq 'MSWin32') {
+        locate_firebird_ms();
     }
     else {
-        print "(No environment vars set)\n";
-
-        # Try to locate Firebird in the ususal places
-        if ($os eq 'MSWin32') {
-            locate_firebird_ms();
-        }
-        else {
-            locate_firebird();
-        }
+        locate_firebird();
     }
 }
 
-sub prompt_path {
-    my ( $msg, $value ) = @_;
+if ($interactive) {
 
-  FBPATH: {
-        for ( 1 .. 2 ) {
-            $value = prompt( $msg, $value );
-            $value = File::Spec->canonpath($value);
-            last FBPATH if ( -d $value );
-        }
-        die "Unable to locate path. Aborting ...";
-    }
+    # Interactive mode setup
 
-    return $value;
+    my $param = read_test_parameters();
+
+    prompt_for_settings($param);
+
+    save_test_parameters();
 }
-
-sub prompt_exec {
-    my ( $msg, $value ) = @_;
-
-  FBEXEC: {
-        for ( 1 .. 2 ) {
-            $value = prompt( $msg, $value );
-            $value = File::Spec->canonpath($value);
-            last FBEXEC if ( -x $value );
-        }
-        die "Unable to locate executable. Aborting ...";
-    }
-
-    return $value;
-}
-
-=head2 prompt_new_file
-
-Because we can't make difference between a simple path and a path with
-a file name without extension, the fdb extension is required for the
-test database.
-
-=cut
-
-sub prompt_new_file {
-    my ( $msg, $value ) = @_;
-
-  FBPATH: {
-        for ( 1 .. 2 ) {
-            $value = prompt( $msg, $value );
-            $value = File::Spec->canonpath($value);
-            my ($base, $path, $type) = fileparse($value, '\.fdb' );
-            next if $type ne q{.fdb}; # expecting file with fdb extension
-            last FBPATH if ( -d $path and $base );
-        }
-        die "Unable to locate path. Aborting ...";
-    }
-
-    return $value;
-}
-
-if ( !$interactive ) {
+else {
     print "\n";
-    print 'FIREBIRD_HOME    : ', $fb_HOME, "\n";
-    print 'FIREBIRD_INCLUDE : ', $fb_INC,  "\n";
-    print 'FIREBIRD_LIB     : ', $fb_LIB,  "\n";
+    print 'FIREBIRD_HOME   : ', $fb_HOME, "\n";
+    print 'FIREBIRD_INCLUDE: ', $fb_INC,  "\n";
+    print 'FIREBIRD_LIB    : ', $fb_LIB,  "\n";
     print "\n";
 }
 
@@ -207,17 +153,23 @@ my %MakeParams = (
     'dist'          => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
     'clean'         => {FILES => qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD/Firebird/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old dll.*)},
     'realclean'     => {FILES => "t/test.conf"},
+    'AUTHOR'        => 'Edwin Pratomo (edpratomo@users.sourceforge.net)',
+    'ABSTRACT'      => 'DBD::Firebird is a DBI driver for Firebird, written using Firebird C API.',
+    'PREREQ_PM'     => {DBI => 1.41},
+    'CONFIGURE_REQUIRES' => {DBI => 1.41},
+    'BUILD_REQUIRES' => {'Test::More'=> 0.4 },
+    LICENSE => 'perl',
+    MIN_PERL_VERSION => '5.008001',
+    META_MERGE => {
+        resources => {
+            repository => 'https://github.com/mariuz/perl-dbd-firebird',
+        },
+    },
 );
 
 # The OS specific build environment setup
 SWITCH: {
     $os eq 'MSWin32' && do {
-        # Set up PPM package parameters
-        # Is the mail address still valid?
-        $MakeParams{AUTHOR} =
-          'Edwin Pratomo (edpratomo@users.sourceforge.net)';
-        $MakeParams{ABSTRACT} =
-'DBD::Firebird is a DBI driver for Firebird, written using Firebird C API.';
 
         # Choices for the compiler
         if ( $Config{cc} eq q{gcc} ) {
@@ -285,15 +237,54 @@ SWITCH: {
 }
 
 # And last but not least write the Makefile
-WriteMakefile(%MakeParams);
+WriteMakefile1(%MakeParams);
+
+#- Makefile subs
+
+# Written by Alexandr Ciornii, version 0.23. Added by eumm-upgrade.
+sub WriteMakefile1 {
+    my %params       = @_;
+    my $eumm_version = $ExtUtils::MakeMaker::VERSION;
+    $eumm_version = eval $eumm_version;
+    die "EXTRA_META is deprecated" if exists $params{EXTRA_META};
+    die "License not specified" if not exists $params{LICENSE};
+    if (    $params{AUTHOR}
+        and ref( $params{AUTHOR} ) eq 'ARRAY'
+        and $eumm_version < 6.5705 )
+    {
+        $params{META_ADD}->{author} = $params{AUTHOR};
+        $params{AUTHOR} = join( ', ', @{ $params{AUTHOR} } );
+    }
+    if ( $params{BUILD_REQUIRES} and $eumm_version < 6.5503 ) {
+
+        #EUMM 6.5502 has problems with BUILD_REQUIRES
+        $params{PREREQ_PM} =
+          { %{ $params{PREREQ_PM} || {} }, %{ $params{BUILD_REQUIRES} } };
+        delete $params{BUILD_REQUIRES};
+    }
+    delete $params{CONFIGURE_REQUIRES} if $eumm_version < 6.52;
+    delete $params{MIN_PERL_VERSION}   if $eumm_version < 6.48;
+    delete $params{META_MERGE}         if $eumm_version < 6.46;
+    delete $params{META_ADD}           if $eumm_version < 6.46;
+    delete $params{LICENSE}            if $eumm_version < 6.31;
+    delete $params{AUTHOR}             if $] < 5.005;
+    delete $params{ABSTRACT_FROM}      if $] < 5.005;
+    delete $params{BINARY_LOCATION}    if $] < 5.005;
+
+    WriteMakefile(%params);
+}
 
 sub MY::postamble {
     return DBI::DBD->dbd_postamble(@_);
 }
 
+#- Helper subs
+
+#-- Subs for OS specific setting
+
 sub setup_for_ms_gcc {
 
-    # Support for MinGW
+    # Support for MinGW (still experimental, patches welcome!)
     #  ActiveState: cc => V:\absolute\path\to\gcc.exe
     #  Strawberry : cc => gcc
     print "Using MinGW gcc\n";
@@ -336,8 +327,10 @@ LDDLFLAGS =  -L\"$mingw_lib\" $cur_lddlflags
 
 sub setup_for_ms_cl {
 
+    # NOT tested !!!
+
     # Try to find Microsoft Visual C++ compiler
-    my $vc_dir = registry_lookup_ms_cl(); # not finished, not tested !!!
+    my $vc_dir = registry_lookup_ms_cl();
 
     my @vc_dirs = ( $vc_dir . "/bin" );
 
@@ -381,7 +374,7 @@ LDDLFLAGS =  -L\"$vc_lib\" $cur_lddlflags
 return;
 }
 
-#-- Helper subs
+#-- Subs used to locate Firebird
 
 =head2 locate_firebird
 
@@ -397,7 +390,8 @@ sub locate_firebird {
         if ( -d $dir ) {
 
             # File names specific to the Firebird/bin dir
-            my @fb_files = qw{isql fbsql};   # fbsql not yet!
+            my @fb_files = qw{isql fbsql}; # fbsql not yet! but 'isql' is
+                                           # used by Virtuoso and OpenODBC
 
             my $found = 0;
             while ( !$found ) {
@@ -525,61 +519,32 @@ sub registry_lookup_fb {
 
 sub registry_lookup_ms_cl {
 
-    my @path;
+    # We need the updated locations from the registry !!!
+    # and testing !!!
+
+    # Try to find Microsoft Visual C++ compiler
+    my $Registry;
+    my $vc_dir;
     eval {
         require Win32::TieRegistry;
+        Win32::TieRegistry->import('$Registry');
+        $Registry->Delimiter("/");
 
-        my $path = Win32::TieRegistry->new("path")
-            ->GetValue("DefaultInstance");
-        push @path, $path if $path;
+        my $sw = $Registry->{"LMachine/Software/"};
+
+        # We have to check more than one keys, because different
+        # releases of Visual C++ have used different key hierarchies.
+        my $key =
+            $sw->{"Microsoft/VisualStudio/6.0/Setup/Microsoft Visual C++"} ||
+            $sw->{"Microsoft/VisualStudio/7.0/Setup/VC"};
+
+        if (defined($key))
+        {
+            $vc_dir = $key->{"/ProductDir"};
+        }
     };
-    if ($@) {
-        warn "Only for Win32!";
-        die "Failed to locate Firebird!\n";
-    }
 
-    return wantarray ? @path : \@path;
-
-    # my $sw = $Registry->{"LMachine/Software/"};
-
-    # # We have to check more than one keys, because different
-    # # releases of Visual C++ have used different key hierarchies.
-    # my $key = $sw->{"Microsoft/VisualStudio/6.0/Setup/Microsoft Visual C++"}
-    #   || $sw->{"Microsoft/VisualStudio/7.0/Setup/VC"};
-
-    # if ( defined($key) ) {
-    #     $vc_dir = $key->{"/ProductDir"};
-    # }
-}
-
-sub help_message {
-
-    my $msg =<<"MSG";
-
-By default Makefile.PL uses the known standard dirs to find the
-location of the Firebird home, library and include directories.
-However if that fails or you want to control it yourself, define the
-environment variable FIREBIRD_HOME.
-
-If FIREBIRD_INCLUDE and FIREBIRD_LIB are not sub directories of
-FIREBIRD_HOME, define them also.
-
-Other option is to execute this script with the interactive option.
-
-The usual steps to install DBD::Firebird:
-
-% perl Makefile.PL [ -i[nteractive] ]
-% make
-% make test
-% make install
-
-Do first 3 steps as a normal user, not as root!
-
-If all else fails, email <maintainer_email\@here> for help.
-
-MSG
-
-    print $msg;
+    return $vc_dir;
 }
 
 sub save_test_parameters {
@@ -593,7 +558,7 @@ sub save_test_parameters {
     my @record = (
         q(# This is a temporary file used for test setup #),
         q(# The field separator is :=                    #),
-        q(# Should be automaticaly deleted at tests end! #),
+        q(# Should be deleted at the end of installation #),
         q(# Init section ------ (created by Makefile.PL) #),
         q(# Time: ) . $test_time,
         qq(isql:=$isql_path),
@@ -614,14 +579,159 @@ sub save_test_parameters {
     return;
 }
 
+sub read_test_parameters {
+
+    my $test_conf = './t/test.conf';
+    my $record = {};
+
+    if (-f $test_conf) {
+        print "\nReading cached test configuration...\n";
+
+        open my $file_fh, '<', $test_conf
+            or croak "Can't open file ", $test_conf, ": $!";
+
+        foreach my $line (<$file_fh>) {
+            next if $line =~ m{^#+};         # skip comments
+
+            my ($key, $val) = split /:=/, $line, 2;
+            chomp $val;
+            $record->{$key} = $val;
+        }
+
+        close $file_fh;
+    }
+
+    return $record;
+}
+
+#-- Prompting subs ...
+
+sub prompt_for_settings {
+    my $param = shift;
+
+    my ($user, $pass) = (qw{SYSDBA masterkey}); # some defaults
+
+    my $isql;
+    # If saved configs exists set them as defaults
+    if (ref $param) {
+        if ( scalar keys %{$param} >= 1 ) {
+            $user = $param->{user} || $user;
+            $pass = $param->{pass} || $pass;
+            $isql = $param->{isql};
+        }
+    }
+    else {
+        my $isql_bin = 'isql';
+        $isql_bin .= '.exe' if ( $os eq 'MSWin32' );
+        $isql = File::Spec->catfile( $fb_HOME, 'bin', $isql_bin );
+    }
+
+    print qq{\nStarting interactive setup, two attempts for each option,\n};
+    print qq{ if both fail, the script will abort ...\n};
+    print qq{\n Enter the full paths to the Firebird instalation:\n};
+    $fb_HOME = prompt_for( 'path', '      Home:', $fb_HOME );
+
+    $fb_INC = File::Spec->catdir( $fb_HOME, 'include' );
+    $fb_LIB = File::Spec->catdir( $fb_HOME, 'lib' );
+
+    $fb_INC = prompt_for( 'path', '   Include:', $fb_INC );
+    $fb_LIB = prompt_for( 'path', '       Lib:', $fb_LIB );
+
+    print qq{\n Configuring the test environment ...\n};
+    print qq{\n Enter the full paths to the Firebird tools:\n};
+    $isql   = prompt_for( 'exe', '      isql:', $isql );
+
+    print
+      qq{\n Enter the full path and file name of the test database (.fdb):\n};
+    my $fb_testdb = prompt_for( 'file', '   Test DB:' );
+
+    print qq{\n Enter authentication options:\n};
+    $user = prompt( '  Username:', $user );
+    $pass = prompt( '  Password:', $pass );
+    print "\n";
+
+}
+
+sub prompt_for {
+    my ( $type, $msg, $value ) = @_;
+
+  LOOP: {
+        for ( 1 .. 2 ) {
+            $value = prompt( $msg, $value );
+            $value = File::Spec->canonpath($value);
+
+            my $check_sub = qq{check_$type};
+            last LOOP if ( main->$check_sub($value) );
+        }
+        die "Unable to locate '$type'. Aborting ...";
+    }
+
+    return $value;
+}
+
+sub check_path { return ( -d $_[1] ) }
+sub check_exe  { return ( -x $_[1] ) }
+
+=head2 prompt_new_file
+
+Because we can't make difference between a simple path and a path with
+a file name without extension, the fdb extension is required for the
+test database.
+
+=cut
+
+sub check_file {
+    my ($self, $value) = @_;
+
+    my ($base, $path, $type) = fileparse($value, '\.fdb' );
+
+    return 0 if $type ne q{.fdb}; # expecting file with fdb extension
+
+    return ( -d $path and $base );
+}
+
+#-- Help and message subs
+
+sub help_message {
+
+    my $msg =<<"MSG";
+
+This script prepares the installation of the DBD::Firebird module,
+automatically if possible, or with user intervention.  First will try
+to determine the location of the Firebird home, library and include
+directories:
+
+1. From the environment variable FIREBIRD_HOME. Also FIREBIRD_INCLUDE
+and FIREBIRD_LIB if they are not sub directories of FIREBIRD_HOME.
+
+2. From the standard (hardwired) locations where Firebird can be
+installed on various platforms and distros.
+
+If still no success, execute this script with the I<-i[nteractive]>
+command line option, or set the the environment variables.
+
+% perl Makefile.PL -i[nteractive]
+
+If all else fails, email <maintainer_email\@here> for help.
+
+MSG
+
+    print $msg;
+}
+
 sub welcome_msg {
 
-    print "\nWelcome!\n";
+    my $msg =<<"MSG";
 
-    print "This script prepares the instalation of the DBD::Firebird module.\n";
-    print "In the instalation will create a temporary file to store\n";
-    print "the values required for the testing phase, including the password\n";
-    print "for access to the Firebird server\n";
+This script prepares the installation of the DBD::Firebird module.
+
+Warning: the process will create a temporary file to store the values
+required for the testing phase, including the password for access to
+the Firebird server in plain text: 't/test.conf'.
+
+MSG
+
+    print $msg;
 }
 
 exit 0;
