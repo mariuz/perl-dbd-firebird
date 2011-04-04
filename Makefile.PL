@@ -72,19 +72,15 @@ welcome_msg();
 
 print "Configuring DBD::Firebird (on $os)\n";
 
-my $fb_HOME;
-my $fb_INC;
-my $fb_LIB;
-
 # We set FIREBIRD_HOME from the first found of:
 # 1. Environment variable
 # 2. Subdirectory of FIREBIRD_HOME
 # 3. Helper subs (search Firebird in the known locations)
 
 # 1. Environment variables
-$fb_HOME = $ENV{FIREBIRD_HOME};
-$fb_INC  = $ENV{FIREBIRD_INCLUDE};
-$fb_LIB  = $ENV{FIREBIRD_LIB};
+my $fb_HOME = $ENV{FIREBIRD_HOME};
+my $fb_INC  = $ENV{FIREBIRD_INCLUDE};
+my $fb_LIB  = $ENV{FIREBIRD_LIB};
 
 if ($fb_HOME) {
 
@@ -93,8 +89,10 @@ if ($fb_HOME) {
     $fb_LIB = $fb_LIB || File::Spec->catdir( $fb_HOME, 'lib' );
 }
 else {
-    # No environment vars set? Realy ...
-    # What if FIREBIRD_INCLUDE or FIREBIRD_LIB are set? :)    TODO
+    # No FIREBIRD_HOME
+    # We could check FIREBIRD_INCLUDE and FIREBIRD_LIB and set
+    # FIREBIRD_HOME as parent dir, but maybe is to weird :)
+    # Anyway their value take precedence in locate_firebird sub.
 
     # Try to locate Firebird in the ususal places
     if ($os eq 'MSWin32') {
@@ -113,7 +111,7 @@ if ($interactive) {
 
     prompt_for_settings($param);
 
-    save_test_parameters();
+    # save_test_parameters();
 }
 else {
     print "\n";
@@ -132,38 +130,41 @@ my $dbi_arch_dir;
         print "Could not load DBI::DBD - is the DBI module installed?\n";
         exit 0;
     }
-    local *STDOUT; ## Prevent duplicate debug info as WriteMakefile also calls this
+    ## Prevent duplicate debug info as WriteMakefile also calls this
+    local *STDOUT;
     $dbi_arch_dir = DBI::DBD::dbd_dbi_arch_dir();
 }
 
-#my $defines = " -DFBLIBVERSION=$serverversion -DFBDEFPORT=$defaultport";
-my $comp_opts = $Config{q{ccflags}}; #. $defines;
+my $comp_opts = $Config{q{ccflags}};
 
 my %MakeParams = (
-    'NAME'          => 'DBD::Firebird',
-    'VERSION_FROM'  => 'Firebird.pm', # finds $VERSION
-    'C'             => ['dbdimp.c'],
-    'H'             => ['dbdimp.h', 'Firebird.h'],
-    'CCFLAGS'       => '-Wall -fno-strict-aliasing',
-    'INC'           => qq(-I"$fb_INC" -I"$dbi_arch_dir"),
-    'OBJECT'        => "Firebird.o dbdimp.o",
-    'LIBS'          => [''],
-    'OPTIMIZE'      => $Config{optimize},
-    'XSPROTOARG'    => '-noprototypes',
-    'dist'          => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
-    'clean'         => {FILES => qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD/Firebird/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old dll.*)},
-    'realclean'     => {FILES => "t/test.conf"},
-    'AUTHOR'        => 'Edwin Pratomo (edpratomo@users.sourceforge.net)',
-    'ABSTRACT'      => 'DBD::Firebird is a DBI driver for Firebird, written using Firebird C API.',
-    'PREREQ_PM'     => {DBI => 1.41},
-    'CONFIGURE_REQUIRES' => {DBI => 1.41},
-    'BUILD_REQUIRES' => {'Test::More'=> 0.4 },
-    LICENSE => 'perl',
-    MIN_PERL_VERSION => '5.008001',
-    META_MERGE => {
-        resources => {
-            repository => 'https://github.com/mariuz/perl-dbd-firebird',
-        },
+    NAME         => 'DBD::Firebird',
+    VERSION_FROM => 'Firebird.pm',                              # finds $VERSION
+    C            => ['dbdimp.c'],
+    H            => [ 'dbdimp.h', 'Firebird.h' ],
+    CCFLAGS      => '-Wall -fno-strict-aliasing',
+    INC          => qq(-I"$fb_INC" -I"$dbi_arch_dir"),
+    OBJECT       => "Firebird.o dbdimp.o",
+    LIBS         => [''],
+    OPTIMIZE     => $Config{optimize},
+    XSPROTOARG   => '-noprototypes',
+    dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' },
+    clean        => {
+        FILES =>
+qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD/Firebird/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old dll.*)
+    },
+    realclean => { FILES => "t/test.conf" },
+    AUTHOR => 'Edwin Pratomo (edpratomo@users.sourceforge.net)',
+    ABSTRACT =>
+'DBD::Firebird is a DBI driver for Firebird, written using Firebird C API.',
+    PREREQ_PM          => { DBI          => 1.41 },
+    CONFIGURE_REQUIRES => { DBI          => 1.41 },
+    BUILD_REQUIRES     => { 'Test::More' => 0.4 },
+    LICENSE            => 'perl',
+    MIN_PERL_VERSION   => '5.008001',
+    META_MERGE         => {
+        resources =>
+          { repository => 'https://github.com/mariuz/perl-dbd-firebird', },
     },
 );
 
@@ -180,7 +181,7 @@ SWITCH: {
         }
         else {
             print "No suitable compiler found\n";
-            print "Try: ppm install MinGW, to install MinGW!\n";
+            print "(Try: ppm install MinGW, to install MinGW!)\n";
             exit 1;
         }
         last SWITCH;
@@ -418,10 +419,10 @@ sub check_and_set_devlibs {
 
     $fb_HOME = File::Spec->canonpath($fb_dir);
 
-    $fb_INC = File::Spec->catdir( $fb_HOME, 'include' );
+    $fb_INC = $fb_INC || File::Spec->catdir( $fb_HOME, 'include' );
     $fb_INC = alternative_locations('inc') if !-d $fb_INC;
 
-    $fb_LIB = File::Spec->catdir( $fb_HOME, 'lib' );
+    $fb_LIB = $fb_LIB || File::Spec->catdir( $fb_HOME, 'lib' );
     $fb_LIB = alternative_locations('lib') if !-d $fb_LIB;
 
     return;
@@ -631,8 +632,8 @@ sub prompt_for_settings {
     print qq{\n Enter the full paths to the Firebird instalation:\n};
     $fb_HOME = prompt_for( 'path', '      Home:', $fb_HOME );
 
-    $fb_INC = File::Spec->catdir( $fb_HOME, 'include' );
-    $fb_LIB = File::Spec->catdir( $fb_HOME, 'lib' );
+    $fb_INC = $fb_INC || File::Spec->catdir( $fb_HOME, 'include' );
+    $fb_LIB = $fb_LIB || File::Spec->catdir( $fb_HOME, 'lib' );
 
     $fb_INC = prompt_for( 'path', '   Include:', $fb_INC );
     $fb_LIB = prompt_for( 'path', '       Lib:', $fb_LIB );
@@ -646,10 +647,11 @@ sub prompt_for_settings {
     my $fb_testdb = prompt_for( 'file', '   Test DB:' );
 
     print qq{\n Enter authentication options:\n};
-    $user = prompt( '  Username:', $user );
-    $pass = prompt( '  Password:', $pass );
+    $user = prompt_for('str', '   Username:', $user );
+    $pass = prompt_for('str', '   Password:', $pass );
     print "\n";
 
+    return;
 }
 
 sub prompt_for {
@@ -669,6 +671,7 @@ sub prompt_for {
     return $value;
 }
 
+sub check_str  { return ( $_[1] ) }
 sub check_path { return ( -d $_[1] ) }
 sub check_exe  { return ( -x $_[1] ) }
 
@@ -711,6 +714,13 @@ If still no success, execute this script with the I<-i[nteractive]>
 command line option, or set the the environment variables.
 
 % perl Makefile.PL -i[nteractive]
+
+The tests requires the path to the test database, the user name and
+the password.  Either set DBI_USER and DBI_PASS, or run the script in
+interactive mode. (ISC_USER and ISC_PASSWORD are recognized also).
+For the DSN (DBI_DSN) variable there is a default:
+
+   dbi:Firebird:db=$tmp_path/dbd-fb-testdb.fdb
 
 If all else fails, email <maintainer_email\@here> for help.
 
