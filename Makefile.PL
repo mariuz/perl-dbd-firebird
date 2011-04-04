@@ -28,7 +28,7 @@
 # and             DBD::Pg - Makefile.PL 2010-11-21 04:19:18Z by turnstep
 #
 # 2011-01-31, stefansbv:
-# using the three-argument form of open for reading test.conf
+# using the three-argument form of open for reading test.conf.tmp
 #
 # 2011-01-26, stefansbv:
 # fixed the isql tool path and the command line
@@ -44,8 +44,8 @@
 
 use strict;
 use warnings;
-use 5.008;
 use Carp;
+use 5.008;
 
 use Getopt::Long;
 use File::Spec;
@@ -53,10 +53,11 @@ use File::Basename;
 use ExtUtils::MakeMaker 5.16, qw(prompt &WriteMakefile $Verbose);
 use Config;
 
-my $os = $^O;
-
+# Globals vars
 my $interactive;
 my $help;
+my $os = $^O;
+my $isql_path;
 
 GetOptions(
     interactive => \$interactive,
@@ -67,8 +68,6 @@ if ($help) {
     help_message();
     exit;
 }
-
-welcome_msg();
 
 print "Configuring DBD::Firebird (on $os)\n";
 
@@ -106,12 +105,9 @@ else {
 if ($interactive) {
 
     # Interactive mode setup
+    welcome_msg();
 
-    my $param = read_test_parameters();
-
-    prompt_for_settings($param);
-
-    # save_test_parameters();
+    prompt_for_settings();
 }
 else {
     print "\n";
@@ -119,6 +115,8 @@ else {
     print 'FIREBIRD_INCLUDE: ', $fb_INC,  "\n";
     print 'FIREBIRD_LIB    : ', $fb_LIB,  "\n";
     print "\n";
+
+    save_test_parameters($isql_path);
 }
 
 my $dbi_arch_dir;
@@ -153,7 +151,7 @@ my %MakeParams = (
         FILES =>
 qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD/Firebird/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old dll.*)
     },
-    realclean => { FILES => "t/test.conf" },
+    realclean => { FILES => "t/test.conf.tmp" },
     AUTHOR => 'Edwin Pratomo (edpratomo@users.sourceforge.net)',
     ABSTRACT =>
 'DBD::Firebird is a DBI driver for Firebird, written using Firebird C API.',
@@ -173,10 +171,10 @@ SWITCH: {
     $os eq 'MSWin32' && do {
 
         # Choices for the compiler
-        if ( $Config{cc} eq q{gcc} ) {
+        if ( $Config{cc} =~ m{gcc} ) {
             setup_for_ms_gcc();
         }
-        elsif ( $Config{cc} eq q{cl} ) {
+        elsif ( $Config{cc} eq q{cl} ) {     # not tested
             setup_for_ms_cl();
         }
         else {
@@ -279,7 +277,7 @@ sub MY::postamble {
     return DBI::DBD->dbd_postamble(@_);
 }
 
-#- Helper subs
+#- Helper SUBS ---------------------------------------------------------------#
 
 #-- Subs for OS specific setting
 
@@ -403,8 +401,7 @@ sub locate_firebird {
                 if ( -f $file and -x $file ) {
                     # Located
                     check_and_set_devlibs($dir);
-                    my $isql_path = File::Spec->canonpath($file);
-                    save_test_parameters($isql_path);
+                    $isql_path = File::Spec->canonpath($file);
                     last;
                 }
             }
@@ -413,6 +410,12 @@ sub locate_firebird {
 
     return;
 }
+
+=head2 check_and_set_devlibs
+
+Check and set global variables for home, inc and lib (?...).
+
+=cut
 
 sub check_and_set_devlibs {
     my $fb_dir = shift;
@@ -427,6 +430,12 @@ sub check_and_set_devlibs {
 
     return;
 }
+
+=head2 alternative_locations
+
+Search lib and inc in alternative locations.
+
+=cut
 
 sub alternative_locations {
     my $find_what = shift;
@@ -443,6 +452,12 @@ sub alternative_locations {
     die "Firebird '$find_what' dir not located!";
 }
 
+=head2 search_fb_home_dirs
+
+Common places for the Firebird home dir.
+
+=cut
+
 sub search_fb_home_dirs {
 
     # Add other standard paths here
@@ -455,6 +470,12 @@ sub search_fb_home_dirs {
     );
 }
 
+=head2 search_fb_inc_dirs
+
+Common places for the Firebird include dir.
+
+=cut
+
 sub search_fb_inc_dirs {
 
     # Add other standard paths here for include
@@ -465,6 +486,12 @@ sub search_fb_inc_dirs {
         },
     );
 }
+
+=head2 search_fb_lib_dirs
+
+Common places for the Firebird lib dir.
+
+=cut
 
 sub search_fb_lib_dirs {
 
@@ -487,9 +514,12 @@ sub locate_firebird_ms {
 
     my $hp_ref = registry_lookup_fb();
     if (ref $hp_ref) {
-        $fb_HOME = File::Spec->canonpath($hp_ref->[0]);
-        $fb_INC  = File::Spec->catdir( $fb_HOME, 'include' );
-        $fb_LIB  = File::Spec->catdir( $fb_HOME, 'lib' );
+        $fb_HOME = $fb_HOME || File::Spec->canonpath($hp_ref->[0]);
+        $fb_INC  = $fb_INC  || File::Spec->catdir( $fb_HOME, 'include' );
+        $fb_LIB  = $fb_LIB  || File::Spec->catdir( $fb_HOME, 'lib' );
+
+        my $isql_file = File::Spec->catfile( $fb_HOME, 'bin', 'isql.exe' );
+        $isql_path = File::Spec->canonpath($isql_file);
     }
 }
 
@@ -551,7 +581,9 @@ sub registry_lookup_ms_cl {
 sub save_test_parameters {
     my ($isql_path, $path, $user, $pass) = @_;
 
-    my $test_conf = './t/test.conf';
+    print "Saving tests params\n";
+
+    my $test_conf = './t/test.conf.tmp';
 
     open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
 
@@ -565,11 +597,11 @@ sub save_test_parameters {
         qq(isql:=$isql_path),
     );
 
-    if ($path and $user and $pass) {
-        push @record, qq(tdsn:=dbi:Firebird:db=$path);
-        push @record, qq(user:=$user);
-        push @record, qq(pass:=$pass);
-    }
+    # Other settings (interactive mode)
+    push @record, qq(path:=$path) if $path;
+    push @record, qq(tdsn:=dbi:Firebird:db=$path) if $path;
+    push @record, qq(user:=$user) if $user;
+    push @record, qq(pass:=$pass) if $pass;
 
     my $rec = join "\n", @record;
 
@@ -582,7 +614,7 @@ sub save_test_parameters {
 
 sub read_test_parameters {
 
-    my $test_conf = './t/test.conf';
+    my $test_conf = './t/test.conf.tmp';
     my $record = {};
 
     if (-f $test_conf) {
@@ -608,17 +640,20 @@ sub read_test_parameters {
 #-- Prompting subs ...
 
 sub prompt_for_settings {
-    my $param = shift;
+
+    my $param = read_test_parameters();
 
     my ($user, $pass) = (qw{SYSDBA masterkey}); # some defaults
 
     my $isql;
+    my $path;
     # If saved configs exists set them as defaults
     if (ref $param) {
         if ( scalar keys %{$param} >= 1 ) {
             $user = $param->{user} || $user;
             $pass = $param->{pass} || $pass;
             $isql = $param->{isql};
+            $path = $param->{path};
         }
     }
     else {
@@ -644,12 +679,14 @@ sub prompt_for_settings {
 
     print
       qq{\n Enter the full path and file name of the test database (.fdb):\n};
-    my $fb_testdb = prompt_for( 'file', '   Test DB:' );
+    $path = prompt_for( 'file', '   Test DB:', $path );
 
     print qq{\n Enter authentication options:\n};
     $user = prompt_for('str', '   Username:', $user );
     $pass = prompt_for('str', '   Password:', $pass );
     print "\n";
+
+    save_test_parameters($isql, $path, $user, $pass);
 
     return;
 }
@@ -737,7 +774,7 @@ This script prepares the installation of the DBD::Firebird module.
 
 Warning: the process will create a temporary file to store the values
 required for the testing phase, including the password for access to
-the Firebird server in plain text: 't/test.conf'.
+the Firebird server in plain text: 't/test.conf.tmp'.
 
 MSG
 
