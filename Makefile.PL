@@ -382,6 +382,9 @@ my %MakeParams = (
     'realclean'     => {FILES => "t/test.conf"},
     'AUTHOR'        => 'Edwin Pratomo (edpratomo@users.sourceforge.net)',
     'ABSTRACT'      => 'DBD::Firebird is a DBI driver for Firebird , written using Firebird C API.',
+    'PREREQ_PM'     => {DBI => 1.41},
+    'CONFIGURE_REQUIRES' => {DBI => 1.41},
+    'BUILD_REQUIRES' => {'Test::More'=> 0.4 },
     LICENSE => 'perl',
     MIN_PERL_VERSION => '5.008001',
     META_MERGE => {
@@ -389,8 +392,6 @@ my %MakeParams = (
             repository => 'https://github.com/mariuz/perl-dbd-firebird',
         },
     },
-    #BUILD_REQUIRES => {
-    #},
 );
 
 # the OS specific build environment setup
