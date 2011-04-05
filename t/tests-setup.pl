@@ -26,12 +26,19 @@ Connect to database and return handler.
 =cut
 
 sub connect_to_database {
+    my $attr = shift;
 
     my $para = tests_init();
 
+    my $default_attr = { RaiseError => 1, PrintError => 0, AutoCommit => 1 };
+
+    # Merge options
+    @{$default_attr}{ keys %{$attr} } = values %{$attr};
+
     # Connect to the database
     my $dbh = DBI->connect( $para->{tdsn}, $para->{user}, $para->{pass},
-        { RaiseError => 1, PrintError => 0, AutoCommit => 1 } );
+       $default_attr
+    );
 
     return $dbh;
 }
@@ -57,7 +64,7 @@ sub tests_init {
         $para = after_automated($para);
     }
     elsif ( $setuptype eq 'interactive') {
-        # after_interactive($para); not needed yet :)
+        # not needed yet :)
     }
     else {
         print "Required config not found, run Makefile.pl && make!\n";
@@ -179,7 +186,7 @@ sub make_dsn {
 
     $para->{path} = $path;
 
-    return "dbi:Firebird:db=$path";
+    return "dbi:Firebird:db=$path;ib_dialect=3;ib_charset=ISO8859_1";
 }
 
 =head2 find_new_table

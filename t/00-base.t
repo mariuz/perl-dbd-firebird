@@ -17,4 +17,4 @@ use_ok('DBI');
 
 use_ok('DBD::Firebird');
 
-diag("\$DBI::VERSION=$DBI::VERSION");
+# diag("\$DBI::VERSION=$DBI::VERSION");
