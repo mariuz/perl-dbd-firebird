@@ -16,7 +16,7 @@ unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 9;
+    plan tests => 37;
 }
 
 pass('Connected to the database');
@@ -30,10 +30,10 @@ my $table = find_new_table($dbh);
 ok($table, qq{Table is '$table'});
 
 {
-    my $def = "CREATE TABLE $table(id INTEGER NOT NULL, PRIMARY KEY(id))";
+    my $def = "CREATE TABLE $table (id INTEGER NOT NULL, PRIMARY KEY(id))";
     ok($dbh->do($def));
 
-    my $stmt = "INSERT INTO $table(id) VALUES(?)";
+    my $stmt = "INSERT INTO $table (id) VALUES(?)";
     ok($dbh->do($stmt, undef, 1));
 }
 
@@ -75,7 +75,7 @@ TEST_CACHED: {
     # repeat with AutoCommit off
     if ($dbh->{AutoCommit}) {
         $dbh->{AutoCommit} = 0;
-        diag("AutoCommit is now turned Off");
+        pass("AutoCommit is now turned Off");
         goto TEST_CACHED;
     } else {
         $dbh->{AutoCommit} = 1;
@@ -113,7 +113,7 @@ sub faulty_query {
     my ($sth, $mode) = $prepare_sub->($sql);
 
     ok($sth, "$mode() for INSERT");
-    is($sth->execute(1), undef, "expected INSERT failure");
+    ok( !$sth->execute(1), "expected INSERT failure" );
 
     return $sql;
 }

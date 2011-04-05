@@ -30,7 +30,7 @@ sub connect_to_database {
 
     my $para = tests_init();
 
-    my $default_attr = { RaiseError => 1, PrintError => 0, AutoCommit => 1 };
+    my $default_attr = { RaiseError => 0, PrintError => 0, AutoCommit => 1 };
 
     # Merge options
     @{$default_attr}{ keys %{$attr} } = values %{$attr};
