@@ -251,7 +251,7 @@ sub WriteMakefile1 {
         and ref( $params{AUTHOR} ) eq 'ARRAY'
         and $eumm_version < 6.5705 )
     {
-        $params{META_ADD}->{author} = $params{AUTHOR};
+        $params{META_ADD}{author} = $params{AUTHOR};
         $params{AUTHOR} = join( ', ', @{ $params{AUTHOR} } );
     }
     if ( $params{BUILD_REQUIRES} and $eumm_version < 6.5503 ) {
@@ -390,7 +390,7 @@ sub locate_firebird {
 
             # File names specific to the Firebird/bin dir
             my @fb_files = qw{isql fbsql}; # fbsql not yet! but 'isql' is
-                                           # used by Virtuoso and OpenODBC
+                                           # used by Virtuoso and UnixODBC
 
             my $found = 0;
             while ( !$found ) {
@@ -583,11 +583,10 @@ sub save_test_parameters {
 
     print "Saving tests params\n";
 
-    my $test_conf = './t/test.conf.tmp';
+    my $test_conf = './t/test.conf.tmp';     # hardwired file name
 
     open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
 
-    my $setuptype = $interactive ? 'interactive' : 'automated';
     my $test_time = scalar localtime();
 
     my @record = (
@@ -596,7 +595,6 @@ sub save_test_parameters {
         q(# Should be deleted at the end of installation #),
         q(# Init section ------ (created by Makefile.PL) #),
         q(# Time: ) . $test_time,
-        qq(type:=$setuptype),
         qq(isql:=$isql_path),
     );
 
@@ -687,13 +685,20 @@ sub prompt_for_settings {
     return;
 }
 
+=head2 prompt_for
+
+Show prompt.
+
+=cut
+
 sub prompt_for {
     my ( $type, $msg, $value ) = @_;
 
   LOOP: {
         for ( 1 .. 2 ) {
             $value = prompt( $msg, $value );
-            $value = File::Spec->canonpath($value);
+            $value = File::Spec->canonpath($value)
+              if ( $type eq q{path} or $type eq q{exe} );
 
             my $check_sub = qq{check_$type};
             last LOOP if ( main->$check_sub($value) );

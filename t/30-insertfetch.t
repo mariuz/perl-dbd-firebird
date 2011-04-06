@@ -18,7 +18,11 @@ use lib 't','.';
 
 require 'tests-setup.pl';
 
-my $dbh = connect_to_database();
+my ($dbh, $error_str) = connect_to_database();
+
+if ($error_str) {
+    BAIL_OUT("Unknown: $error_str!");
+}
 
 unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
@@ -27,7 +31,7 @@ else {
     plan tests => 13;
 }
 
-pass('Connected to the database');
+ok($dbh, 'Connected to the database');
 
 # ------- TESTS ------------------------------------------------------------- #
 

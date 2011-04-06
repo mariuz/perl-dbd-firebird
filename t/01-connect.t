@@ -14,7 +14,7 @@ require 'tests-setup.pl';
 my ($dbh, $error_str) = connect_to_database();
 
 if ($error_str) {
-    BAIL_OUT("Unknown: $error_str!");
+    BAIL_OUT("Error! $error_str!");
 }
 
 unless ( $dbh->isa('DBI::db') ) {
