@@ -20,6 +20,9 @@ if ($error_str) {
 unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
+else {
+    plan tests => 52;
+}
 
 ok($dbh, 'Connected to the database');
 
@@ -53,7 +56,7 @@ my @Tests = (
    [ '0.00001',     12,       4,           0 ],
 );
 
-plan tests => (2 + (@Types * @Tests));
+# plan tests => (2 + (@Types * @Tests));
 
 for my $type (@Types) {
     for (@Tests) {
