@@ -28,7 +28,7 @@
 # and             DBD::Pg - Makefile.PL 2010-11-21 04:19:18Z by turnstep
 #
 # 2011-01-31, stefansbv:
-# using the three-argument form of open for reading test.conf.tmp
+# using the three-argument form of open for reading tests-setup.tmp.conf
 #
 # 2011-01-26, stefansbv:
 # fixed the isql tool path and the command line
@@ -58,6 +58,10 @@ my $interactive;
 my $help;
 my $os = $^O;
 my $isql_path;
+
+# Temp file names
+my $test_conf = 't/tests-setup.tmp.conf';
+my $test_mark = 't/tests-setup.tmp.OK';
 
 GetOptions(
     interactive => \$interactive,
@@ -151,7 +155,7 @@ my %MakeParams = (
         FILES =>
 qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD/Firebird/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old dll.*)
     },
-    realclean => { FILES => "t/test.conf.tmp" },
+    realclean => { FILES => qq($test_conf $test_mark) },
     AUTHOR => 'Edwin Pratomo (edpratomo@users.sourceforge.net)',
     ABSTRACT =>
 'DBD::Firebird is a DBI driver for Firebird, written using Firebird C API.',
@@ -238,7 +242,7 @@ SWITCH: {
 # And last but not least write the Makefile
 WriteMakefile1(%MakeParams);
 
-closing_msg() if ! $interactive and ! $ENV{DBI_PASS} or $ENV{ISC_PASSWORD};
+closing_msg() if !$interactive and ( !$ENV{DBI_PASS} and !$ENV{ISC_PASSWORD} );
 
 #- Makefile subs
 
@@ -574,8 +578,6 @@ sub read_data {
 sub save_test_parameters {
     my ($db_path, $user, $pass) = @_;
 
-    my $test_conf = './t/test.conf.tmp';     # hardwired file name
-
     open my $t_fh, '>', $test_conf or die "Can't write $test_conf: $!";
 
     my $test_time = scalar localtime();
@@ -602,9 +604,8 @@ sub save_test_parameters {
     close $t_fh or die "Can't close $test_conf: $!";
 
     # Remove the mark file
-    my $mark_file = 't/test.setup.ok';
-    if (-f $mark_file) {
-        unlink $mark_file or warn "Could not unlink $mark_file: $!";
+    if (-f $test_mark) {
+        unlink $test_mark or warn "Could not unlink $test_mark: $!";
     }
 
     return;
@@ -612,7 +613,6 @@ sub save_test_parameters {
 
 sub read_test_parameters {
 
-    my $test_conf = './t/test.conf.tmp';
     my $record = {};
 
     if (-f $test_conf) {
@@ -773,7 +773,7 @@ This script prepares the installation of the DBD::Firebird module.
 
 Warning: the process will create a temporary file to store the values
 required for the testing phase, including the password for access to
-the Firebird server in plain text: 't/test.conf.tmp'.
+the Firebird server in plain text: 't/tests-setup.tmp.conf'.
 
 MSG
 

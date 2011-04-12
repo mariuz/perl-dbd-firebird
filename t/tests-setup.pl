@@ -16,6 +16,9 @@ use DBI 1.43;                   # minimum version for 'parse_dsn'
 use File::Spec;
 use File::Basename;
 
+my $test_conf = 't/tests-setup.tmp.conf';
+my $test_mark = 't/tests-setup.tmp.OK';
+
 =head2 connect_to_database
 
 Initialize setting for the connection.
@@ -56,7 +59,7 @@ sub connect_to_database {
 
 =head2 tests_init
 
-Read the configurations from the L<test.conf.tmp> file, and checks if
+Read the configurations from the L<tests-setup.conf> file, and checks if
 they are valid.
 
 =cut
@@ -67,12 +70,7 @@ sub tests_init {
 
     my $error_str;
     if ( check_mark() ) {
-        # if ($param->{mark} eq 'FAIL') {
-        #     $error_str = 'FAILED last time!';
-        # }
-        # else {
         return ($param, undef);
-        # }
     }
     else {
         $error_str = check_and_set_cached_configs($param);
@@ -232,13 +230,12 @@ sub find_new_table {
 
 =head2 read_cached_configs
 
-Read the connection parameters from the 'test.conf.tmp' file.
+Read the connection parameters from the 'tests-setup.conf' file.
 
 =cut
 
 sub read_cached_configs {
 
-    my $test_conf = './t/test.conf.tmp';
     my $record = {};
 
     if (-f $test_conf) {
@@ -263,14 +260,12 @@ sub read_cached_configs {
 
 =head2 save_configs
 
-Append the connection parameters to the 'test.conf.tmp' file.
+Append the connection parameters to the 'tests-setup.conf' file.
 
 =cut
 
 sub save_configs {
     my $param = shift;
-
-    my $test_conf = './t/test.conf.tmp';
 
     open my $t_fh, '>>', $test_conf or die "Can't write $test_conf: $!";
 
@@ -279,6 +274,7 @@ sub save_configs {
         q(# Test section: -- (created by tests-setup.pl) #),
         q(# Time: ) . $test_time,
         qq(tdsn:=$param->{tdsn}),
+        qq(path:=$param->{path}),
         qq(user:=$param->{user}),
         qq(pass:=$param->{pass}),
         q(# This is a temporary file used for test setup #),
@@ -413,16 +409,15 @@ sub check_database {
 
 sub create_mark {
 
-    my $file = 't/test.setup.ok';
-    open my $file_fh, '>', $file
-        or croak "Can't open file ",$file, ": $!";
+    open my $file_fh, '>', $test_mark
+        or croak "Can't open file ",$test_mark, ": $!";
     close $file_fh;
 
     return;
 }
 
 sub check_mark {
-    return (-f 't/test.setup.ok');
+    return (-f $test_mark);
 }
 
 1;
