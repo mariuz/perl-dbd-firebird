@@ -238,6 +238,8 @@ SWITCH: {
 # And last but not least write the Makefile
 WriteMakefile1(%MakeParams);
 
+closing_msg() if ! $interactive and ! $ENV{DBI_PASS} or $ENV{ISC_PASSWORD};
+
 #- Makefile subs
 
 # Written by Alexandr Ciornii, version 0.23. Added by eumm-upgrade.
@@ -512,7 +514,7 @@ On Windows use the Registry to locate Firebird.
 
 sub locate_firebird_ms {
 
-    my $hp_ref = registry_lookup_fb();
+    my $hp_ref = registry_lookup('fb');
     if (ref $hp_ref) {
         $fb_HOME = $fb_HOME || File::Spec->canonpath($hp_ref->[0]);
         $fb_INC  = $fb_INC  || File::Spec->catdir( $fb_HOME, 'include' );
@@ -523,65 +525,54 @@ sub locate_firebird_ms {
     }
 }
 
-=head2 registry_lookup_fb
+sub registry_lookup {
+    my $what = shift;
 
-Use the Windows registry to locate Firebird.
+    my $reg_data = read_data($what);
 
-=cut
+    my $value;
+    foreach my $rec ( @{$reg_data->{$what}} ) {
+        $value = read_registry($rec)
+    }
 
-sub registry_lookup_fb {
+    return $value;
+}
+
+sub read_registry {
+    my $rec = shift;
 
     my @path;
     eval {
         require Win32::TieRegistry;
 
-        my $path = Win32::TieRegistry->new(
-"HKEY_LOCAL_MACHINE\\SOFTWARE\\Firebird Project\\Firebird Server\\Instances")
-            ->GetValue("DefaultInstance");
+        my $path =
+          Win32::TieRegistry->new( $rec->{path} )->GetValue( $rec->{key} );
+
         push @path, $path if $path;
     };
     if ($@) {
-        warn "Only for Win32!";
-        die "Failed to locate Firebird!\n";
+        warn "Error: $@!\n";
     }
 
     return wantarray ? @path : \@path;
 }
 
-sub registry_lookup_ms_cl {
+sub read_data {
+    my $app_alias = shift;
 
-    # We need the updated locations from the registry !!!
-    # and testing !!!
+    my %reg_data;
+    while (<DATA>) {
+        my ($app, $key, $path) = split /:/, $_, 3;
+        chomp $path;
+        next if $app ne $app_alias;
+        push @{ $reg_data{$app} }, { key => $key, path => $path } ;
+    }
 
-    # Try to find Microsoft Visual C++ compiler
-    my $Registry;
-    my $vc_dir;
-    eval {
-        require Win32::TieRegistry;
-        Win32::TieRegistry->import('$Registry');
-        $Registry->Delimiter("/");
-
-        my $sw = $Registry->{"LMachine/Software/"};
-
-        # We have to check more than one keys, because different
-        # releases of Visual C++ have used different key hierarchies.
-        my $key =
-            $sw->{"Microsoft/VisualStudio/6.0/Setup/Microsoft Visual C++"} ||
-            $sw->{"Microsoft/VisualStudio/7.0/Setup/VC"};
-
-        if (defined($key))
-        {
-            $vc_dir = $key->{"/ProductDir"};
-        }
-    };
-
-    return $vc_dir;
+    return \%reg_data;
 }
 
 sub save_test_parameters {
     my ($db_path, $user, $pass) = @_;
-
-    print "Saving tests params\n";
 
     my $test_conf = './t/test.conf.tmp';     # hardwired file name
 
@@ -609,6 +600,12 @@ sub save_test_parameters {
     print {$t_fh} $rec, "\n";
 
     close $t_fh or die "Can't close $test_conf: $!";
+
+    # Remove the mark file
+    my $mark_file = 't/test.setup.ok';
+    if (-f $mark_file) {
+        unlink $mark_file or warn "Could not unlink $mark_file: $!";
+    }
 
     return;
 }
@@ -738,9 +735,9 @@ sub help_message {
     my $msg =<<"MSG";
 
 This script prepares the installation of the DBD::Firebird module,
-automatically if possible, or with user intervention.  First will try
-to determine the location of the Firebird home, library and include
-directories:
+automatically with minimum user intervention or in interactive mode.
+In non interactive mode will try to determine the location of the
+Firebird HOME, LIBRARY and INCLUDE directories:
 
 1. From the environment variable FIREBIRD_HOME. Also FIREBIRD_INCLUDE
 and FIREBIRD_LIB if they are not sub directories of FIREBIRD_HOME.
@@ -748,15 +745,16 @@ and FIREBIRD_LIB if they are not sub directories of FIREBIRD_HOME.
 2. From the standard (hardwired) locations where Firebird can be
 installed on various platforms and distros.
 
-If still no success, execute this script with the I<-i[nteractive]>
-command line option, or set the the environment variables.
+If no success, execute this script with the I<-i[nteractive]> command
+line option, or set the required environment variables.
 
 % perl Makefile.PL -i[nteractive]
 
 The tests requires the path to the test database, the user name and
-the password.  Either set DBI_USER and DBI_PASS, or run the script in
-interactive mode. (ISC_USER and ISC_PASSWORD are recognized also).
-For the DSN (DBI_DSN) variable there is a default:
+the password.  All options have defaults: DBI_USER = 'SYSDBA',
+DBI_PASS = 'masterkey', or run the script in interactive
+mode. (ISC_USER and ISC_PASSWORD are recognized also), for DBI_DSN the
+default is:
 
   dbi:Firebird:db=OS_tmp_path/dbd-fb-testdb.fdb;ib_dialect=3;ib_charset=ISO8859_1
 
@@ -782,6 +780,28 @@ MSG
     print $msg;
 }
 
+sub closing_msg {
+
+    my $msg =<<"MSG";
+
+Please, set at least DBI_PASS (or ISC_PASSWORD), before 'make test'.
+The default for DBI_USER is 'SYSDBA'.
+
+MSG
+
+    print $msg;
+}
+
 exit 0;
 
-# end of Makefile.PL
+#- end of Makefile.PL
+
+#-- Known registry keys
+
+__DATA__
+fb:DefaultInstance:HKEY_LOCAL_MACHINE\SOFTWARE\Firebird Project\Firebird Server\Instances
+vc:ProductDir:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C++
+vc:ProductDir:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\7.0\Setup\VC
+vc:ProductDir:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\Setup\VC
+pv:CurrentVersion:HKEY_LOCAL_MACHINE\SOFTWARE\ActiveState\ActivePerl
+pl::HKEY_LOCAL_MACHINE\SOFTWARE\ActiveState\ActivePerl\1203

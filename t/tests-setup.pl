@@ -10,8 +10,6 @@
 
 use strict;
 use warnings;
-
-use Data::Dumper;
 use Carp;
 
 use DBI 1.43;                   # minimum version for 'parse_dsn'
@@ -42,7 +40,6 @@ sub connect_to_database {
         @{$default_attr}{ keys %{$attr} } = values %{$attr};
 
         # Connect to the database
-        print Dumper( $param);
         eval {
         $dbh =
           DBI->connect( $param->{tdsn}, $param->{user}, $param->{pass},
@@ -97,7 +94,6 @@ sub check_and_set_cached_configs {
     my $param = shift;
 
     my $error_str = q{};
-    print Dumper( $param);
 
     # Check user and pass, try the get from ENV if missing
     $param->{user} = $param->{user} ? $param->{user} : get_user();
@@ -246,7 +242,7 @@ sub read_cached_configs {
     my $record = {};
 
     if (-f $test_conf) {
-        print "\nReading cached test configuration...\n";
+        # print "\nReading cached test configuration...\n";
 
         open my $file_fh, '<', $test_conf
             or croak "Can't open file ", $test_conf, ": $!";
