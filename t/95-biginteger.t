@@ -1,6 +1,6 @@
 #!/usr/bin/perl
-
-# 2011-01-31 stefan(s.bv.)
+#
+# 2011-01-31 stefan(s.bv.) Created new test:
 # Playing with very big | small numbers
 # Smallest and biggest integer supported by Firebird:
 #   -9223372036854775808, 9223372036854775807
@@ -19,13 +19,6 @@ use DBI;
 use lib 't','.';
 
 require 'tests-setup.pl';
-
-BEGIN {
-    if ( $^O eq 'MSWin32' ) {
-        plan skip_all => 'Not for MSWin32!';
-        exit 0;
-    }
-}
 
 my ($dbh, $error_str) = connect_to_database();
 
@@ -46,15 +39,11 @@ ok($dbh, 'Connected to the database');
 
 # ------- TESTS ------------------------------------------------------------- #
 
-#
-#   Find a possible new table name
-#
+# Find a new table name
 my $table = find_new_table($dbh);
 ok($table, "TABLE is '$table'");
 
-#
-#   Create a new table
-#
+# Create a new table
 my $def =<<"DEF";
 CREATE TABLE $table (
     INT_MIN  BIGINT,
@@ -63,9 +52,7 @@ CREATE TABLE $table (
 DEF
 ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
 
-#
-#   Insert some values
-#
+# Insert some values
 my $stmt =<<"END_OF_QUERY";
 INSERT INTO $table (
     INT_MIN,
@@ -79,16 +66,12 @@ ok(my $insert = $dbh->prepare($stmt), 'PREPARE INSERT');
 ok( $insert->execute( -9223372036854775808, 9223372036854775807 ),
     'INSERT MIN | MAX INTEGERS' );
 
-#
-#   Expected fetched values
-#
+# Expected fetched values
 my @correct = (
     [ '-9223372036854775808', '9223372036854775807' ],
 );
 
-#
-#   Select the values
-#
+# Select the values
 ok( my $cursor = $dbh->prepare( qq{SELECT * FROM $table} ), 'PREPARE SELECT' );
 
 ok($cursor->execute, 'EXECUTE SELECT');
@@ -112,14 +95,10 @@ for (my $i = 0; $i < @$res; $i++) {
     }
 }
 
-#
-#  Drop the test table
-#
+# Drop the test table
 $dbh->{AutoCommit} = 1;
 
 ok( $dbh->do("DROP TABLE $table"), "DROP TABLE '$table'" );
 
-#
-#   Finally disconnect.
-#
+# Finally disconnect.
 ok($dbh->disconnect(), 'DISCONNECT');

@@ -155,7 +155,7 @@ my %MakeParams = (
         FILES =>
 qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD/Firebird/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old dll.*)
     },
-    realclean => { FILES => qq($test_conf $test_mark) },
+    realclean => { FILES => qq($test_conf $test_mark t/*.sql) },
     AUTHOR => 'Edwin Pratomo (edpratomo@users.sourceforge.net)',
     ABSTRACT =>
 'DBD::Firebird is a DBI driver for Firebird, written using Firebird C API.',

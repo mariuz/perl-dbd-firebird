@@ -1,6 +1,8 @@
 #!/usr/bin/perl
-
-# 2011-01-31 stefan(s.bv.)
+#
+# 2011-04-13 stefan(s.bv.) Modified to run on Windows.
+#
+# 2011-01-31 stefan(s.bv.) Created new test:
 # Playing with very big | small numbers
 # Smallest and biggest integer supported by Firebird:
 #   -9223372036854775808, 9223372036854775807
@@ -9,14 +11,9 @@
 # insertion of the values.  Look at biginteger.t for a Perl only
 # variant.
 #
-# This test needs a modified Makefile.PL that adds a row in test.conf
-# with the path to isql
-#
 
 use strict;
 use warnings;
-
-use Data::Dumper;
 
 use Math::BigFloat try => 'GMP';
 use Test::More;
@@ -25,13 +22,6 @@ use DBI;
 use lib 't','.';
 
 require 'tests-setup.pl';
-
-BEGIN {
-    if ( $^O eq 'MSWin32' ) {
-        plan skip_all => 'Not for MSWin32!';
-        exit 0;
-    }
-}
 
 my ($dbh1, $error_str) = connect_to_database();
 
@@ -50,9 +40,7 @@ ok($dbh1, 'dbh1 OK');
 
 # ------- TESTS ------------------------------------------------------------- #
 
-#
-#   Find a possible new table name
-#
+# Find a new table name
 my $table = find_new_table($dbh1);
 ok($table, "TABLE is '$table'");
 
@@ -60,9 +48,7 @@ my $rc = read_cached_configs();
 my ( $db, $test_user, $test_password, $test_isql ) =
   ( $rc->{path}, $rc->{user}, $rc->{pass}, $rc->{isql} );
 
-#
-#   Prepare isql commands
-#
+# Prepare isql commands
 my $insert_sql =<<"ISQLDEF";
 CONNECT '$db' USER '$test_user' PASSWORD '$test_password';
 CREATE TABLE $table (
@@ -81,19 +67,17 @@ COMMIT;
 quit;
 ISQLDEF
 
-# Use isql to insert test values
-my $ocmd = qq(echo '$insert_sql' | '$test_isql' -sql_dialect 3 2>&1);
-eval {
-    open my $isql_fh, '-|', $ocmd;
-    while (<$isql_fh>) {
-        # For debug:
-        # print "> $_\n";
-    }
-    close $isql_fh;
-};
-if ($@) {
-    die "ISQL open error!\n";
-}
+# Create an SQL file with the SQL statements
+open my $t_fh, '>', './t/insert.sql'
+    or die qq{Can't write to t/insert.sql};
+print {$t_fh} $insert_sql;
+close $t_fh;
+
+# Run isql
+my $ocmd = qq("$test_isql" -sql_dialect 3 -i "t/insert.sql" 2>&1);
+# print "cmd: $ocmd\n";
+system($ocmd) == 0
+    or die "system '$ocmd' failed: $?";
 
 ok($dbh1->disconnect(), 'DISCONNECT dbh1');
 
@@ -104,16 +88,12 @@ my ($dbh2, $error_str2) = connect_to_database({ ChopBlanks => 1 });
 
 ok($dbh2, 'dbh2 OK');
 
-#
-#   Expected fetched values
-#
+# Expected fetched values
 my @correct = (
     [ '-9223372036854775808', '9223372036854775807' ],
 );
 
-#
-#   Select the values
-#
+# Select the values
 ok( my $cursor = $dbh2->prepare( qq{SELECT * FROM $table} ), 'PREPARE SELECT' );
 
 ok($cursor->execute, 'EXECUTE SELECT');
@@ -138,14 +118,10 @@ for (my $i = 0; $i < @$res; $i++) {
     }
 }
 
-#
-#  Drop the test table
-#
+# Drop the test table
 $dbh2->{AutoCommit} = 1;
 
 ok( $dbh2->do("DROP TABLE $table"), "DROP TABLE '$table'" );
 
-#
-#   Finally disconnect.
-#
+# Finally disconnect.
 ok($dbh2->disconnect(), 'DISCONNECT');
