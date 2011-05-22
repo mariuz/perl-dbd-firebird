@@ -193,17 +193,11 @@ SWITCH: {
         last SWITCH;
     };
     $os eq 'linux' && do {
-        my $lib = 'fbclient';
-        my $fb_lib = $fb_LIB;
-        my $ldl = ($os eq 'linux') ? '-ldl' : '';
-        $MakeParams{LIBS} = "-L$fb_lib -l$lib $ldl ";
+        $MakeParams{LIBS} = "-L$fb_LIB -lfbclient -ldl ";
         last SWITCH;
     };
     $os eq 'freebsd' && do {
-        my $lib = 'fbclient';
-        my $fb_lib = $fb_LIB;
-        my $ldl = ($os eq 'linux') ? '-ldl' : '';
-        $MakeParams{LIBS} = "-L$fb_lib -l$lib $ldl ";
+        $MakeParams{LIBS} = "-L$fb_LIB -lfbclient ";
         last SWITCH;
     };
     $os eq 'hpux' && do {

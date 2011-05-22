@@ -14,3 +14,6 @@ inc/
 *.xsi
 Firebird.c
 t/tests-setup.tmp.*
+t/create.sql
+t/insert.sql
+t/test.conf
