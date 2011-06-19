@@ -38,5 +38,4 @@ int  dbd_st_blob_read    _((SV *sth, imp_sth_t *imp_sth, int field, long offset,
 int  dbd_st_STORE_attrib _((SV *sth, imp_sth_t *imp_sth, SV *keysv, SV *valuesv));
 SV  *dbd_st_FETCH_attrib _((SV *sth, imp_sth_t *imp_sth, SV *keysv));
 
-
 /* end of Firebird.h */
