@@ -69,17 +69,6 @@ The test suite consists of a lot of files, currently these are:
 	           Additionally some functions for supporting test script
 	           are included. These files are described in detail below.
 
-  mSQL.mtest       Likewise for mSQL.
-  mSQL.dbtest
-
-  pNET.mtest       Likewise for pNET.
-  pNET.dbtest
-
-  Ingres.mtest     Likewise for Ingres.
-  Ingres.dbtest
-
-  ODBC.mtest       Likewise for ODBC.
-  ODBC.dbtest
 
 
 How do I use the test suite for my driver?
@@ -221,7 +210,7 @@ to indicate that 15 tests will follow.
 
 The second pass will indeed run the tests. The Testing() function has
 extended possibilities which I won't describe here, for building groups
-of tests (for example it probably doesn´t make sense to execute a
+of tests (for example it probably doesnï¿½t make sense to execute a
 test if even the connect failed).
 
 The next thing we notice is a first test: Connecting to the DBMS.
