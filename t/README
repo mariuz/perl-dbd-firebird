@@ -286,28 +286,12 @@ There follows some stuff later, especially dropping the new
 table, but in general leave this as it is.
 
 
-Known problems
-==============
-
-mysql: The blob test fails with blobs larger than 252*256 bytes, you
-       must start the mysql daemon with -Omax_allowed_packet=<bigvalue>.
-
-msql: The null test fails, because the query
-
-	SELECT * FROM $table WHERE id = NULL
-
-      doesn't return anything. Does anyone have an idea, how to modify
-      this?
-
-ODBC: ChopBlank test fail; seems to be a driver problem.
 
 
 What remains to do?
 ===================
 
-Writing test cases! For example I do currently not
-
-  - check transactions (mysql doesn't know about transactions :-(
+Writing test cases! For example I do currently not - check transactions 
 
 I'll be happy to include them into the test suite. Any new tests,
 critics or suggestions welcome:
