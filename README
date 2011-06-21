@@ -1,7 +1,6 @@
 DBD::Firebird -- DBI driver for Firebird RDBMS server.
 
-   $Id: README 360 2005-09-12 03:25:30Z edpratomo $
-
+   
    Copyright (c) 1999-2005  Edwin Pratomo
    Portions Copyright (c) 2001-2005  Daniel Ritz 
 
