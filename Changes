@@ -1,4 +1,6 @@
-Revision history for Perl extension DBD::InterBase.
+Revision history for Perl extension DBD::Firebird.
+June 24,2011 - mariuz
+* added osx patches and various Makefile.PL cleanups 
 
 June 23,2011 - mariuz+stefan
 * made it to compile with perl 5.14 (old defines cleanup)
