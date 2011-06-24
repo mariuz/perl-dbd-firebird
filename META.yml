@@ -1,7 +1,7 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         DBD-Firebird
-version:      0.50
+version:      0.55
 version_from: Firebird.pm
 installdirs:  site
 requires:
