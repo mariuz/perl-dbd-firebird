@@ -88,6 +88,12 @@ if ($os eq 'MSWin32')
     @ib_bin_dirs = ($ib_bin_dir);
     @ib_inc_dirs = ($ib_lib_dir . "SDK\\include", $ib_lib_dir . "include");
 }
+elsif ($os eq 'darwin')
+{
+    $isql_name = 'isql';
+    @ib_bin_dirs = (qw(/Library/Frameworks/Firebird.framework/Resources/bin));
+    @ib_inc_dirs = (qw(/Library/Frameworks/Firebird.framework/Headers));
+}
 else
 {
     $isql_name = 'isql';
