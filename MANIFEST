@@ -4,7 +4,6 @@ dbdimp.h
 Firebird.h
 Firebird.pm
 Firebird.xs
-ignore.txt
 lib/DBD/Firebird/GetInfo.pm
 lib/DBD/Firebird/TableInfo.pm
 lib/DBD/Firebird/TableInfo/Basic.pm
