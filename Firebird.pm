@@ -357,8 +357,8 @@ controls how Firebird interprets:
  - decimal and numeric datatypes
  - new 1.0 reserved keywords
 
-Valid values for B<ib_dialect> are 1, 2, and 3. The driver's default value is
-1. 
+Valid values for B<ib_dialect> are 1 and 3 (there is also 2 but it's not recommended). The driver's default value is
+3 
 
 B<ib_role> specifies the role of the connecting user. B<SQL role> is
 implemented by Firebird to make database administration easier when dealing
