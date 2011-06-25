@@ -153,7 +153,7 @@ do { \
 #endif
 
 #define BLOB_SEGMENT        (256)
-#define DEFAULT_SQL_DIALECT (1)
+#define DEFAULT_SQL_DIALECT (3)
 #define INPUT_XSQLDA        (1)
 #define OUTPUT_XSQLDA       (0)
 #define PLAN_BUFFER_LEN     2048
