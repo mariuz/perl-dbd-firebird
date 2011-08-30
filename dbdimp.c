@@ -11,6 +11,8 @@
 */
 
 #include "Firebird.h"
+#include <stdint.h>
+#include <inttypes.h>
 
 DBISTATE_DECLARE;
 
@@ -45,7 +47,7 @@ int create_cursor_name(SV *sth, imp_sth_t *imp_sth)
     ISC_STATUS status[ISC_STATUS_LENGTH];
 
     Newxz(imp_sth->cursor_name, 22, char);
-    sprintf(imp_sth->cursor_name, "perl%016.16x", imp_sth->stmt);
+    sprintf(imp_sth->cursor_name, "perl%16.16"PRIx32, (uint32_t)imp_sth->stmt);
     isc_dsql_set_cursor_name(status, &(imp_sth->stmt), imp_sth->cursor_name, 0);
     if (ib_error_check(sth, status))
         return FALSE;
@@ -1146,7 +1148,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
          * of rows that the SELECT will return.
          */
 
-        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_fetch: fetch result: %d\n", fetch));
+        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_fetch: fetch result: %"PRIdPTR"\n", fetch));
 
         if (imp_sth->fetched < 0)
             imp_sth->fetched = 0;
@@ -1402,7 +1404,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                         switch (dtype)
                         {
                             case SQL_TIMESTAMP:
-                                sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d.%04d",
+                                sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d.%04ld",
                                         times.tm_year + 1900,
                                         times.tm_mon  + 1,
                                         times.tm_mday,
@@ -1419,7 +1421,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                                 break;
 
                             case SQL_TYPE_TIME:
-                                sprintf(buf, "%02d:%02d:%02d.%04d",
+                                sprintf(buf, "%02d:%02d:%02d.%04ld",
                                         times.tm_hour,
                                         times.tm_min,
                                         times.tm_sec,
@@ -1982,7 +1984,7 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
     seg_len = BLOB_SEGMENT;
     while (total_length > 0)
     {
-        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "ib_blob_write: %d bytes left\n", total_length));
+        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "ib_blob_write: %ld bytes left\n", total_length));
 
         /* set new segment start pointer */
         seg = p;
@@ -2045,7 +2047,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
     DBI_TRACE_imp_xxh(imp_sth, 2, (DBIc_LOGPIO(imp_sth), "enter ib_fill_isqlda. processing %d XSQLVAR"
                             "   Type %ld"
-                            " ivar->sqltype=%ld\n",
+                            " ivar->sqltype=%d\n",
                             i + 1,
                             (long) sql_type,
                             ivar->sqltype));
@@ -2126,7 +2128,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             if (len > ivar->sqllen) {
                 char err[80];
                 sprintf(err, "String truncation (SQL_VARYING): attempted to bind %lu octets to column sized %lu",
-                        len, (sizeof(char) * (ivar->sqllen)));
+                        (long unsigned)len, (long unsigned)(sizeof(char) * (ivar->sqllen)));
                 break;
             }
 
@@ -2149,7 +2151,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             if (len > ivar->sqllen) {
                 char err[80];
                 sprintf(err, "String truncation (SQL_TEXT): attempted to bind %lu octets to column sized %lu",
-                        len, (sizeof(char) * (ivar->sqllen)));
+                        (long unsigned)len, (long unsigned)(sizeof(char) * (ivar->sqllen)));
                 break;
             }
 
@@ -2615,8 +2617,8 @@ int ib_commit_transaction(SV *h, imp_dbh_t *imp_dbh)
     ISC_STATUS status[ISC_STATUS_LENGTH];
 
     DBI_TRACE_imp_xxh(imp_dbh, 4, (DBIc_LOGPIO(imp_dbh), 
-        "ib_commit_transaction: DBIcf_AutoCommit = %d, imp_dbh->sth_ddl = %d\n",
-        DBIc_has(imp_dbh, DBIcf_AutoCommit), imp_dbh->sth_ddl));
+        "ib_commit_transaction: DBIcf_AutoCommit = %lu, imp_dbh->sth_ddl = %u\n",
+        (long unsigned)DBIc_has(imp_dbh, DBIcf_AutoCommit), imp_dbh->sth_ddl));
 
     if (!imp_dbh->tr)
     {

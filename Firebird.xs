@@ -1314,7 +1314,7 @@ ib_wait_event(dbh, ev)
         {
             if (ecount[i])
             {
-                DBI_TRACE_imp_xxh(imp_dbh, 2, (DBIc_LOGPIO(imp_dbh), "Event %s caught %ld times.\n", *(ev->names + i), ecount[i]));
+                DBI_TRACE_imp_xxh(imp_dbh, 2, (DBIc_LOGPIO(imp_dbh), "Event %s caught %lu times.\n", *(ev->names + i), (long unsigned)ecount[i]));
                 svp = hv_store(RETVAL, *(ev->names + i), strlen(*(ev->names + i)),
                                newSViv(ecount[i]), 0);
                 if (svp == NULL)
