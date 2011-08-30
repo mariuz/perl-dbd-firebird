@@ -1368,7 +1368,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                 {
                     char     *format = NULL, buf[100];
                     struct tm times;
-                    int       fpsec;
+                    long int  fpsec = 0;
 
                     switch (dtype)
                     {
@@ -1385,7 +1385,6 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                             format = imp_sth->dateformat ?
                                 imp_sth->dateformat :
                                 imp_dbh->dateformat;
-                            fpsec = 0;
                             break;
 
                         case SQL_TYPE_TIME:
@@ -1413,7 +1412,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                                         times.tm_hour,
                                         times.tm_min,
                                         times.tm_sec,
-                                        TIMESTAMP_FPSECS(var->sqldata));
+                                        fpsec);
                                 break;
                             case SQL_TYPE_DATE:
                                 sprintf(buf, "%04d-%02d-%02d",
@@ -1427,7 +1426,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                                         times.tm_hour,
                                         times.tm_min,
                                         times.tm_sec,
-                                        TIME_FPSECS(var->sqldata));
+                                        fpsec);
                                 break;
                         }
 
