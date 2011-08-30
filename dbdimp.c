@@ -456,10 +456,14 @@ int dbd_db_ping(SV *dbh)
     ISC_STATUS status[ISC_STATUS_LENGTH];
 
     char buffer[100];
+    char req[] = {
+        isc_info_ods_version,
+        isc_info_end
+    };
 
     DBI_TRACE_imp_xxh(imp_dbh, 1, (DBIc_LOGPIO(imp_dbh), "dbd_db_ping\n"));
 
-    if (isc_database_info(status, &(imp_dbh->db), 0, NULL, sizeof(buffer), buffer))
+    if (isc_database_info(status, &(imp_dbh->db), sizeof(req), req, sizeof(buffer), buffer))
         if (ib_error_check(dbh, status))
             return FALSE;
     return TRUE;
