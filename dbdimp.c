@@ -1481,7 +1481,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 
                 case SQL_BLOB:
                 {
-                    isc_blob_handle blob_handle = NULL;
+                    isc_blob_handle blob_handle = 0;
                     int blob_stat;
                     char blob_info_buffer[32], *p,
                          blob_segment_buffer[BLOB_SEGMENT];
@@ -1498,7 +1498,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                                    &blob_handle, (ISC_QUAD *) var->sqldata,
 #if defined(INCLUDE_FB_TYPES_H) || defined(INCLUDE_TYPES_PUB_H)
                                    (ISC_USHORT) 0,
-                                   (ISC_UCHAR) NULL);
+                                   (ISC_UCHAR) 0);
 #else                                   
                                    (short) 0,       /* no Blob filter */
                                    (char *) NULL);  /* no Blob filter */
@@ -1950,7 +1950,7 @@ int dbd_discon_all(SV *drh, imp_drh_t *imp_drh)
 int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
 {
     D_imp_dbh_from_sth;
-    isc_blob_handle handle = NULL;
+    isc_blob_handle handle = 0;
     ISC_STATUS      status[ISC_STATUS_LENGTH];
     long            total_length;
     char            *p, *seg;
