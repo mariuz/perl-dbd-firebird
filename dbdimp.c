@@ -31,12 +31,14 @@ do {                                                                  \
 #define IB_alloc_sqlda(sqlda, n)                             \
 do {                                                         \
     short len = n;                                           \
+    char *tmp;                                               \
     if (sqlda)                                               \
     {                                                        \
         Safefree(sqlda);                                     \
         sqlda = NULL;                                        \
     }                                                        \
-    Newxz(sqlda, XSQLDA_LENGTH(len), char);                  \
+    Newxz(tmp, XSQLDA_LENGTH(len), char);                    \
+    sqlda = (XSQLDA*)tmp;                                    \
     sqlda->sqln = len;                                       \
     sqlda->version = SQLDA_OK_VERSION;                       \
 } while (0)
