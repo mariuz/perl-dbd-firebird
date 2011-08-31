@@ -11,6 +11,8 @@
 */
 
 #include "Firebird.h"
+#include <stdint.h>
+#include <inttypes.h>
 
 DBISTATE_DECLARE;
 
@@ -29,12 +31,14 @@ do {                                                                  \
 #define IB_alloc_sqlda(sqlda, n)                             \
 do {                                                         \
     short len = n;                                           \
+    char *tmp;                                               \
     if (sqlda)                                               \
     {                                                        \
         Safefree(sqlda);                                     \
         sqlda = NULL;                                        \
     }                                                        \
-    Newxz(sqlda, XSQLDA_LENGTH(len), char);                  \
+    Newxz(tmp, XSQLDA_LENGTH(len), char);                    \
+    sqlda = (XSQLDA*)tmp;                                    \
     sqlda->sqln = len;                                       \
     sqlda->version = SQLDA_OK_VERSION;                       \
 } while (0)
@@ -45,7 +49,7 @@ int create_cursor_name(SV *sth, imp_sth_t *imp_sth)
     ISC_STATUS status[ISC_STATUS_LENGTH];
 
     Newxz(imp_sth->cursor_name, 22, char);
-    sprintf(imp_sth->cursor_name, "perl%016.16x", imp_sth->stmt);
+    sprintf(imp_sth->cursor_name, "perl%16.16"PRIx32, (uint32_t)imp_sth->stmt);
     isc_dsql_set_cursor_name(status, &(imp_sth->stmt), imp_sth->cursor_name, 0);
     if (ib_error_check(sth, status))
         return FALSE;
@@ -65,10 +69,8 @@ void ib_cleanup_st_prepare (imp_sth_t *imp_sth)
     FREE_SETNULL(imp_sth->in_sqlda);
     FREE_SETNULL(imp_sth->out_sqlda);
     FREE_SETNULL(imp_sth->dateformat);
-#ifdef IB_API_V6
     FREE_SETNULL(imp_sth->timeformat);
     FREE_SETNULL(imp_sth->timestampformat);
-#endif
 }
 
 
@@ -186,11 +188,6 @@ static int ib2sql_type(int ibtype)
         case 481:
             return DBI_SQL_DOUBLE;
 
-#ifndef IB_API_V6
-        case SQL_DATE:
-        case 511:
-            return DBI_SQL_TIMESTAMP; /* this is correct! */
-#else /* V6.0/FB */
         case SQL_TIMESTAMP:
         case 511:
             return DBI_SQL_TIMESTAMP;
@@ -202,7 +199,6 @@ static int ib2sql_type(int ibtype)
         case SQL_TYPE_TIME:
         case 561:
             return DBI_SQL_TIME;
-#endif /* !IB_API_V6 */
 
         case SQL_VARYING:
         case 449:
@@ -285,9 +281,6 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
      *           timestampformat ... %c
      */
     Newxz(imp_dbh->dateformat, 3, char);
-#ifndef IB_API_V6
-    strcpy(imp_dbh->dateformat, "%c");
-#else
     strcpy(imp_dbh->dateformat, "%x");
 
     Newxz(imp_dbh->timeformat, 3, char);
@@ -295,7 +288,6 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
 
     Newxz(imp_dbh->timestampformat, 3, char);
     strcpy(imp_dbh->timestampformat, "%c");
-#endif
 
     /* linked list */
     imp_dbh->first_sth = NULL;
@@ -404,10 +396,8 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
         DPB_FILL_INTEGER(dpb, ib_cache);
     }
 
-#ifdef IB_API_V6
     DPB_FILL_BYTE(dpb, isc_dpb_sql_dialect);
     DPB_FILL_INTEGER(dpb, ib_dialect);
-#endif
 
     if (dbkey_scope)
     {
@@ -470,10 +460,14 @@ int dbd_db_ping(SV *dbh)
     ISC_STATUS status[ISC_STATUS_LENGTH];
 
     char buffer[100];
+    char req[] = {
+        isc_info_ods_version,
+        isc_info_end
+    };
 
     DBI_TRACE_imp_xxh(imp_dbh, 1, (DBIc_LOGPIO(imp_dbh), "dbd_db_ping\n"));
 
-    if (isc_database_info(status, &(imp_dbh->db), 0, NULL, sizeof(buffer), buffer))
+    if (isc_database_info(status, &(imp_dbh->db), sizeof(req), req, sizeof(buffer), buffer))
         if (ib_error_check(dbh, status))
             return FALSE;
     return TRUE;
@@ -506,10 +500,8 @@ int dbd_db_disconnect(SV *dbh, imp_dbh_t *imp_dbh)
 
     FREE_SETNULL(imp_dbh->tpb_buffer);
     FREE_SETNULL(imp_dbh->dateformat);
-#ifdef IB_API_V6
     FREE_SETNULL(imp_dbh->timeformat);
     FREE_SETNULL(imp_dbh->timestampformat);
-#endif
 
     /* detach database */
     isc_detach_database(status, &(imp_dbh->db));
@@ -632,7 +624,6 @@ int dbd_db_STORE_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv, SV *valuesv)
         IB_SQLtimeformat(dbh, imp_dbh->dateformat, valuesv);
         if (!set_frmts) return TRUE;
     }
-#ifdef IB_API_V6
     if (set_frmts || ((kl==13) && strEQ(key, "ib_timeformat")))
     {
         IB_SQLtimeformat(dbh, imp_dbh->timeformat, valuesv);
@@ -643,7 +634,6 @@ int dbd_db_STORE_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv, SV *valuesv)
         IB_SQLtimeformat(dbh, imp_dbh->timestampformat, valuesv);
         if (!set_frmts) return TRUE;
     }
-#endif
     /**************************************************************************/
 
     if (set_frmts) return TRUE;
@@ -665,13 +655,11 @@ SV *dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
         result = boolSV(imp_dbh->soft_commit);
     else if ((kl==13) && strEQ(key, "ib_dateformat"))
         result = newSVpvn(imp_dbh->dateformat, strlen(imp_dbh->dateformat));
-#ifdef IB_API_V6
     else if ((kl==13) && strEQ(key, "ib_timeformat"))
         result = newSVpvn(imp_dbh->timeformat, strlen(imp_dbh->timeformat));
     else if ((kl==18) && strEQ(key, "ib_timestampformat"))
         result = newSVpvn(imp_dbh->timestampformat,
                           strlen(imp_dbh->timestampformat));
-#endif
 
     if (result == NULL)
         return Nullsv;
@@ -756,10 +744,8 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs)
     imp_sth->cursor_name = NULL;
 
     imp_sth->dateformat      = NULL;
-#ifdef IB_API_V6
     imp_sth->timestampformat = NULL;
     imp_sth->timeformat      = NULL;
-#endif
 
     /* double linked list */
     imp_sth->prev_sth = NULL;
@@ -772,23 +758,19 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs)
         if ((svp = DBD_ATTRIB_GET_SVP(attribs, "ib_time_all", 11)) != NULL)
         {
             IB_SQLtimeformat(sth, imp_sth->dateformat, *svp);
-#ifdef IB_API_V6
             IB_SQLtimeformat(sth, imp_sth->timestampformat, *svp);
             IB_SQLtimeformat(sth, imp_sth->timeformat, *svp);
-#endif
         }
 
 
         if ((svp = DBD_ATTRIB_GET_SVP(attribs, "ib_dateformat", 13)) != NULL)
             IB_SQLtimeformat(sth, imp_sth->dateformat, *svp);
 
-#ifdef IB_API_V6
         if ((svp = DBD_ATTRIB_GET_SVP(attribs, "ib_timestampformat", 18)) != NULL)
             IB_SQLtimeformat(sth, imp_sth->timestampformat, *svp);
 
         if ((svp = DBD_ATTRIB_GET_SVP(attribs, "ib_timeformat", 13)) != NULL)
             IB_SQLtimeformat(sth, imp_sth->timeformat, *svp);
-#endif
     }
 
 
@@ -1168,7 +1150,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
          * of rows that the SELECT will return.
          */
 
-        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_fetch: fetch result: %d\n", fetch));
+        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_fetch: fetch result: %"PRIdPTR"\n", fetch));
 
         if (imp_sth->fetched < 0)
             imp_sth->fetched = 0;
@@ -1310,9 +1292,9 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                         if (remainder < 0) remainder = -remainder;
 
                         snprintf(buf, sizeof(buf),
-                                "%"DBD_IB_INT64f".%0.*"DBD_IB_INT64f,
+                                "%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,
                                 i/divisor, -var->sqlscale, remainder);
-			DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%"DBD_IB_INT64f".%0.*"DBD_IB_INT64f,i/divisor, -var->sqlscale, remainder ));
+			DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,i/divisor, -var->sqlscale, remainder ));
 
                     }
 
@@ -1380,22 +1362,14 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                  * is %c, defined in /usr/lib/locale/<locale>/LC_TIME/time,
                  * where <locale> is the host's chosen locale.
                  */
-#ifndef IB_API_V6
-                case SQL_DATE:
-#else
                 case SQL_TIMESTAMP:
                 case SQL_TYPE_DATE:
                 case SQL_TYPE_TIME:
-#endif
                 {
                     char     *format = NULL, buf[100];
                     struct tm times;
-                    int       fpsec;
+                    long int  fpsec = 0;
 
-#ifndef IB_API_V6
-                    isc_decode_date((ISC_QUAD *) var->sqldata, &times);
-                    format = imp_sth->dateformat;
-#else
                     switch (dtype)
                     {
                         case SQL_TIMESTAMP:
@@ -1411,7 +1385,6 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                             format = imp_sth->dateformat ?
                                 imp_sth->dateformat :
                                 imp_dbh->dateformat;
-                            fpsec = 0;
                             break;
 
                         case SQL_TYPE_TIME:
@@ -1431,21 +1404,16 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                     {
                         switch (dtype)
                         {
-#ifndef IB_API_V6
-                            case SQL_DATE:
-#else
                             case SQL_TIMESTAMP:
-#endif
-                                sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d.%04d",
+                                sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d.%04ld",
                                         times.tm_year + 1900,
                                         times.tm_mon  + 1,
                                         times.tm_mday,
                                         times.tm_hour,
                                         times.tm_min,
                                         times.tm_sec,
-                                        TIMESTAMP_FPSECS(var->sqldata));
+                                        fpsec);
                                 break;
-#ifdef IB_API_V6
                             case SQL_TYPE_DATE:
                                 sprintf(buf, "%04d-%02d-%02d",
                                         times.tm_year + 1900,
@@ -1454,21 +1422,19 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                                 break;
 
                             case SQL_TYPE_TIME:
-                                sprintf(buf, "%02d:%02d:%02d.%04d",
+                                sprintf(buf, "%02d:%02d:%02d.%04ld",
                                         times.tm_hour,
                                         times.tm_min,
                                         times.tm_sec,
-                                        TIME_FPSECS(var->sqldata));
+                                        fpsec);
                                 break;
                         }
-#endif
 
                         sv_setpvn(sv, buf, strlen(buf));
                         break;
                     }
 
 
-#endif
                     /* output as array like perl's localtime? */
                     if (strEQ(format, "tm") || strEQ(format, "TM"))
                     {
@@ -1516,7 +1482,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 
                 case SQL_BLOB:
                 {
-                    isc_blob_handle blob_handle = NULL;
+                    isc_blob_handle blob_handle = 0;
                     int blob_stat;
                     char blob_info_buffer[32], *p,
                          blob_segment_buffer[BLOB_SEGMENT];
@@ -1533,7 +1499,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                                    &blob_handle, (ISC_QUAD *) var->sqldata,
 #if defined(INCLUDE_FB_TYPES_H) || defined(INCLUDE_TYPES_PUB_H)
                                    (ISC_USHORT) 0,
-                                   (ISC_UCHAR) NULL);
+                                   (ISC_UCHAR) 0);
 #else                                   
                                    (short) 0,       /* no Blob filter */
                                    (char *) NULL);  /* no Blob filter */
@@ -1793,10 +1759,8 @@ void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth)
 
     /* free all other resources */
     FREE_SETNULL(imp_sth->dateformat);
-#ifdef IB_API_V6
     FREE_SETNULL(imp_sth->timeformat);
     FREE_SETNULL(imp_sth->timestampformat);
-#endif
 
     /* Drop the statement */
     if (imp_sth->stmt)
@@ -1987,7 +1951,7 @@ int dbd_discon_all(SV *drh, imp_drh_t *imp_drh)
 int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
 {
     D_imp_dbh_from_sth;
-    isc_blob_handle handle = NULL;
+    isc_blob_handle handle = 0;
     ISC_STATUS      status[ISC_STATUS_LENGTH];
     long            total_length;
     char            *p, *seg;
@@ -2021,7 +1985,7 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
     seg_len = BLOB_SEGMENT;
     while (total_length > 0)
     {
-        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "ib_blob_write: %d bytes left\n", total_length));
+        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "ib_blob_write: %ld bytes left\n", total_length));
 
         /* set new segment start pointer */
         seg = p;
@@ -2084,7 +2048,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
     DBI_TRACE_imp_xxh(imp_sth, 2, (DBIc_LOGPIO(imp_sth), "enter ib_fill_isqlda. processing %d XSQLVAR"
                             "   Type %ld"
-                            " ivar->sqltype=%ld\n",
+                            " ivar->sqltype=%d\n",
                             i + 1,
                             (long) sql_type,
                             ivar->sqltype));
@@ -2148,11 +2112,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
     if (dtype == SQL_TEXT)
     {
         if (ivar->sqlsubtype == 0x77)
-#ifndef IB_API_V6
-            dtype = SQL_DATE;
-#else
             dtype = SQL_TIMESTAMP;
-#endif
     }
 
     switch (dtype)
@@ -2169,7 +2129,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             if (len > ivar->sqllen) {
                 char err[80];
                 sprintf(err, "String truncation (SQL_VARYING): attempted to bind %lu octets to column sized %lu",
-                        len, (sizeof(char) * (ivar->sqllen)));
+                        (long unsigned)len, (long unsigned)(sizeof(char) * (ivar->sqllen)));
                 break;
             }
 
@@ -2192,7 +2152,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             if (len > ivar->sqllen) {
                 char err[80];
                 sprintf(err, "String truncation (SQL_TEXT): attempted to bind %lu octets to column sized %lu",
-                        len, (sizeof(char) * (ivar->sqllen)));
+                        (long unsigned)len, (long unsigned)(sizeof(char) * (ivar->sqllen)));
                 break;
             }
 
@@ -2456,13 +2416,9 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             break;
 
         /**********************************************************************/
-#ifndef IB_API_V6
-        case SQL_DATE:
-#else
         case SQL_TIMESTAMP:
         case SQL_TYPE_TIME:
         case SQL_TYPE_DATE:
-#endif
             if (SvPOK(value) || SvTYPE(value) == SVt_PVMG)
             {
                 /*
@@ -2524,20 +2480,6 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                     Safefree(ivar->sqldata);
 
                 /* encode for firebird/interbase, store value*/
-#ifndef IB_API_V6
-                {
-                    ISC_QUAD timestamp;
-                    isc_encode_date(&times, &timestamp);
-
-                    Newx(ivar->sqldata, 1, ISC_QUAD, ISC_SCHAR);
-
-                    /* we assume there's a fpsecs part after struct tm elements */
-                    if (items >= 10)
-                        TIMESTAMP_ADD_FPSECS(&timestamp, SvIV(svp[9]));
-
-                    *(ISC_QUAD *) ivar->sqldata = timestamp;
-                }
-#else
                 switch (dtype)
                 {
                     case SQL_TIMESTAMP:
@@ -2581,7 +2523,6 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                         break;
                     }
                 }
-#endif
             }
             break;
 
@@ -2677,8 +2618,8 @@ int ib_commit_transaction(SV *h, imp_dbh_t *imp_dbh)
     ISC_STATUS status[ISC_STATUS_LENGTH];
 
     DBI_TRACE_imp_xxh(imp_dbh, 4, (DBIc_LOGPIO(imp_dbh), 
-        "ib_commit_transaction: DBIcf_AutoCommit = %d, imp_dbh->sth_ddl = %d\n",
-        DBIc_has(imp_dbh, DBIcf_AutoCommit), imp_dbh->sth_ddl));
+        "ib_commit_transaction: DBIcf_AutoCommit = %lu, imp_dbh->sth_ddl = %u\n",
+        (long unsigned)DBIc_has(imp_dbh, DBIcf_AutoCommit), imp_dbh->sth_ddl));
 
     if (!imp_dbh->tr)
     {
@@ -2753,7 +2694,6 @@ int ib_rollback_transaction(SV *h, imp_dbh_t *imp_dbh)
     }
 
 /* no isc_rollback_retaining in IB prior to 6 */
-#ifdef IB_API_V6
     if ((imp_dbh->sth_ddl == 0) && (imp_dbh->soft_commit))
     {
         DBI_TRACE_imp_xxh(imp_dbh, 2, (DBIc_LOGPIO(imp_dbh), "try isc_rollback_retaining\n"));
@@ -2765,7 +2705,6 @@ int ib_rollback_transaction(SV *h, imp_dbh_t *imp_dbh)
             return FALSE;
     }
     else
-#endif /* IB_API_V6 */
     {
         /* close all open statement handles */
         if ((imp_dbh->sth_ddl > 0) || !(DBIc_has(imp_dbh, DBIcf_AutoCommit)))

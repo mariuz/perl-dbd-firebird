@@ -79,11 +79,6 @@ typedef void (*ISC_EVENT_CALLBACK)();
 #  define SQLDA_OK_VERSION SQLDA_CURRENT_VERSION
 #endif
 
-/* is IB v6 API present? */
-#if defined(_ISC_TIMESTAMP_) || defined(ISC_TIMESTAMP_DEFINED)
-#  define IB_API_V6
-#endif
-
 #define IB_ALLOC_FAIL   2
 #define IB_FETCH_ERROR  1
 
@@ -130,12 +125,6 @@ do {                                   \
 } while (0)
 
 
-#ifndef IB_API_V6
-#  define TIMESTAMP_FPSECS(value) \
-   (long)(((ISC_QUAD *)value)->isc_quad_low % 10000L)
-#  define TIMESTAMP_ADD_FPSECS(value, inc) \
-   ((ISC_QUAD *)value)->isc_quad_low += (inc % 10000L);
-#else
 #  define TIMESTAMP_FPSECS(value) \
    (long)(((ISC_TIMESTAMP *)value)->timestamp_time % ISC_TIME_SECONDS_PRECISION)
 #  define TIMESTAMP_ADD_FPSECS(value, inc) \
@@ -145,7 +134,6 @@ do {                                   \
    (long)((*(ISC_TIME *)value) % ISC_TIME_SECONDS_PRECISION)
 #  define TIME_ADD_FPSECS(value, inc) \
    (*(ISC_TIME *)value) += (inc % ISC_TIME_SECONDS_PRECISION)
-#endif
 
 
 #ifndef NO_TRACE_MSGS
@@ -165,7 +153,7 @@ do { \
 #endif
 
 #define BLOB_SEGMENT        (256)
-#define DEFAULT_SQL_DIALECT (1)
+#define DEFAULT_SQL_DIALECT (3)
 #define INPUT_XSQLDA        (1)
 #define OUTPUT_XSQLDA       (0)
 #define PLAN_BUFFER_LEN     2048
@@ -235,10 +223,8 @@ struct imp_dbh_st
 
     /* per dbh default strftime() formats */
     char            *dateformat;
-#ifdef IB_API_V6
     char            *timestampformat;
     char            *timeformat;
-#endif
 };
 
 /* Define sth implementor data structure */
@@ -254,10 +240,8 @@ struct imp_sth_st
     int             fetched;            /* number of fetched rows */
 
     char            *dateformat;
-#ifdef IB_API_V6
     char            *timestampformat;
     char            *timeformat;
-#endif
     imp_sth_t       *prev_sth;                /* pointer to prev statement */
     imp_sth_t       *next_sth;                /* pointer to next statement */
 };

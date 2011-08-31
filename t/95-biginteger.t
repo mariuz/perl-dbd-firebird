@@ -62,8 +62,7 @@ END_OF_QUERY
 
 ok(my $insert = $dbh->prepare($stmt), 'PREPARE INSERT');
 
-# Insert positive numbers
-ok( $insert->execute( -9223372036854775808, 9223372036854775807 ),
+ok( $insert->execute( '-9223372036854775808', '9223372036854775807' ),
     'INSERT MIN | MAX INTEGERS' );
 
 # Expected fetched values

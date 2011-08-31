@@ -878,16 +878,12 @@ ib_database_info(dbh, ...)
         DB_INFOBUF(db_id,           513);
         DB_INFOBUF(implementation,    3);
         DB_INFOBUF(no_reserve,        1);
-#ifdef IB_API_V6
         DB_INFOBUF(db_read_only,      1);
-#endif
         DB_INFOBUF(ods_minor_version, 1);
         DB_INFOBUF(ods_version,       1);
         DB_INFOBUF(page_size,         4);
         DB_INFOBUF(version,         257);
-#ifdef IB_API_V6
         DB_INFOBUF(db_sql_dialect,    1);
-#endif
 
         /* environmental characteristics */
         DB_INFOBUF(current_memory,    4);
@@ -997,12 +993,10 @@ ib_database_info(dbh, ...)
                 (void)hv_store(RETVAL, keyname, strlen(keyname),
                          newSViv(isc_vax_integer(p, (short) length)), 0);
                 break;
-#ifdef IB_API_V6
             DB_RESBUF_CASEHDR(db_read_only)
                 (void)hv_store(RETVAL, keyname, strlen(keyname),
                          newSViv(isc_vax_integer(p, (short) length)), 0);
                 break;
-#endif
             DB_RESBUF_CASEHDR(ods_minor_version)
                 (void)hv_store(RETVAL, keyname, strlen(keyname),
                          newSViv(isc_vax_integer(p, (short) length)), 0);
@@ -1320,7 +1314,7 @@ ib_wait_event(dbh, ev)
         {
             if (ecount[i])
             {
-                DBI_TRACE_imp_xxh(imp_dbh, 2, (DBIc_LOGPIO(imp_dbh), "Event %s caught %ld times.\n", *(ev->names + i), ecount[i]));
+                DBI_TRACE_imp_xxh(imp_dbh, 2, (DBIc_LOGPIO(imp_dbh), "Event %s caught %lu times.\n", *(ev->names + i), (long unsigned)ecount[i]));
                 svp = hv_store(RETVAL, *(ev->names + i), strlen(*(ev->names + i)),
                                newSViv(ecount[i]), 0);
                 if (svp == NULL)
