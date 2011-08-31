@@ -538,9 +538,7 @@ elsif (($os eq 'linux') || ($os eq 'freebsd'))
     else
          { $lib = 'gds'; }
 
-    my $ldl = ($os eq 'linux') ? '-ldl' : '';
-
-    $MakeParams{'LIBS'} = "-L$ib_lib -L/usr/lib -l$lib $ldl ";
+    $MakeParams{'LIBS'} = "-L$ib_lib -L/usr/lib -l$lib ";
 
 }
 elsif ($os eq 'darwin')
