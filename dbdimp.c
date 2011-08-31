@@ -1292,7 +1292,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                         if (remainder < 0) remainder = -remainder;
 
                         snprintf(buf, sizeof(buf),
-                                "%"DBD_IB_INT64f".%*"DBD_IB_INT64f,
+                                "%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,
                                 i/divisor, -var->sqlscale, remainder);
 			DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,i/divisor, -var->sqlscale, remainder ));
 
