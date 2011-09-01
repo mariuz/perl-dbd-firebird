@@ -74,7 +74,7 @@ END_OF_QUERY
 ok(my $insert = $dbh->prepare($stmt), 'PREPARE INSERT');
 
 # Insert positive numbers
-ok( $insert->execute( -922337203685477.5808, 922337203685477.5807 ),
+ok( $insert->execute( '-922337203685477.5808', '922337203685477.5807' ),
     'INSERT MIN | MAX DECIMALS' );
 
 #
