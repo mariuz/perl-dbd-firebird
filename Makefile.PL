@@ -396,9 +396,11 @@ sub locate_firebird {
         if ( -d $dir ) {
 
             # File names specific to the Firebird/bin dir
-            my @fb_files = qw{fbsql isql};
+            my @fb_files = qw{fbsql isql-fb isql};
                                            # fbsql not yet! but 'isql' is
                                            # used by Virtuoso and UnixODBC
+                                           # That's why Debian ships it as
+                                           # isql-fb
 
             my $found = 0;
             while ( !$found ) {
