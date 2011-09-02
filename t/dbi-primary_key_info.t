@@ -7,34 +7,34 @@
 use strict;
 use warnings;
 
-use Test::More tests => 13;
-use DBI;
+use Test::More;
+use lib 't','.';
 
-# FIXME - consolidate that duplicated code
+require 'tests-setup.pl';
 
-# Make -w happy
-$::test_dsn = '';
-$::test_user = '';
-$::test_password = '';
+my ( $dbh, $error_str ) =
+  connect_to_database( { RaiseError => 1, PrintError => 0, AutoCommit => 0 } );
 
-for my $file ('t/testlib.pl', 'testlib.pl') {
-    next unless -f $file;
-    eval { require $file };
-    BAIL_OUT("Cannot load testlib.pl\n") if $@;
-    last;
+if ($error_str) {
+    BAIL_OUT("Unknown: $error_str!");
 }
 
-my $dbh;
-eval {$dbh= DBI->connect($::test_dsn, $::test_user, $::test_password,
-                       { RaiseError => 1, PrintError => 0, AutoCommit => 0 });};
-if ($@) {
-    plan skip_all => "ERROR: $DBI::errstr. Can't continue test";
+unless ( $dbh->isa('DBI::db') ) {
+    plan skip_all => 'Connection to database failed, cannot continue testing';
 }
-ok($dbh);
+else {
+    plan tests => 13;
+}
 
-ok(defined $dbh, "Connected to database for key info tests");
+ok($dbh, 'Connected to the database');
 
+# ------- TESTS ------------------------------------------------------------- #
+
+#
+#   Find a possible new table name
+#
 my $table = find_new_table($dbh);
+ok($table, qq{Table is '$table'});
 
 ok($dbh->do(<<__eosql), "CREATE TABLE $table");
   CREATE TABLE $table(

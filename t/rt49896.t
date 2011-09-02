@@ -6,52 +6,54 @@
 #
 
 use strict;
-use DBI;
-use Test::More tests => 8;
-use vars qw( $dbh $table );
+use warnings;
 
-END {
-  if (defined($dbh) and $table) {
-    eval { $dbh->do("DROP TABLE $table"); };
-    $dbh->disconnect;
-  }
+use Test::More;
+use lib 't','.';
+
+require 'tests-setup.pl';
+
+my ($dbh, $error_str) = connect_to_database();
+
+if ($error_str) {
+    BAIL_OUT("Unknown: $error_str!");
 }
 
-# Make -w happy
-$::test_dsn = '';
-$::test_user = '';
-$::test_password = '';
-
-for my $file ('t/testlib.pl', 'testlib.pl') {
-    next unless -f $file;
-    eval { require $file };
-    BAIL_OUT("Cannot load testlib.pl\n") if $@;
-    last;
+unless ( $dbh->isa('DBI::db') ) {
+    plan skip_all => 'Connection to database failed, cannot continue testing';
 }
+else {
+    plan tests => 9;
+}
+
+ok($dbh, 'Connected to the database');
 
 # ------- TESTS ------------------------------------------------------------- #
 
-$dbh = DBI->connect($::test_dsn, $::test_user, $::test_password);
-ok($dbh);
+my $table = find_new_table($dbh);
+ok($table, qq{Table is '$table'});
 
-$table = find_new_table($dbh);
-ok($table);
+my $def =<<"DEF";
+CREATE TABLE $table (
+    c1 VARCHAR(3)
+)
+DEF
+ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
 
-ok($dbh->do("CREATE TABLE $table( c1 varchar(3) )",
-            "CREATE TABLE $table(...)"));
-
-ok($dbh->do("INSERT INTO $table(c1) VALUES(?)", undef, 'aa'),
+ok($dbh->do("INSERT INTO $table (c1) VALUES (?)", undef, 'aa'),
    "INSERT string (length < column size) succeeds");
 
-ok($dbh->do("INSERT INTO $table(c1) VALUES(?)", undef, 'aaa'),
+ok($dbh->do("INSERT INTO $table (c1) VALUES (?)", undef, 'aaa'),
    "INSERT string (length == column size) succeeds");
 
-$dbh->{PrintError} = 0;
+$dbh->{RaiseError} = 0;
 
-ok(! defined $dbh->do("INSERT INTO GGG(c1) VALUES(?)", undef, 'aaa!'),
+ok(! defined $dbh->do("INSERT INTO $table (c1) VALUES (?)", undef, 'aaa!'),
    "INSERT string (length == column size + 1) fails");
 
-ok(! defined $dbh->do("INSERT INTO GGG(c1) VALUES(?)", undef, 'aaa!!'),
+ok(! defined $dbh->do("INSERT INTO $table (c1) VALUES (?)", undef, 'aaa!!'),
    "INSERT string (length == column size + 2) fails");
 
 ok($dbh->do("DROP TABLE $table"), "DROP TABLE $table");
+
+ok( $dbh->disconnect );

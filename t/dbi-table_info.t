@@ -11,29 +11,34 @@ use strict;
 use warnings;
 
 use DBI 1.19; # FetchHashKeyName support (2001-07-20)
-use Test::More; # tests => 19;
+use Test::More;
+use lib 't','.';
 
 use constant TI_DBI_FIELDS =>
              [qw/ TABLE_CAT TABLE_SCHEM TABLE_NAME TABLE_TYPE REMARKS / ];
+
+require 'tests-setup.pl';
+
+my ( $dbh, $error_str ) =
+  connect_to_database( { RaiseError => 1, FetchHashKeyName => 'NAME_uc' } );
+
+if ($error_str) {
+    BAIL_OUT("Unknown: $error_str!");
+}
+
+unless ( $dbh->isa('DBI::db') ) {
+    plan skip_all => 'Connection to database failed, cannot continue testing';
+}
+else {
+    plan tests => 41;
+}
+
+ok($dbh, 'Connected to the database');
 
 # IB/FB derivatives can add at least 'ib_owner_name'
 # (rdb$relations.rdb$owner_name) to the ordinary DBI table_info() fields.
 use constant TI_IB_FIELDS =>
              [ @{TI_DBI_FIELDS()}, 'IB_OWNER_NAME' ];
-
-# FIXME - consolidate that duplicated code
-
-# Make -w happy
-$::test_dsn = '';
-$::test_user = '';
-$::test_password = '';
-
-for my $file ('t/testlib.pl', 'testlib.pl') {
-    next unless -f $file;
-    eval { require $file };
-    BAIL_OUT("Cannot load testlib.pl\n") if $@;
-    last;
-}
 
 sub contains {
     my ($superset, $subset) = @_;
@@ -50,11 +55,13 @@ sub contains {
     return 1;
 }
 
-# === BEGIN TESTS ===
+# ------- TESTS ------------------------------------------------------------- #
 
-my $dbh = DBI->connect($::test_dsn, $::test_user, $::test_password,
-                       { RaiseError => 1, FetchHashKeyName => 'NAME_uc' });
-ok($dbh);
+#
+#   Find a possible new table name
+#
+my $table = find_new_table($dbh);
+ok($table, qq{Table is '$table'});
 
 # -- List all catalogs (none)
 {

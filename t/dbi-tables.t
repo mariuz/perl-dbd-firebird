@@ -4,51 +4,57 @@
 # Verify that $dbh->tables() returns a list of (quoted) tables.
 #
 
-use DBI;
-use Test::More tests => 5;
 use strict;
+use warnings;
 
-# Make -w happy
-$::test_dsn = '';
-$::test_user = '';
-$::test_password = '';
+use Test::More;
+use lib 't','.';
 
-for my $file ('t/testlib.pl', 'testlib.pl') {
-    next unless -f $file;
-    eval { require $file };
-    BAIL_OUT("Cannot load testlib.pl\n") if $@;
-    last;
+require 'tests-setup.pl';
+
+my ($dbh, $error_str) = connect_to_database();
+
+if ($error_str) {
+    BAIL_OUT("Unknown: $error_str!");
 }
 
-# === BEGIN TESTS ===
+unless ( $dbh->isa('DBI::db') ) {
+    plan skip_all => 'Connection to database failed, cannot continue testing';
+}
+else {
+    plan tests => 6;
+}
 
-my ($dbh, $tbl, %tables);
+ok($dbh, 'Connected to the database');
 
-$dbh = DBI->connect($::test_dsn, $::test_user, $::test_password,
-                    { RaiseError => 1 });
-ok($dbh);
+# ------- TESTS ------------------------------------------------------------- #
 
-$tbl = find_new_table($dbh);
-ok($dbh->do(<<__eocreate), "CREATE TABLE $tbl");
-CREATE TABLE $tbl(
+#
+#   Find a possible new table name
+#
+my $table = find_new_table($dbh);
+ok($table, qq{Table is '$table'});
+
+ok($dbh->do(<<__eocreate), "CREATE TABLE $table");
+CREATE TABLE $table(
     i INTEGER NOT NULL,
     vc VARCHAR(64) NOT NULL
 )
 __eocreate
 
-%tables = map { uc($_) => 1 } $dbh->tables;
+my %tables = map { uc($_) => 1 } $dbh->tables;
 
-ok(exists $tables{ $dbh->quote_identifier(uc($tbl)) },
-   "tables() returned uppercased, quoted $tbl");
+ok(exists $tables{ $dbh->quote_identifier(uc($table)) },
+   "tables() returned uppercased, quoted $table");
 #diag join(' ', sort keys %tables);
 
-ok($dbh->do("DROP TABLE $tbl"), "DROP TABLE $tbl");
+ok($dbh->do("DROP TABLE $table"), "DROP TABLE $table");
 
 %tables = map { uc($_) => 1 } $dbh->tables;
 #diag join(' ', sort keys %tables);
 
-ok(!exists($tables{ $dbh->quote_identifier(uc($tbl)) }),
-   "$tbl no longer in tables()");
+ok(!exists($tables{ $dbh->quote_identifier(uc($table)) }),
+   "$table no longer in tables()");
 
 __END__
 # vim: set et ts=4:

@@ -2,6 +2,7 @@
 Makefile
 Makefile.old
 META.yml
+MANIFEST
 pm_to_blib
 blib/
 inc/
@@ -12,5 +13,7 @@ inc/
 *.o
 *.xsi
 Firebird.c
-t/test.conf
+t/tests-setup.tmp.*
 t/create.sql
+t/insert.sql
+t/test.conf
