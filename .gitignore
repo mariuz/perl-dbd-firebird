@@ -2,6 +2,7 @@
 Makefile
 Makefile.old
 META.yml
+MYMETA.*
 MANIFEST
 pm_to_blib
 blib/
