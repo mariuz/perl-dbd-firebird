@@ -476,6 +476,7 @@ sub search_fb_home_dirs {
           /opt/firebird
           /usr/local/firebird
           /usr/lib/firebird
+          /usr
           },
     );
 }
