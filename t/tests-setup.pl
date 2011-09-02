@@ -19,6 +19,14 @@ use File::Basename;
 my $test_conf = 't/tests-setup.tmp.conf';
 my $test_mark = 't/tests-setup.tmp.OK';
 
+use Test::More;
+
+unless ( $ENV{DBI_PASS} or $ENV{ISC_PASSWORD} ) {
+    Test::More->import( skip_all =>
+            "Neither DBI_PASS nor ISC_PASSWORD present in the environment" );
+    exit 0;    # do not fail with CPAN testers
+}
+
 =head2 connect_to_database
 
 Initialize setting for the connection.
