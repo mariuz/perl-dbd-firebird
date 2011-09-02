@@ -13,6 +13,11 @@
 #-----------------------------------------------------------------------------
 # Changes:
 #
+# TODO: Finish and test support for 'darwin'
+#
+# 2011-09-02: Integrated patch from real-dam
+# Do not link with libdl.so on GNU/Linux
+#
 # 2011-04-04: Integrated patch from Alexandr Ciornii regarding
 # WriteMakefile sub.
 # Moved prompting to subs, other layout changes.
@@ -193,7 +198,7 @@ SWITCH: {
         last SWITCH;
     };
     $os eq 'linux' && do {
-        $MakeParams{LIBS} = "-L$fb_LIB -lfbclient -ldl ";
+        $MakeParams{LIBS} = "-L$fb_LIB -lfbclient ";
         last SWITCH;
     };
     $os eq 'freebsd' && do {
@@ -226,6 +231,10 @@ SWITCH: {
     };
     $os eq 'sysv' && do {
         $MakeParams{LIBS} = '-lgds -lnsl -lsocket -ldl';
+        last SWITCH;
+    };
+    $os eq 'darwin' && do {
+        $MakeParams{LDDLFLAGS} = $Config{lddlflags} . " -framework Firebird ";
         last SWITCH;
     };
 
