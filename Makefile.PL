@@ -396,7 +396,8 @@ sub locate_firebird {
         if ( -d $dir ) {
 
             # File names specific to the Firebird/bin dir
-            my @fb_files = qw{isql fbsql}; # fbsql not yet! but 'isql' is
+            my @fb_files = qw{fbsql isql};
+                                           # fbsql not yet! but 'isql' is
                                            # used by Virtuoso and UnixODBC
 
             my $found = 0;
