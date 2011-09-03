@@ -359,7 +359,6 @@ If I/O error then conclude that the database doesn't exists.
 sub check_database {
     my $param = shift;
 
-    print " check_database\n";
     my ( $isql, $user, $pass, $path ) =
       ( $param->{isql}, $param->{user}, $param->{pass}, $param->{path} );
 
@@ -414,6 +413,13 @@ sub check_database {
     }
 }
 
+=head2 create_mark
+
+Create empty file used as mark, used to run L<setup_test_database> only
+the first time L<test_init> is called.
+
+=cut
+
 sub create_mark {
 
     open my $file_fh, '>', $test_mark
@@ -422,6 +428,12 @@ sub create_mark {
 
     return;
 }
+
+=head2 check_mark
+
+Check is mark file exists.
+
+=cut
 
 sub check_mark {
     return (-f $test_mark);

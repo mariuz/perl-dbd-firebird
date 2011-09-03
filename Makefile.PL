@@ -121,6 +121,7 @@ else {
     print 'FIREBIRD_HOME   : ', $fb_HOME, "\n";
     print 'FIREBIRD_INCLUDE: ', $fb_INC,  "\n";
     print 'FIREBIRD_LIB    : ', $fb_LIB,  "\n";
+    print 'ISQL            : ', $isql_path,"\n";
     print "\n";
 
     save_test_parameters();
@@ -568,6 +569,12 @@ sub read_registry {
 
     return wantarray ? @path : \@path;
 }
+
+=head2 read_data
+
+Read various default settings from the DATA section of this script.
+
+=cut
 
 sub read_data {
     my $app_alias = shift;
