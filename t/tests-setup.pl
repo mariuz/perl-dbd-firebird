@@ -57,7 +57,6 @@ sub connect_to_database {
             $default_attr );
         };
         if ($@) {
-            print " FAILED!!!\n";
             $error_str .= "Connection error: $@";
         }
     }
@@ -388,7 +387,7 @@ sub check_database {
             }
             # Check for Firebird login errors
             if ($line =~ m{Firebird login}i) {
-                print "!!! Check your Firebird login parameters !!!\n";
+                print "Please, check your Firebird login parameters.\n";
             }
             # Get dialect if got here
             if ($line =~ m{DIALECT (\d)}i) {

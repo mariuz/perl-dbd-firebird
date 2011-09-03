@@ -466,6 +466,10 @@ sub alternative_locations {
 
 Common places for the Firebird home dir.
 
+There is a potential problem when adding here paths like B</usr>,
+because the setup might locate a wrong B<isql> and the connect test
+hangs.
+
 =cut
 
 sub search_fb_home_dirs {
@@ -476,7 +480,6 @@ sub search_fb_home_dirs {
           /opt/firebird
           /usr/local/firebird
           /usr/lib/firebird
-          /usr
           },
     );
 }
