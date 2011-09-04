@@ -411,6 +411,9 @@ sub locate_firebird {
 
                 if ( -f $file and -x $file ) {
                     # Located
+                    my $out = `echo 'quit;' | $file -z 2>&1`;
+                    next unless $out =~ /firebird/si;   # Firebird's isql?
+
                     check_and_set_devlibs($dir);
                     $isql_path = File::Spec->canonpath($file);
                     last;
