@@ -2,6 +2,8 @@
 /*
    $Id: dbdimp.c 395 2008-01-08 05:33:11Z edpratomo $
 
+   Copyright (c) 2010, 2011  Popa Marius Adrian <mapopa@gmail.com>
+   Copyright (c) 2011  Damyan Ivanov <dmn@debian.org>
    Copyright (c) 1999-2008  Edwin Pratomo
    Portions Copyright (c) 2001-2005  Daniel Ritz
 
