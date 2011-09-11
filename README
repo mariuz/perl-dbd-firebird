@@ -10,6 +10,7 @@ DBD::Firebird -- DBI driver for Firebird RDBMS server.
 
    You may distribute under the terms of either the GNU General Public
    License or the Artistic License, as specified in the Perl README file.
+   (http://dev.perl.org/licenses/artistic.html)
 
    PLEASE READ THE ENTIRE README FILE CAREFULLY !
 
@@ -50,11 +51,11 @@ BUILDING:
 
   To Configure and build the DBD:
     perl Makefile.PL
-      (when asked to specify a test database, please specify a non-existing file)
     make
 
 TESTING
-
-  make test
-  make install               (if the tests look okay)
+  Please, set at least DBI_PASS (or ISC_PASSWORD), before 'make test'.
+  The default for DBI_USER is 'SYSDBA'.(masterkey password is given here as example only)
+    ISC_PASSWORD=masterkey make test
+    make install               (if the tests look okay)
 
