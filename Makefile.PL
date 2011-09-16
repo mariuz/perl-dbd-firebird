@@ -701,10 +701,12 @@ sub prompt_for_settings {
       qq{\n Enter the full path and file name of the test database (.fdb):\n};
     $db_path = prompt_for( 'file', '   Test DB:', $db_path );
 
-    print qq{\n Enter authentication options:\n};
-    $user = prompt_for('str', '   Username:', $user );
-    $pass = prompt_for('str', '   Password:', $pass );
-    print "\n";
+    unless ($use_libfbembed) {
+        print qq{\n Enter authentication options:\n};
+        $user = prompt_for('str', '   Username:', $user );
+        $pass = prompt_for('str', '   Password:', $pass );
+        print "\n";
+    }
 
     save_test_parameters($db_path, $user, $pass);
 
@@ -818,7 +820,7 @@ The default for DBI_USER is 'SYSDBA'.
 
 MSG
 
-    print $msg;
+    print $msg unless $use_libfbembed;
 }
 
 exit 0;
