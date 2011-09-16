@@ -21,7 +21,9 @@ my $test_mark = 't/tests-setup.tmp.OK';
 
 use Test::More;
 
-unless ( $ENV{DBI_PASS} or $ENV{ISC_PASSWORD} ) {
+my $param = read_cached_configs();
+
+unless ( $param->{use_libfbembed} or $ENV{DBI_PASS} or $ENV{ISC_PASSWORD} ) {
     Test::More->import( skip_all =>
             "Neither DBI_PASS nor ISC_PASSWORD present in the environment" );
     exit 0;    # do not fail with CPAN testers
@@ -101,8 +103,8 @@ sub check_and_set_cached_configs {
     my $error_str = q{};
 
     # Check user and pass, try the get from ENV if missing
-    $param->{user} = $param->{user} ? $param->{user} : get_user();
-    $param->{pass} = $param->{pass} ? $param->{pass} : get_pass();
+    $param->{user} = $param->{user} ? $param->{user} : get_user($param);
+    $param->{pass} = $param->{pass} ? $param->{pass} : get_pass($param);
 
     # Won't try to find isql here, just repport that it's missing
     $error_str .= ( -x $param->{isql} ) ? q{} : q{isql, };
@@ -133,9 +135,21 @@ sub check_and_set_cached_configs {
     return $error_str;
 }
 
-sub get_user { return $ENV{DBI_USER} || $ENV{ISC_USER} || q{sysdba} }
+sub get_user {
+   my $param = shift;
 
-sub get_pass { return $ENV{DBI_PASS} || $ENV{ISC_PASSWORD} || q{masterkey} }
+   return if $param->{use_libfbembed};
+
+   return $ENV{DBI_USER} || $ENV{ISC_USER} || q{sysdba};
+}
+
+sub get_pass {
+   my $param = shift;
+
+   return if $param->{use_libfbembed};
+
+   return $ENV{DBI_PASS} || $ENV{ISC_PASSWORD} || q{masterkey};
+}
 
 =head2 check_dsn
 
@@ -296,8 +310,12 @@ sub save_configs {
         q(# Time: ) . $test_time,
         qq(tdsn:=$param->{tdsn}),
         qq(path:=$param->{path}),
-        qq(user:=$param->{user}),
-        qq(pass:=$param->{pass}),
+        $param->{use_libfbembed}
+            ? ()
+            : (
+                qq(user:=$param->{user}),
+                qq(pass:=$param->{pass}),
+            ),
         q(# This is a temporary file used for test setup #),
     );
     my $rec = join "\n", @record;
@@ -384,10 +402,19 @@ sub check_database {
     my $dialect;
     my $database_ok = 1;
 
-    local $ENV{ISC_USER} = $user;
-    local $ENV{ISC_PASSWORD} = $pass;
+    local $ENV{ISC_USER};
+    local $ENV{ISC_PASSWORD};
 
     my $ocmd = qq("$isql" -x "$path" 2>&1);
+
+    if ( $param->{use_libfbembed} ) {
+        delete $ENV{ISC_USER};
+        delete $ENV{ISC_PASSWORD};
+    }
+    else {
+        $ENV{ISC_USER} = $user;
+        $ENV{ISC_PASSWORD} = $pass;
+    }
     # print "cmd: $ocmd\n";
     eval {
         open my $fh, '-|', $ocmd;
