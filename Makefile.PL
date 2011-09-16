@@ -110,6 +110,12 @@ else {
 }
 
 my $client_lib = 'fbclient';
+my $use_libfbembed = 0;
+
+if ( $ENV{DBD_FIREBIRD_EMBED} ) {
+    $client_lib = 'fbembed';
+    $use_libfbembed = 1;
+}
 
 if ($interactive) {
 
