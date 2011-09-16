@@ -14,6 +14,9 @@ use lib 't','.';
 
 require 'tests-setup.pl';
 
+my $rc = read_cached_configs();
+plan skip_all => "TODO: hangs with libfbembed" if $rc->{use_libfbembed};
+
 my ($dbh, $error_str) = connect_to_database();
 
 if ($error_str) {
