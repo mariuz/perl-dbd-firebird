@@ -109,6 +109,8 @@ else {
     }
 }
 
+my $client_lib = 'fbclient';
+
 if ($interactive) {
 
     # Interactive mode setup
@@ -197,11 +199,11 @@ SWITCH: {
         last SWITCH;
     };
     $os eq 'linux' && do {
-        $MakeParams{LIBS} = "-L$fb_LIB -lfbclient ";
+        $MakeParams{LIBS} = "-L$fb_LIB -l$client_lib ";
         last SWITCH;
     };
     $os eq 'freebsd' && do {
-        $MakeParams{LIBS} = "-L$fb_LIB -lfbclient ";
+        $MakeParams{LIBS} = "-L$fb_LIB -l$client_lib ";
         last SWITCH;
     };
     $os eq 'hpux' && do {
