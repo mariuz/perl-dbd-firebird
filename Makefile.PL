@@ -130,6 +130,7 @@ else {
     print 'FIREBIRD_INCLUDE: ', $fb_INC,  "\n";
     print 'FIREBIRD_LIB    : ', $fb_LIB,  "\n";
     print 'ISQL            : ', $isql_path,"\n";
+    print 'Client library  : ', $client_lib,"\n";
     print "\n";
 
     save_test_parameters();
@@ -623,6 +624,7 @@ sub save_test_parameters {
     push @record, qq(tdsn:=dbi:Firebird:db=$db_path;ib_dialect=3;ib_charset=ISO8859_1) if $db_path;
     push @record, qq(user:=$user) if $user;
     push @record, qq(pass:=$pass) if $pass;
+    push @record, qq(use_libfbembed:=1) if $use_libfbembed;
 
     my $rec = join "\n", @record;
 
