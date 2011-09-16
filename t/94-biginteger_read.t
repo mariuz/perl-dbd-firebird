@@ -48,9 +48,11 @@ my $rc = read_cached_configs();
 my ( $db, $test_user, $test_password, $test_isql ) =
   ( $rc->{path}, $rc->{user}, $rc->{pass}, $rc->{isql} );
 
+my $auth = $test_user ? "USER '$test_user' PASSWORD '$test_password'" : '';
+
 # Prepare isql commands
 my $insert_sql =<<"ISQLDEF";
-CONNECT '$db' USER '$test_user' PASSWORD '$test_password';
+CONNECT '$db' $auth;
 CREATE TABLE $table (
     BINT_MIN  BIGINT,
     BINT_MAX  BIGINT
