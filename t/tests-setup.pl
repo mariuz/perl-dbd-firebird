@@ -363,15 +363,15 @@ sub create_test_database {
     my $ocmd = qq("$isql" -sql_dialect 3 -i ./t/create.sql 2>&1);
     eval {
         # print "cmd is $ocmd\n";
-        open my $isql_fh, '-|', $ocmd;
+        open( my $isql_fh, '-|', $ocmd ) or die $!;
         while (<$isql_fh>) {
             # For debug:
-            # print "> $_\n";
+            print "> $_\n";
         }
         close $isql_fh;
     };
     if ($@) {
-        die "ISQL open error!\n";
+        die "ISQL open error: $@\n";
     }
     else {
         if ( -f $path ) {
