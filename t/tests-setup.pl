@@ -109,7 +109,8 @@ sub check_and_set_cached_configs {
 
     # The user can control the test database name and path using the
     # DBI_DSN environment var.  Other option is a default made up dsn
-    $param->{tdsn} = $param->{tdsn} ? check_dsn($param->{tdsn}) : get_dsn();
+    $param->{tdsn}
+        = $param->{tdsn} ? check_dsn( $param->{tdsn} ) : get_dsn($param);
     $error_str .= $param->{tdsn} ? q{} : q{wrong dsn,};
 
     # The database path
@@ -168,9 +169,13 @@ Save the database path for L<isql>.
 
 sub get_dsn {
 
+    my $param = shift;
+
     my $path = File::Spec->catfile(File::Spec->tmpdir(), 'dbd-fb-testdb.fdb');
 
-    return "dbi:Firebird:db=localhost:$path;ib_dialect=3;ib_charset=ISO8859_1";
+    $path = "localhost:$path" unless $param->{use_libfbembed};
+
+    return "dbi:Firebird:db=$path;ib_dialect=3;ib_charset=ISO8859_1";
 }
 
 =head2 get_path
