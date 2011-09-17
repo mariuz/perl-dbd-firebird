@@ -115,8 +115,17 @@ sub check_and_set_cached_configs {
     # The database path
     $param->{path} = get_path($param);
     my ($base, $path, $type) = fileparse($param->{path}, '\.fdb' );
-    $error_str .=
-      ( $type ne q{.fdb} or ( -d $path and $base ) ) ? q{} : q{wrong path, };
+
+    # check database path only if local
+    if (   not $path                    # simple file name
+        or $path =~ s/^localhost://i    # leading localhost: stripped
+        or $path =~ /^[a-z]:\\/i        # c:\
+        or $path !~ /^\w\w+:/ )         # /path/to
+    {
+        $error_str .= 'wrong path, '
+            if $type eq q{.fdb} and not( -d $path and $base );
+        # if no .fdb extension, then it may be an alias
+    }
 
     save_configs($param);
 
