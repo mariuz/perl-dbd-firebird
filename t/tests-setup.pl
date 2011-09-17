@@ -351,12 +351,10 @@ sub create_test_database {
 
     open my $t_fh, '>', './t/create.sql'
       or die qq{Can't write to t/create.sql};
-    while(<DATA>) {
-        s/__TESTDB__/$path/;
-        s/__USER__/$user/;
-        s/__PASS__/$pass/;
-        print {$t_fh} $_;
-    }
+    print $t_fh qq{create database "$path"};
+    print $t_fh qq{ user "$user" password "$pass"}
+        unless $param->{use_libfbembed};
+    print $t_fh ";\nquit;\n";
     close $t_fh;
 
     #-- Try to execute isql and create the test database
@@ -491,9 +489,3 @@ sub check_mark {
 
 1;
 
-#- The data used to create the database creation script
-
-__DATA__
-CREATE DATABASE "__TESTDB__" user "__USER__" password "__PASS__";
-
-quit;
