@@ -454,6 +454,7 @@ sub check_database {
 
     unless (defined $dialect) {
         print "No dialect?\n";
+        return;
     }
     else {
         print "Dialect is $dialect\n";
