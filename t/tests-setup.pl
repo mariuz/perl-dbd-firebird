@@ -191,9 +191,17 @@ sub get_dsn {
 
     my $param = shift;
 
-    my $path = File::Spec->catfile(File::Spec->tmpdir(), 'dbd-fb-testdb.fdb');
+    my $path;
 
-    $path = "localhost:$path" unless $param->{use_libfbembed};
+    if ( $param->{use_libfbembed} ) {
+        $path = "dbd-fb-testdb.fdb";
+    }
+    else {
+        $path
+            = 'localhost:'
+            . File::Spec->catfile( File::Spec->tmpdir(),
+            'dbd-fb-testdb.fdb' );
+    }
 
     return "dbi:Firebird:db=$path;ib_dialect=3;ib_charset=ISO8859_1";
 }
