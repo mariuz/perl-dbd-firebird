@@ -161,7 +161,7 @@ sub get_dsn {
 
     my $path = File::Spec->catfile(File::Spec->tmpdir(), 'dbd-fb-testdb.fdb');
 
-    return "dbi:Firebird:db=$path;ib_dialect=3;ib_charset=ISO8859_1";
+    return "dbi:Firebird:db=localhost:$path;ib_dialect=3;ib_charset=ISO8859_1";
 }
 
 =head2 get_path
