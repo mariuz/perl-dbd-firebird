@@ -29,6 +29,12 @@ unless ( $param->{use_libfbembed} or $ENV{DBI_PASS} or $ENV{ISC_PASSWORD} ) {
     exit 0;    # do not fail with CPAN testers
 }
 
+
+if ( $param->{use_libfbembed} ) {
+    # no interaction with anybody else
+    $ENV{FIREBIRD} = $ENV{FIREBIRD_LOCK} = '.';
+}
+
 =head2 connect_to_database
 
 Initialize setting for the connection.
