@@ -336,9 +336,9 @@ B<database> could be used interchangebly with B<dbname> and B<db>.
 To connect to a remote host, use the B<host> parameter. 
 Here is an example of DSN to connect to a remote Windows host:
 
- $dsn = "dbi:Firebird:db=C:/temp/test.gdb;host=rae.cumi.org;ib_dialect=3";
+ $dsn = "dbi:Firebird:db=C:/temp/test.gdb;host=example.com;ib_dialect=3";
 
-Database file alias introduced in can be used too. In the following 
+Database file alias can be used too in connection string. In the following 
 example, "billing" is defined in aliases.conf:
 
  $dsn = 'dbi:Firebird:hostname=192.168.88.5;db=billing;ib_dialect=3';
@@ -350,7 +350,7 @@ the end of host name, separated by a slash. Example:
  $dsn = 'dbi:Firebird:db=/data/test.gdb;host=localhost/3060';
 
 Firebird 1.0 introduces B<SQL dialect> to provide backward compatibility with
-databases created by older versions of Firebird. In short, SQL dialect
+databases created by older versions of Firebird (pre 1.0). In short, SQL dialect
 controls how Firebird interprets:
 
  - double quotes
@@ -358,8 +358,10 @@ controls how Firebird interprets:
  - decimal and numeric datatypes
  - new 1.0 reserved keywords
 
-Valid values for B<ib_dialect> are 1 and 3 (there is also 2 but it's not recommended). The driver's default value is
-3 
+Valid values for B<ib_dialect> are 1 and 3 .The driver's default value is
+3 (Currently it is possible to create databases in Dialect 1 and 3 only, however it is recommended that you use Dialect 3 exclusively, since Dialect 1 will eventually be deprecated. Dialect 2 cannot be used to create a database since it only serves to convert Dialect 1 to Dialect 3).
+
+http://www.firebirdsql.org/file/documentation/reference_manuals/user_manuals/html/isql-dialects.html 
 
 B<ib_role> specifies the role of the connecting user. B<SQL role> is
 implemented by Firebird to make database administration easier when dealing
