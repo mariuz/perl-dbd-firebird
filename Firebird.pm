@@ -1331,7 +1331,7 @@ This module is originally based on the work of Bill Karwin's IBPerl.
 =head1 BUGS/LIMITATIONS
 
 Please report bugs and feature suggestions using 
-http://rt.cpan.org/Public/Dist/Display.html?Name=DBD-Firebird.
+http://rt.cpan.org/Public/Dist/Display.html?Name=DBD-Firebird .
 
 This module doesn't work with MSWin32 ActivePerl iThreads, and its emulated
 fork. Tested with MSWin32 ActivePerl build 809 (Perl 5.8.3). The whole
