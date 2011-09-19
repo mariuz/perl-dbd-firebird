@@ -338,11 +338,11 @@ Here is an example of DSN to connect to a remote Windows host:
 
  $dsn = "dbi:Firebird:db=C:/temp/test.gdb;host=rae.cumi.org;ib_dialect=3";
 
-Database file alias introduced in Firebird 1.5 can be used too. In the following 
+Database file alias introduced in can be used too. In the following 
 example, "billing" is defined in aliases.conf:
 
  $dsn = 'dbi:Firebird:hostname=192.168.88.5;db=billing;ib_dialect=3';
- 
+
 Firebird as of version 1.0 listens on port specified within the services
 file. To connect to port other than the default 3050, add the port number at
 the end of host name, separated by a slash. Example:
@@ -625,7 +625,9 @@ Returns a list of tables, excluding any 'SYSTEM TABLE' types.
 Supported by the driver as proposed by DBI. 
 
 For further details concerning the Firebird specific data-types 
-please read the L<Firebird Data Definition Guide>. 
+please read the Firebird Data Definition Guide 
+
+http://www.firebirdsql.org/en/reference-manuals/ 
 
 =item B<type_info>
 
@@ -1201,19 +1203,20 @@ driver just passes SQL statements through the engine.
 
 =head2 How to do automatic increment for a specific field?
 
-Create a generator and a trigger to associate it with the field. The
-following example creates a generator named PROD_ID_GEN, and a trigger for
+Create a sequence and a trigger to associate it with the field. The
+following example creates a sequence named PROD_ID_SEQ, and a trigger for
 table ORDERS which uses the generator to perform auto increment on field
 PRODUCE_ID with increment size of 1.
 
- $dbh->do("CREATE GENERATOR PROD_ID_GEN");
+ $dbh->do("create sequence PROD_ID_SEQ");
  $dbh->do(
  "CREATE TRIGGER INC_PROD_ID FOR ORDERS
  BEFORE INSERT POSITION 0
  AS BEGIN
-   NEW.PRODUCE_ID = GEN_ID(PROD_ID_GEN, 1);
+   NEW.PRODUCE_ID = NEXT VALUE FOR PROD_ID_SEQ;
  END");
 
+From Firebird 3.0 there is Identity support 
 
 =head2 How can I perform LIMIT clause as I usually do in MySQL?
 
@@ -1222,13 +1225,17 @@ records as the result of a query. This is particularly efficient and useful
 for paging feature on web pages, where users can navigate back and forth 
 between pages. 
 
-Using Firebird 2.5.x this can be implemented by using C<ROWS> . For example, to display a portion of table employee within your application:
+Using Firebird 2.5.x this can be implemented by using C<ROWS> .
+
+ http://www.firebirdsql.org/refdocs/langrefupd21-select.html#langrefupd21-select-rows
+
+For example, to display a portion of table employee within your application:
 
  # fetch record 1 - 5:
  $res = $dbh->selectall_arrayref("SELECT * FROM employee rows 1 to 5)");
 
  # fetch record 6 - 10: 
- $res = $dbh->selectall_arrayref("SELECT * FROM employee rows 5 to 6)");
+ $res = $dbh->selectall_arrayref("SELECT * FROM employee rows 6 to 10)");
 
 =head2 How can I use the date/time formatting attributes?
 
@@ -1300,7 +1307,7 @@ C<set_tx_param()> is obsoleted by C<ib_set_tx_param()>.
 
 =over 4
 
-=item Firebird 2.5.x SS ,SC and Classic for Linux (32 bits and 64)
+=item Firebird 2.5.x SS , SC and Classic for Linux (32 bits and 64)
 
 =item Firebird 2.5.x for Windows, FreeBSD, SPARC Solaris
 
