@@ -601,7 +601,7 @@ in a blank-padded CHAR field, and a search for table name is performed via a
 SQL C<LIKE> predicate, which is sensitive to blanks.  That is:
 
   $dbh->table_info('', '', 'FOO');  # May not find table "FOO", depending on
-                                    # IB/FB version
+                                    # FB version
   $dbh->table_info('', '', 'FOO%'); # Will always find "FOO", but also tables
                                     # "FOOD", "FOOT", etc.
 
@@ -1222,50 +1222,13 @@ records as the result of a query. This is particularly efficient and useful
 for paging feature on web pages, where users can navigate back and forth 
 between pages. 
 
-Using Firebird (Firebird is explained later), this can be emulated by writing a
-stored procedure. For example, to display a portion of table_forum, first create 
-the following procedure:
-
- CREATE PROCEDURE PAGING_FORUM (start INTEGER, num INTEGER)
- RETURNS (id INTEGER, title VARCHAR(255), ctime DATE, author VARCHAR(255))
- AS 
- DECLARE VARIABLE counter INTEGER;
- BEGIN
-   counter = 0;
-   FOR SELECT id, title, ctime, author FROM table_forum ORDER BY ctime
-      INTO :id, :title, :ctime, :author
-   DO
-   BEGIN
-      IF (counter = :start + :num) THEN EXIT;
-      ELSE
-         IF (counter >= :start) THEN SUSPEND;
-      counter = counter + 1;          
-   END
- END !!
- SET TERM ; !!
-
-And within your application:
+Using Firebird 2.5.x this can be implemented by using C<ROWS> . For example, to display a portion of table employee within your application:
 
  # fetch record 1 - 5:
- $res = $dbh->selectall_arrayref("SELECT * FROM paging_forum(0,5)");
+ $res = $dbh->selectall_arrayref("SELECT * FROM employee rows 1 to 5)");
 
  # fetch record 6 - 10: 
- $res = $dbh->selectall_arrayref("SELECT * FROM paging_forum(5,5)");
-
-But never expect this to work:
-
- $sth = $dbh->prepare(<<'SQL');
- EXECUTE PROCEDURE paging_forum(5,5) 
- RETURNING_VALUES :id, :title, :ctime, :author
- SQL
-
-With Firebird 1 RCx and later, you can use C<SELECT FIRST>:
-
- SELECT FIRST 10 SKIP 30 * FROM table_forum;
-
-C<FIRST x> and C<SKIP x> are both optional. C<FIRST> limits the number of
-rows to return, C<SKIP> ignores (skips) the first x rows in resultset. 
-
+ $res = $dbh->selectall_arrayref("SELECT * FROM employee rows 5 to 6)");
 
 =head2 How can I use the date/time formatting attributes?
 
@@ -1337,17 +1300,9 @@ C<set_tx_param()> is obsoleted by C<ib_set_tx_param()>.
 
 =over 4
 
-=item Firebird 6.0/6.01 SS and Classic for Linux
+=item Firebird 2.5.x SS ,SC and Classic for Linux (32 bits and 64)
 
-=item Firebird 6.0/6.01 for Windows, FreeBSD, SPARC Solaris
-
-=item FirebirdSS 1.0 Final for Windows, Linux, SPARC Solaris
-
-=item FirebirdSS 1.5.2.4731 for Windows, Linux
-
-=item FirebirdSS 2.0 RC4 for Linux. The AMD64 (64-bit) version is also tested. Should also 
-work with Intel EM64T. 
-
+=item Firebird 2.5.x for Windows, FreeBSD, SPARC Solaris
 
 =back
 
