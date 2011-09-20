@@ -125,11 +125,9 @@ SKIP: {
             #diag "Kid about to insert";
             $dbh->do(qq{INSERT INTO $table VALUES($_, 'bar')});
             #diag "Inserted a row";
-            sleep 1;
         }
         $dbh->do(qq{DELETE FROM $table});
         #diag "Deleted all rows";
-        #sleep 1;    # give some time for db to post event
         $dbh->disconnect;
         #diag "Kid exiting";
         exit;
