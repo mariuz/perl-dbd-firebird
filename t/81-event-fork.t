@@ -64,7 +64,6 @@ DDL
 # detect SIGNAL availability
 my $sig_ok = grep { /HUP$/ } split(/ /, $Config{sig_name});
 
-$dbh->{InactiveDestroy} = 1;
 
 # try fork
 {
@@ -104,6 +103,7 @@ SKIP: {
         is($::CNT{'foo_inserted'}, 5, "compare number of inserts");
         is($::CNT{'foo_deleted'}, 5, "compare number of deleted rows");
     } else {
+        $dbh->{InactiveDestroy} = 1;
         $|++;
         $SIG{HUP} = sub { diag("kid gets sighup\n"); $::SLEEP = 0 };
         $::SLEEP = 1;
@@ -121,7 +121,6 @@ SKIP: {
     }
 }}
 
-$dbh->{InactiveDestroy} = 0;
 ok($dbh->do(qq(DROP TRIGGER ins_${table}_trig)));
 ok($dbh->do(qq(DROP TRIGGER del_${table}_trig)));
 ok($dbh->do(qq(DROP TABLE $table)), "DROP TABLE $table");
