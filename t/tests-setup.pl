@@ -379,7 +379,10 @@ sub check_database {
     my $dialect;
     my $database_ok = 1;
 
-    my $ocmd = qq("$isql" -u "$user" -p "$pass" -x "$path" 2>&1);
+    local $ENV{ISC_USER} = $user;
+    local $ENV{ISC_PASSWORD} = $pass;
+
+    my $ocmd = qq("$isql" -x "$path" 2>&1);
     # print "cmd: $ocmd\n";
     eval {
         open my $fh, '-|', $ocmd;
