@@ -87,15 +87,17 @@ SKIP: {
             sub {
                 my $posted_events = shift;
                 while (my ($k, $v) = each %$posted_events) {
+                    #diag "Got event $k";
                     $::CNT{$k} += $v;
                 }
                 1;
             },
             'ib_register_callback'
-        ));
+        ), "Event callback registered");
 
         kill SIGHUP => $pid;
-        is(wait, $pid);
+        is(wait, $pid, "Kid finished");
+        BAIL_OUT("Kid exit status: $?") unless $? == 0;
         # then wait until foo_deleted gets posted
         while (not exists $::CNT{'foo_deleted'}) {}
         ok($dbh->func($evh, 'ib_cancel_callback'));
@@ -105,18 +107,31 @@ SKIP: {
     } else {
         $dbh->{InactiveDestroy} = 1;
         $|++;
-        $SIG{HUP} = sub { diag("kid gets sighup\n"); $::SLEEP = 0 };
+        $SIG{HUP} = sub {
+            #diag("kid $$ gets sighup\n");
+            $::SLEEP = 0;
+        };
         $::SLEEP = 1;
         while ($::SLEEP) {}
 
+        #diag "Kid about to connect";
         my ($dbh, $error_str) = connect_to_database({AutoCommit => 1 });
+        if ($error_str) {
+            #diag "Kid connection error: $error_str";
+            die;
+        }
+        #diag "Kid connected";
         for (1..5) {
+            #diag "Kid about to insert";
             $dbh->do(qq{INSERT INTO $table VALUES($_, 'bar')});
+            #diag "Inserted a row";
             sleep 1;
         }
         $dbh->do(qq{DELETE FROM $table});
+        #diag "Deleted all rows";
         #sleep 1;    # give some time for db to post event
         $dbh->disconnect;
+        #diag "Kid exiting";
         exit;
     }
 }}
