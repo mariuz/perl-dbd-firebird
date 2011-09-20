@@ -64,6 +64,7 @@ DDL
 # detect SIGNAL availability
 my $sig_ok = grep { /HUP$/ } split(/ /, $Config{sig_name});
 
+$dbh->disconnect if $rc->{use_libfbembed};
 
 # try fork
 {
@@ -133,6 +134,8 @@ SKIP: {
         exit;
     }
 }}
+
+($dbh, $error_str) = connect_to_database() if $rc->{use_libfbembed};
 
 ok($dbh->do(qq(DROP TRIGGER ins_${table}_trig)));
 ok($dbh->do(qq(DROP TRIGGER del_${table}_trig)));
