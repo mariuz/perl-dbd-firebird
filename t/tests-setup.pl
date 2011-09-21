@@ -33,6 +33,10 @@ unless ( $param->{use_libfbembed} or $ENV{DBI_PASS} or $ENV{ISC_PASSWORD} ) {
 if ( $param->{use_libfbembed} ) {
     # no interaction with anybody else
     $ENV{FIREBIRD} = $ENV{FIREBIRD_LOCK} = '.';
+    delete $ENV{ISC_USER};
+    delete $ENV{ISC_PASSWORD};
+    delete $ENV{DBI_USER};
+    delete $ENV{DBI_PASS};
 }
 
 =head2 connect_to_database
@@ -419,11 +423,7 @@ sub check_database {
 
     my $ocmd = qq("$isql" -x "$path" 2>&1);
 
-    if ( $param->{use_libfbembed} ) {
-        delete $ENV{ISC_USER};
-        delete $ENV{ISC_PASSWORD};
-    }
-    else {
+    unless ( $param->{use_libfbembed} ) {
         $ENV{ISC_USER} = $user;
         $ENV{ISC_PASSWORD} = $pass;
     }
