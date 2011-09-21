@@ -59,6 +59,18 @@ int create_cursor_name(SV *sth, imp_sth_t *imp_sth)
         return TRUE;
 }
 
+void maybe_upgrade_to_utf8(imp_dbh_t *imp_dbh, SV *sv) {
+    if (imp_dbh->ib_enable_utf8) {
+        U8 *p;
+        STRLEN len;
+        p = (U8*)SvPV(sv, len);
+
+        if (!is_ascii_string(p, len)
+                && is_utf8_string(p, len)) {
+            SvUTF8_on(sv);
+        }
+    }
+}
 
 void dbd_init(dbistate_t *dbistate)
 {
@@ -1367,6 +1379,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                     }
                     else
                         sv_setpvn(sv, var->sqldata, var->sqllen);
+                    maybe_upgrade_to_utf8(imp_dbh, sv);
                     break;
 
                 case SQL_VARYING:
@@ -1374,6 +1387,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                     DBD_VARY *vary = (DBD_VARY *) var->sqldata;
                     sv_setpvn(sv, vary->vary_string, vary->vary_length);
                     /* Note that sqllen for VARCHARs is the max length */
+                    maybe_upgrade_to_utf8(imp_dbh, sv);
                     break;
                 }
 
