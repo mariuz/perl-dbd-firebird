@@ -687,6 +687,24 @@ desirable when dealing with nested statement handles under AutoCommit on.
 Switching the attribute's value from TRUE to FALSE will force hard commit thus 
 closing the current transaction. 
 
+=item B<ib_enable_utf8>  (driver-specific, boolean)
+
+Setting this attribute to TRUE will cause any Perl Unicode strings supplied as
+statement parameters to be downgraded to octet sequences before passing them to
+Firebird.
+
+Also, any character data retrieved from the database (CHAR, VARCHAR, BLOB
+sub_type TEXT) will be upgraded to Perl Unicode strings.
+
+B<Caveat>: Currently this is supported only if the B<ib_charset> DSN parameter
+is C<UTF8>. In the future, encoding and decoding to/from arbitrary character
+set may be implemented.
+
+Example:
+
+    $dbh = DBI->connect( 'dbi:Firebird:db=database.fdb;ib_charset=UTF8',
+        { ib_enable_utf8 => 1 } );
+
 =back
 
 =head1 STATEMENT HANDLE OBJECTS
