@@ -215,6 +215,7 @@ struct imp_dbh_st
     unsigned short  sqldialect;         /* default sql dialect */
     char            soft_commit;        /* use soft commit ? */
     char            *ib_charset;
+    bool            ib_enable_utf8;
 
     unsigned int    sth_ddl;            /* number of open DDL statments */
     imp_sth_t       *first_sth;         /* pointer to first statement */

@@ -272,6 +272,8 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
 
     imp_dbh->soft_commit = 0; /* use soft commit (isc_commit_retaining)? */
 
+    imp_dbh->ib_enable_utf8 = FALSE;
+
     /* default date/time formats
        +     *
      * Old API:  dateformat ........ %c
@@ -623,6 +625,19 @@ int dbd_db_STORE_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv, SV *valuesv)
         }
         return TRUE; /* handled */
     }
+    else if ((kl==14) && strEQ(key, "ib_enable_utf8")) {
+        if (on) {
+            if (imp_dbh->ib_charset && strEQ(imp_dbh->ib_charset, "UTF8")) {
+                imp_dbh->ib_enable_utf8 = TRUE;
+                return TRUE;
+            }
+            else croak( "ib_enable_utf8 requires ib_charset=UTF8 in DSN (you gave %s)", imp_dbh->ib_charset ? imp_dbh->ib_charset : "<nothing>" );
+        }
+        else {
+            imp_dbh->ib_enable_utf8 = FALSE;
+            return TRUE;
+        }
+    }
     else if ((kl==11) && strEQ(key, "ib_time_all"))
         set_frmts = 1;
 
@@ -661,6 +676,8 @@ SV *dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
         result = boolSV(DBIc_has(imp_dbh, DBIcf_AutoCommit));
     else if ((kl==13) && strEQ(key, "ib_softcommit"))
         result = boolSV(imp_dbh->soft_commit);
+    else if ((kl==14) && strEQ(key, "ib_enable_utf8"))
+        result = boolSV(imp_dbh->ib_enable_utf8);
     else if ((kl==13) && strEQ(key, "ib_dateformat"))
         result = newSVpvn(imp_dbh->dateformat, strlen(imp_dbh->dateformat));
     else if ((kl==13) && strEQ(key, "ib_timeformat"))
