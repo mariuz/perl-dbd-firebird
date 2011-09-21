@@ -254,7 +254,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     SV **svp;  /* versatile scalar storage */
 
     unsigned short ib_dialect, ib_cache;
-    char *ib_charset, *ib_role;
+    char *ib_role;
     char ISC_FAR *dpb_buffer, *dpb;
 
     char ISC_FAR *database;
@@ -345,11 +345,16 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
 
     if ((svp = hv_fetch(hv, "ib_charset", 10, FALSE)))
     {
-        ib_charset = SvPV(*svp, len);
+        char *p = SvPV(*svp, len);
         buflen += len + 2;
+
+        Newx(imp_dbh->ib_charset, len+1, char);
+        strncpy(imp_dbh->ib_charset, p, len+1);
+        *(imp_dbh->ib_charset + len) = '\0';
     }
-    else
-        ib_charset = NULL;
+    else {
+        imp_dbh->ib_charset = NULL;
+    }
 
     if ((svp = hv_fetch(hv, "ib_role", 7, FALSE)))
     {
@@ -407,10 +412,10 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
         DPB_FILL_INTEGER(dpb, dbkey_scope);
     }
 
-    if (ib_charset)
+    if (imp_dbh->ib_charset)
     {
         DPB_FILL_BYTE(dpb, isc_dpb_lc_ctype);
-        DPB_FILL_STRING(dpb, ib_charset);
+        DPB_FILL_STRING(dpb, imp_dbh->ib_charset);
     }
 
     if (ib_role)
@@ -500,6 +505,7 @@ int dbd_db_disconnect(SV *dbh, imp_dbh_t *imp_dbh)
         imp_dbh->tr = 0L;
     }
 
+    FREE_SETNULL(imp_dbh->ib_charset);
     FREE_SETNULL(imp_dbh->tpb_buffer);
     FREE_SETNULL(imp_dbh->dateformat);
     FREE_SETNULL(imp_dbh->timeformat);

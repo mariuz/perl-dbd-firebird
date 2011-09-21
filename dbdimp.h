@@ -214,6 +214,7 @@ struct imp_dbh_st
     unsigned short  tpb_length;         /* length of tpb_buffer */
     unsigned short  sqldialect;         /* default sql dialect */
     char            soft_commit;        /* use soft commit ? */
+    char            *ib_charset;
 
     unsigned int    sth_ddl;            /* number of open DDL statments */
     imp_sth_t       *first_sth;         /* pointer to first statement */
