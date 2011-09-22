@@ -1527,11 +1527,13 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                          blob_segment_buffer[BLOB_SEGMENT];
                     char blob_info_items[] =
                     {
+                        isc_info_blob_type,
                         isc_info_blob_max_segment,
                         isc_info_blob_total_length
                     };
                     long max_segment = -1L, total_length = -1L, t;
                     unsigned short seg_length;
+                    unsigned short blob_type = -1;
 
                     /* Open the Blob according to the Blob id. */
                     isc_open_blob2(status, &(imp_dbh->db), &(imp_dbh->tr),
@@ -1574,18 +1576,23 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                           case isc_info_blob_total_length:
                               total_length = isc_vax_integer(p, length);
                               break;
+                          case isc_info_blob_type:
+                              blob_type = isc_vax_integer(p, length);
+                              break;
+                          default:
+                              croak("Unknown parameter %d", (int)datum);
                         }
                         p += length;
                     }
 
                     DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth),
-                                  "dbd_st_fetch: BLOB info - max_segment: %ld, total_length: %ld\n",
-                                  max_segment, total_length));
+                                  "dbd_st_fetch: BLOB info - max_segment: %ld, total_length: %ld, type: %d\n",
+                                  max_segment, total_length, blob_type));
 
-                    if (max_segment == -1L || total_length == -1L)
+                    if (max_segment == -1L || total_length == -1L || blob_type == -1)
                     {
                         isc_cancel_blob(status, &blob_handle);
-                        do_error(sth, 1, "Cannot determine Blob dimensions.");
+                        do_error(sth, 1, "Cannot determine Blob dimensions or type.");
                         return FALSE;
                         break;
                     }
@@ -1668,6 +1675,10 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                     isc_close_blob(status, &blob_handle);
                     if (ib_error_check(sth, status))
                         return FALSE;
+
+                    if ( blob_type == isc_blob_text
+                            || var->sqlsubtype == isc_blob_text )
+                        maybe_upgrade_to_utf8(imp_dbh, sv);
 
                     break;
                 }
