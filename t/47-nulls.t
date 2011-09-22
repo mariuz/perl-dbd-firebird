@@ -11,6 +11,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Exception;
 use DBI;
 
 use lib 't','.';
@@ -27,7 +28,7 @@ unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 12;
+    plan tests => 14;
 }
 
 ok($dbh, 'Connected to the database');
@@ -74,11 +75,23 @@ is($$rv[1], 'NULL-valued id', 'DEFINED name');
 ok($cursor->finish, 'FINISH');
 
 #
+# Test whether inserting NULL in a non-null field fails
+#
+
+my $table2 = find_new_table($dbh);
+$dbh->do("CREATE table $table2(id integer not null)");
+my $sth = $dbh->prepare("INSERT INTO $table2 VALUES(?)");
+
+throws_ok { $sth->execute(undef) }
+qr/^DBD::Firebird::st execute failed: You have not provided a value for non-nullable parameter #0\./;
+
+#
 #  Drop the test table
 #
 $dbh->{AutoCommit} = 1;
 
 ok( $dbh->do("DROP TABLE $table"), "DROP TABLE '$table'" );
+ok( $dbh->do("DROP TABLE $table2"), "DROP TABLE '$table2'" );
 
 #
 #   Finally disconnect.
