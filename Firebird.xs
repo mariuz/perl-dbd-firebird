@@ -1,5 +1,4 @@
 /*
-   $Id: Firebird.xs 394 2008-01-08 05:29:19Z edpratomo $
 
    Copyright (c) 2011  Stefan Suciu <stefbv70@gmail.com>
    Copyright (c) 1999-2008  Edwin Pratomo

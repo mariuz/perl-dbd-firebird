@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: 91txinfo.t 372 2006-10-25 18:17:44Z edpratomo $
 # test for ib_tx_info()
 
 use strict;

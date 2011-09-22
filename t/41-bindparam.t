@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 #
-#   $Id: 40bindparam.t 328 2005-08-09 08:34:17Z edpratomo $
 #
 
 # 2011-01-24 stefansbv

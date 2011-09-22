@@ -1,6 +1,5 @@
 #!/usr/local/bin/perl -w
 #
-#   $Id: 80event-ithreads.t 372 2006-10-25 18:17:44Z edpratomo $
 #
 
 # test cases:

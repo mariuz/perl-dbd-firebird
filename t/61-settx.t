@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 #
-#   $Id: 61settx.t 229 2002-04-05 03:12:51Z edpratomo $
 #
 #   This is a test for ib_set_tx_param() private method.
 #

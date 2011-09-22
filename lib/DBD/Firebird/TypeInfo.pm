@@ -1,4 +1,3 @@
-#   $Id: TypeInfo.pm 351 2005-09-10 16:57:17Z edpratomo $
 #
 #   Copyright (c) 2005 Edwin Pratomo
 #

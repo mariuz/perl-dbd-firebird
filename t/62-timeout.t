@@ -1,6 +1,5 @@
 #!/usr/local/bin/perl -w
 #
-#   $Id: 62timeout.t 370 2006-10-25 16:13:18Z edpratomo $
 #
 #   This is a test for Firebird 2.0's wait timeout for ib_set_tx_param().
 #

@@ -2,7 +2,6 @@
 #-----------------------------------------------------------------------------
 # Original copyright (year updated):
 #
-#   $Id: Makefile.PL 394 2008-01-08 05:29:19Z edpratomo $
 #
 #   Copyright (c) 1999-2008 Edwin Pratomo
 #   Portions Copyright (c) 2001-2005 Daniel Ritz

@@ -1,6 +1,5 @@
 #!/usr/local/bin/perl -w
 #
-#   $Id: 70nested-sth.t 392 2008-01-07 15:33:25Z edpratomo $
 #
 #   This is a test for nested statement handles.
 #

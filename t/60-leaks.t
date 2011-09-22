@@ -1,6 +1,5 @@
 #!/usr/local/bin/perl
 #
-#   $Id: 60leaks.t 291 2003-05-20 02:43:57Z edpratomo $
 #
 #   This is a memory leak test.
 #

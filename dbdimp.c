@@ -1,6 +1,5 @@
 /* vim: set noai ts=4 et sw=4: */
 /*
-   $Id: dbdimp.c 395 2008-01-08 05:33:11Z edpratomo $
 
    Copyright (c) 2010, 2011  Popa Marius Adrian <mapopa@gmail.com>
    Copyright (c) 2011  Damyan Ivanov <dmn@debian.org>

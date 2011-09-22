@@ -1,4 +1,3 @@
-#   $Id: Firebird.pm 399 2008-01-08 08:51:35Z edpratomo $
 #
 #   Copyright (c) 2011  Marius Popa <mapopa@gmail.com>
 #   Copyright (c) 1999-2008 Edwin Pratomo

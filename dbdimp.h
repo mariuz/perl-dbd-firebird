@@ -1,5 +1,4 @@
 /*
-   $Id: dbdimp.h 395 2008-01-08 05:33:11Z edpratomo $
 
    Copyright (c) 2011  Marius Popa <mapopa@gmail.com>
    Copyright (c) 2010  pilcrow <mjp@pilcrow.madison.wi.us>

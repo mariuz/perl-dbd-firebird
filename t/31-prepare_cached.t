@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-# $Id: 31prepare.t 396 2008-01-08 05:43:26Z edpratomo $
 # test for prepare_cached()
 
 use strict;

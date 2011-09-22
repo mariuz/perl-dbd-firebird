@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 #
-#   $Id: 20createdrop.t 112 2001-04-19 14:56:06Z edpratomo $
 #
 # 2011-04-05 stefan(s.bv.)
 # Adapted to the new test library

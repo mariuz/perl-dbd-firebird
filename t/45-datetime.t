@@ -1,6 +1,5 @@
 #!/usr/local/bin/perl
 #
-#   $Id: 40datetime.t 380 2007-05-20 15:18:40Z edpratomo $
 #
 #   This is a test for date/time types handling with localtime() style.
 #

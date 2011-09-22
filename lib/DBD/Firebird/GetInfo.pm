@@ -1,4 +1,3 @@
-#   $Id: GetInfo.pm 351 2005-09-10 16:57:17Z edpratomo $
 #
 #   Copyright (c) 2002-2005 Edwin Pratomo
 #

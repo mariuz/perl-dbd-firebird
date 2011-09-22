@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 #
-#   $Id: 41numeric.t 349 2005-09-10 16:55:31Z edpratomo $
 #
 # 2011-01-29 stefan(s.bv.)
 # Using string comparison with Test::More's 'is'

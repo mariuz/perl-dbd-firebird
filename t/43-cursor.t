@@ -1,6 +1,5 @@
 #!/usr/local/bin/perl
 #
-#   $Id: 40cursor.t 324 2004-12-04 17:17:11Z danielritz $
 #
 #   This is a test for CursorName attribute.
 #
