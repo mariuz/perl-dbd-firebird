@@ -2003,9 +2003,11 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
     D_imp_dbh_from_sth;
     isc_blob_handle handle = 0;
     ISC_STATUS      status[ISC_STATUS_LENGTH];
-    long            total_length;
-    char            *p, *seg;
+    STRLEN          total_length;
+    char            *p, *seg, *string;
     int             is_text_blob, seg_len;
+    bool            is_utf8;
+    U8              *encoded;
 
     DBI_TRACE_imp_xxh(imp_sth, 2, (DBIc_LOGPIO(imp_sth), "ib_blob_write\n"));
 
@@ -2024,15 +2026,19 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
     if (ib_error_check(sth, status))
         return FALSE;
 
+    is_text_blob = (var->sqlsubtype == isc_bpb_type_stream)? 1: 0; /* SUBTYPE TEXT */
 
     /* get length, pointer to data */
-    total_length = SvCUR(value);
-    p = SvPV_nolen(value);
-
-    is_text_blob = (var->sqlsubtype == isc_bpb_type_stream)? 1: 0; /* SUBTYPE TEXT */
+    string = SvPV(value, total_length);
+    if (is_text_blob && imp_dbh->ib_enable_utf8) {
+        is_utf8 = SvUTF8(value);
+        encoded = bytes_from_utf8((U8*)string, &total_length, &is_utf8);
+    }
+    else encoded = (U8*)string;
 
     /* write it segment by segment */
     seg_len = BLOB_SEGMENT;
+    p = string;
     while (total_length > 0)
     {
         DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "ib_blob_write: %ld bytes left\n", total_length));
@@ -2066,6 +2072,8 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
         isc_put_segment(status, &handle, (unsigned short) seg_len, seg);
         if (ib_error_check(sth, status))
         {
+            if (encoded != (U8*)string)
+                Safefree(encoded);
             isc_cancel_blob(status, &handle);
             return FALSE;
         }
@@ -2073,6 +2081,9 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
         DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "ib_blob_write: %d bytes written\n", seg_len));
 
     }
+
+    if (encoded != (U8*)string)
+        Safefree(encoded);
 
     /* close blob, check for error */
     isc_close_blob(status, &handle);
