@@ -3,6 +3,7 @@
 
    Copyright (c) 2010, 2011  Popa Marius Adrian <mapopa@gmail.com>
    Copyright (c) 2011  Damyan Ivanov <dmn@debian.org>
+   Copyright (c) 2010  pilcrow <mjp@pilcrow.madison.wi.us>
    Copyright (c) 1999-2008  Edwin Pratomo
    Portions Copyright (c) 2001-2005  Daniel Ritz
 

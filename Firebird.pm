@@ -1,5 +1,6 @@
 #
 #   Copyright (c) 2011  Marius Popa <mapopa@gmail.com>
+#   Copyright (c) 2011  Damyan Ivanov <dmn@debian.org>
 #   Copyright (c) 1999-2008 Edwin Pratomo
 #
 #   You may distribute under the terms of either the GNU General Public
@@ -1380,10 +1381,25 @@ maximum size of a BLOB read/write is hardcoded to about 1 MB.
 
 DBI(3).
 
-=head1 COPYRIGHT
+=head1 COPYRIGHT & LICENSE
 
-The DBD::Firebird module is Copyright (c) 1999-2008 Edwin Pratomo.
-Portions Copyright (c) 2001-2005 Daniel Ritz.
+=over
+
+=item Copyright (c) 2010, 2011  Popa Adrian Marius <mapopa@gmail.com>
+
+=item Copyright (c) 2011  Stefan Suciu <stefbv70@gmail.com>
+
+=item Copyright (c) 2011  Damyan Ivanov <dmn@debian.org>
+
+=item Copyright (c) 2011  Alexandr Ciornii <alexchorny@gmail.com>
+
+=item Copyright (c) 2010, 2011  pilcrow <mjp@pilcrow.madison.wi.us>
+
+=item Copyright (c) 1999-2008  Edwin Pratomo
+
+=item Portions Copyright (c) 2001-2005  Daniel Ritz
+
+=back
 
 The DBD::Firebird module is free software. 
 You may distribute under the terms of either the GNU General Public
@@ -1394,7 +1410,7 @@ License or the Artistic License, as specified in the Perl README file.
 An attempt to enumerate all who have contributed patches (may misses some):
 Michael Moehle, Igor Klingen, Sergey Skvortsov, Ilya Verlinsky, Pavel
 Zheltouhov, Peter Wilkinson, Mark D. Anderson, Michael Samanov, Michael
-Arnett, Flemming Frandsen, Mike Shoyher, Christiaan Lademann.  
+Arnett, Flemming Frandsen, Mike Shoyher, Christiaan Lademann.
 
 
 =cut

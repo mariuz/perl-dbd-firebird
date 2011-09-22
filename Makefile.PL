@@ -1,8 +1,10 @@
 #!/usr/bin/perl
 #-----------------------------------------------------------------------------
-# Original copyright (year updated):
 #
-#
+#   Copyright (c) 2011 Stefan Suciu <stefbv70@gmail.com>
+#   Copyright (c) 2011 Damyan Ivanov <dmn@debian.org>
+#   Copyright (c) 2011 Marius Popa <mapopa@gmail.com>
+#   Copyright (c) 2011 Alexandr Ciornii <alexchorny@gmail.com>
 #   Copyright (c) 1999-2008 Edwin Pratomo
 #   Portions Copyright (c) 2001-2005 Daniel Ritz
 #
