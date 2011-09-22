@@ -2220,8 +2220,18 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         {
             char *string;
             STRLEN len;
+            bool is_utf8;
+            U8 *encoded;
 
             string = SvPV(value, len);
+
+            if (imp_dbh->ib_enable_utf8) {
+                is_utf8 = SvUTF8(value);
+                encoded = bytes_from_utf8((U8*)string, &len, &is_utf8);
+                /* either returns string (nothing changed, plain ASCII)
+                   or returns a new pointer to encoded octets */
+            }
+            else encoded = (U8*)string;
 
             if (len > ivar->sqllen) {
                 char err[80];
@@ -2235,7 +2245,9 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
             /* Pad the entire field with blanks */
             PoisonWith(ivar->sqldata, ivar->sqllen, char, ' ');
-            Copy(string, ivar->sqldata, len, char);
+            Copy((char*)encoded, ivar->sqldata, len, char);
+            if (encoded != (U8*)string)
+                Safefree(encoded);
             break;
         }
 
