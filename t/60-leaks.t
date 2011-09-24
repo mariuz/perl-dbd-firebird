@@ -32,7 +32,7 @@ unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 315;
+    plan tests => 314;
 }
 
 ok($dbh, 'Connected to the database');
