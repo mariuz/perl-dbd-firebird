@@ -141,12 +141,13 @@ sub do
     if (@params) 
     {
         my $sth = $dbh->prepare($statement, $attr) or return undef;
-        $sth->execute(@params) or return undef;
+        defined($sth->execute(@params)) or return undef;
         $rows = $sth->rows;
     } 
     else 
     {
-        $rows = DBD::Firebird::db::_do($dbh, $statement, $attr) or return undef;
+        $rows = DBD::Firebird::db::_do($dbh, $statement, $attr);
+        return undef unless defined($rows);
     }
     ($rows == 0) ? "0E0" : $rows;
 }
