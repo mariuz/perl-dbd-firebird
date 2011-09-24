@@ -240,7 +240,7 @@ struct imp_sth_st
     char            *cursor_name;
     long            type;               /* statement type */
     char            count_item;
-    int             fetched;            /* number of fetched rows */
+    int             affected;           /* number of affected rows */
 
     char            *dateformat;
     char            *timestampformat;
