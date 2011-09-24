@@ -1290,14 +1290,6 @@ No. If this is a problem to you, let me know, and probably I'll add this
 capability for the next release.
 
 
-=head2 Why do execute(), do() method and rows() method always return -1 upon 
-a successful operation?
-
-Incorrect question. $sth->rows returns the number of fetched rows after a
-successful SELECT. Starting from version 0.43, execute() method returns the
-number of affected rows. But it's true that do() method returns -1, this
-will change in future release.
-
 =head1 OBSOLETE FEATURES
 
 =over 
