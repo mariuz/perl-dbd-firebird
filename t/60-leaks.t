@@ -61,6 +61,7 @@ my $ok;
 #- Testing memory leaks in connect / disconnect
 
 $ok = 0;
+my $nok = 0;
 for (my $i = 0;  $i < $COUNT_CONNECT;  $i++) {
     my ($dbh2, $error_str2) = connect_to_database();
     if ($error_str2) {
@@ -76,10 +77,11 @@ for (my $i = 0;  $i < $COUNT_CONNECT;  $i++) {
     }
     elsif ($i % 100  ==  99) {
         $ok = check_mem();
+        $nok++ unless $ok;
         ok($ok, "c/d $i");
     }
 }
-ok($ok > 0, "Memory leak test in connect/disconnect");
+ok($nok == 0, "Memory leak test in connect/disconnect");
 
 #- Testing memory leaks in prepare / execute / finish
 
@@ -89,7 +91,7 @@ unless ($dbh->ping) {
     ok($dbh, 'reConnected to the database');
 }
 
-$ok = 0;
+$ok = 0; $nok = 0;
 for (my $i = 0;  $i < $COUNT_PREPARE;  $i++) {
     my $sth = $dbh->prepare("SELECT * FROM $table");
     $sth->execute();
@@ -98,10 +100,11 @@ for (my $i = 0;  $i < $COUNT_PREPARE;  $i++) {
 
     if ($i % 100  ==  99) {
         $ok = check_mem();
+        $nok++ unless $ok;
         ok($ok, "p/e/f $i");
     }
 }
-ok($ok > 0, "Memory leak test in prepare/execute/finish");
+ok($nok == 0, "Memory leak test in prepare/execute/finish");
 
 # Testing memory leaks in fetchrow_arrayref
 
@@ -118,7 +121,7 @@ foreach $row (
                          $row->[0], $dbh->quote($row->[1])));
 }
 
-$ok = 0;
+$ok = 0; $nok =0;
 for ( my $i = 0 ; $i < $COUNT_PREPARE ; $i++ ) {
     {
         my $sth = $dbh->prepare("SELECT * FROM $table");
@@ -130,14 +133,15 @@ for ( my $i = 0 ; $i < $COUNT_PREPARE ; $i++ ) {
 
     if ( $i % 100 == 99 ) {
         $ok = check_mem();
+        $nok++ unless $ok;
         ok($ok, "f_a $i");
     }
 }
-ok($ok > 0, "Memory leak test in fetchrow_arrayref");
+ok($nok == 0, "Memory leak test in fetchrow_arrayref");
 
 # Testing memory leaks in fetchrow_hashref
 
-$ok = 0;
+$ok = 0; $nok = 0;
 for (my $i = 0;  $i < $COUNT_PREPARE;  $i++) {
     {
         my $sth = $dbh->prepare("SELECT * FROM $table");
@@ -149,10 +153,11 @@ for (my $i = 0;  $i < $COUNT_PREPARE;  $i++) {
 
     if ($i % 100  ==  99) {
         $ok = check_mem();
+        $nok++ unless $ok;
         ok($ok, "f_h $i");
     }
 }
-ok($ok > 0, "Memory leak test in fetchrow_hashref");
+ok($nok == 0, "Memory leak test in fetchrow_hashref");
 
 #
 #   ... and drop it.
