@@ -7,15 +7,16 @@
 use strict;
 use warnings;
 
-print "1..0 # Skipped: Long running memory leak test\n" and exit 0
-  unless ( $^O eq 'linux' && $ENV{MEMORY_TEST} );
-
 my $COUNT_CONNECT = 500;    # Number of connect/disconnect iterations
 my $COUNT_PREPARE = 10000;  # Number of prepare/execute/finish iterations
 my $TOTALMEM      = 0;
 
 use Test::More;
 use DBI;
+
+plan skip_all => "Long memory leak test (try with MEMORY_TEST on linux)\n"
+  unless ( $^O eq 'linux' && $ENV{MEMORY_TEST} );
+
 
 use lib 't','.';
 
