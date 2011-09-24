@@ -206,6 +206,8 @@ _do(dbh, statement, attr=Nullsv)
 
         do
         {
+            char count_item = 0;
+
             /* init statement handle */
             if (isc_dsql_alloc_statement2(status, &(imp_dbh->db), &stmt))
                 break;
@@ -222,8 +224,23 @@ _do(dbh, statement, attr=Nullsv)
             {
                 /* need to count DDL statments */
                 short l = (short) isc_vax_integer((char *) info_buffer + 1, 2);
-                if (isc_vax_integer((char *) info_buffer + 3, l) == isc_info_sql_stmt_ddl)
-                    imp_dbh->sth_ddl++;
+                ISC_LONG stmt_type = isc_vax_integer((char *) info_buffer + 3, l);
+
+                switch (stmt_type) {
+                    case isc_info_sql_stmt_ddl:
+                        imp_dbh->sth_ddl++;
+                        break;
+                    case isc_info_sql_stmt_insert:
+                        count_item = isc_info_req_insert_count;
+                        break;
+                    case isc_info_sql_stmt_update:
+                        count_item = isc_info_req_update_count;
+                        break;
+                    case isc_info_sql_stmt_delete:
+                        count_item = isc_info_req_delete_count;
+                        break;
+                }
+
             }
             else
                 break;
@@ -233,13 +250,17 @@ _do(dbh, statement, attr=Nullsv)
             if (!ib_error_check(dbh, status))
                 retval = -1;
 
+            if (count_item) {
+                ISC_LONG rows = ib_rows(dbh, &stmt, count_item);
+                if ( rows >= 0 )
+                    retval = rows;
+            }
+
         } while (0);
 
         /* close statement */
         if (stmt)
            isc_dsql_free_statement(status, &stmt, DSQL_drop);
-
-        if (retval != -2) retval = -1;
     }
 
     /* for AutoCommit: commit */
