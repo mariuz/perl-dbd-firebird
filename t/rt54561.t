@@ -42,12 +42,9 @@ EOF
 
 # the {} on the end is CRITICAL
 ok($sth->bind_param_array(1, [qw/1   2   3  /]    ), 'bind_param_array');
-TODO: {
-    local $TODO = "see RT#54561";
 
-    lives_and { ok( $sth->bind_param_array( 2, [qw/Foo Bar Baz/], {} ) ) }
-    'bind_param_array works with attr';
-}
+lives_and { ok( $sth->bind_param_array( 2, [qw/Foo Bar Baz/], {} ) ) }
+'bind_param_array works with attr';
 
 is $sth->execute_array({}), 3, 'execute_array';
 

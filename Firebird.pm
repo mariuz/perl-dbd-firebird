@@ -254,6 +254,37 @@ sub type_info_all
 
 1;
 
+package DBD::Firebird::st;
+
+# taken from DBI.pm, with this only change:
+#  - remove the call to bind_param without value when $attr is set
+#    * it fails when the column can't contain NULLs
+#    * it is not necessary anyway, as we allocate param placeholder
+#      structures according to Firebird's ananysis of the SQL, not
+#      according to the datatype the supplied in $attr
+sub bind_param_array {
+    my $sth = shift;
+    my ($p_id, $value_array, $attr) = @_;
+
+    return $sth->set_err($DBI::stderr, "Value for parameter $p_id must be a scalar or an arrayref, not a ".ref($value_array))
+        if defined $value_array and ref $value_array and ref $value_array ne 'ARRAY';
+
+    return $sth->set_err($DBI::stderr, "Can't use named placeholder '$p_id' for non-driver supported bind_param_array")
+        unless DBI::looks_like_number($p_id); # because we rely on execute(@ary) here
+
+    return $sth->set_err($DBI::stderr, "Placeholder '$p_id' is out of range")
+        if $p_id <= 0; # can't easily/reliably test for too big
+
+    # get/create arrayref to hold params
+    my $hash_of_arrays = $sth->{ParamArrays} ||= { };
+
+    $$hash_of_arrays{$p_id} = $value_array;
+
+    1;
+}
+
+1;
+
 __END__
 
 =head1 NAME
@@ -718,6 +749,11 @@ Example:
 
 Supported by the driver as proposed by DBI. 
 The SQL data type passed as the third argument is ignored. 
+
+=item B<bind_param_array>
+
+Supported by the driver as proposed by DBI.
+The attributes, supplied in the optional third parameter are ignored.
 
 =item B<bind_param_inout>
 
