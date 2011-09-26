@@ -1,4 +1,52 @@
 Revision history for Perl extension DBD::Firebird.
+
+0.70 [2011-09-26]
+ [Details: https://github.com/mariuz/perl-dbd-firebird/commits/release0.70]
+ * docs cleanup
+  + use standard ROWS alternative to Mysql LIMIT
+  + In firebird 2.5.x standard way is to use sequences
+  + dialects cleanup
+ * tests-setup: avoid passing credentials on the command line
+ * link with libfbembed if given a special environment variable
+ * fix missing database check during tests
+ * t/81-event-fork.t when linked with libfbembed
+ * implement add ib_enable_utf8 dynamic attribute
+ * remove $Id$ markers from CVS/Subversion
+ * add test for RT#55244
+ * 47-nulls.t: ensure inserting undef in a non-null field fails
+ * fix $dbh->do() and $sth->execute() to properly return the number of affected
+   records
+
+0.60 [2011-09-18]
+ [Details: https://github.com/mariuz/perl-dbd-firebird/commits/release0.60]
+ * Drop support for Firebird 1.0 and earlier
+ * Default dialect set to 3
+ * Fix ping() for Firebird 2.5+
+ * fix compiler warnings:
+  + use printf formats matching the arguments
+  + use 0 instead of NULL where an integer is expected
+  + allocate XSQLDA as char array
+  + fix conversion of decimal(x,y) to string
+ * use the decoded milliseconds when formatting times (also fixes a warning)
+ * do not link with libdl.so on linux
+ * fix joined lines in reserved words list
+ * add new keywords for Firebird 2.5 (part of #12)
+ * Removed restrictions on distribution
+ * Readme cleanup
+ * Build system:
+  + Major overhaul by Stefan Suciu
+  + prefer fbsql over isql
+  + look also for isql-fb, used by Debian
+  + add /usr as a possible fb_HOME
+  + skip database tests inless DBI_PASS or ISC_PASSWORD is present
+  + Added isql path to values shown by the script
+  + check if found isql-like executale comes from firebird
+ * Tests
+  + prepend default test database path with localhost:
+  + check database path only if local
+  + bigdecimal.t: use strings to avoid conversion to floats
+
+0.55 [2011-06-24]
 June 24,2011 - mariuz
 * added osx patches and various Makefile.PL cleanups 
 
