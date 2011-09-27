@@ -16,11 +16,11 @@ use lib 't','.';
 
 use Encode qw(encode_utf8);
 
+require 'tests-setup.pl';
+
 eval "use Test::Exception; 1"
     or plan skip_all => 'Test::Exception needed for this test';
 plan tests => 37;
-
-require 'tests-setup.pl';
 
 my $rc = read_cached_configs();
 

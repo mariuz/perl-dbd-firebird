@@ -6,7 +6,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 84;
+use Test::More;
 use DBI;
 use vars qw($dbh $table);
 
@@ -28,6 +28,8 @@ sub is_maybe_zbt {
 }
 
 # == Test Initialization =========================================
+
+plan tests => 84;
 
 ($dbh) = connect_to_database({RaiseError => 1});
 pass("connect");
