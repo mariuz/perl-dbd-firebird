@@ -217,6 +217,10 @@ SWITCH: {
         $MakeParams{LIBS} = "-L$fb_LIB -l$client_lib ";
         last SWITCH;
     };
+    $os eq 'gnukfreebsd' && do {
+        $MakeParams{LIBS} = "-L$fb_LIB -l$client_lib ";
+        last SWITCH;
+    };
     $os eq 'hpux' && do {
         $MakeParams{LIBS} = '-lgds -ldld';
         last SWITCH;
