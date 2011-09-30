@@ -50,7 +50,7 @@ do {                                                         \
 #warning "Upgrading perl to 5.12 is suggested."
 // for perl before 5.12.0 RC1
 // taken straight from the perl source
-bool is_ascii_string(conts U8 *s, STRLEN len) {
+bool is_ascii_string(const U8 *s, STRLEN len) {
     const U8* const send = s + (len ? len : strlen((const char *)s));
     const U8* x = s;
 
