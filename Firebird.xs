@@ -154,7 +154,6 @@ void
 _do(dbh, statement, attr=Nullsv)
     SV *        dbh
     SV *    statement
-    SV *        attr
   PROTOTYPE: $$;$@
   CODE:
 {
