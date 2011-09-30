@@ -45,6 +45,24 @@ do {                                                         \
     sqlda->version = SQLDA_OK_VERSION;                       \
 } while (0)
 
+#ifndef is_ascii_string
+#warning "Using built-in implementation of is_ascii_string."
+#warning "Upgrading perl to 5.12 is suggested."
+// for perl before 5.12.0 RC1
+// taken straight from the perl source
+bool is_ascii_string(conts U8 *s, STRLEN len) {
+    const U8* const send = s + (len ? len : strlen((const char *)s));
+    const U8* x = s;
+
+    for (; x < send; ++x) {
+        if (!UTF8_IS_INVARIANT(*x))
+            break;
+
+    }
+
+    return x == send;
+}
+#endif
 
 int create_cursor_name(SV *sth, imp_sth_t *imp_sth)
 {
