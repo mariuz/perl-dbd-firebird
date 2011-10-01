@@ -45,14 +45,14 @@ my $table = find_new_table($dbh1);
 ok($table, "TABLE is '$table'");
 
 my $rc = read_cached_configs();
-my ( $db, $test_user, $test_password, $test_isql ) =
-  ( $rc->{path}, $rc->{user}, $rc->{pass}, $rc->{isql} );
+my ( $db, $test_user, $test_password, $test_isql, $host ) =
+  ( $rc->{path}, $rc->{user}, $rc->{pass}, $rc->{isql}, $rc->{host} );
 
 my $auth = $test_user ? "USER '$test_user' PASSWORD '$test_password'" : '';
 
 # Prepare isql commands
 my $insert_sql =<<"ISQLDEF";
-CONNECT '$db' $auth;
+CONNECT '$host:$db' $auth;
 CREATE TABLE $table (
     BINT_MIN  BIGINT,
     BINT_MAX  BIGINT

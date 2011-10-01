@@ -127,6 +127,9 @@ sub check_and_set_cached_configs {
     $param->{user} = $param->{user} ? $param->{user} : get_user($param);
     $param->{pass} = $param->{pass} ? $param->{pass} : get_pass($param);
 
+    # Check host
+    $param->{host} = $param->{host} ? $param->{host} : get_host($param);
+
     # Won't try to find isql here, just repport that it's missing
     $error_str .= ( -x $param->{isql} ) ? q{} : q{isql, };
 
@@ -172,6 +175,14 @@ sub get_pass {
    return $ENV{DBI_PASS} || $ENV{ISC_PASSWORD} || q{masterkey};
 }
 
+sub get_host {
+   my $param = shift;
+
+   return if $param->{use_libfbembed};
+
+   return q{localhost};
+}
+
 =head2 check_dsn
 
 Parse and check the DSN.
@@ -207,18 +218,21 @@ sub get_dsn {
     my $param = shift;
 
     my $path;
+    my $host = $param->{host};
 
     if ( $param->{use_libfbembed} ) {
         $path = "dbd-fb-testdb.fdb";
     }
     else {
-        $path
-            = 'localhost:'
-            . File::Spec->catfile( File::Spec->tmpdir(),
+        # $path
+        #     = 'localhost:'
+        #     . File::Spec->catfile( File::Spec->tmpdir(),
+        #     'dbd-fb-testdb.fdb' );
+        $path = File::Spec->catfile( File::Spec->tmpdir(),
             'dbd-fb-testdb.fdb' );
     }
 
-    return "dbi:Firebird:db=$path;ib_dialect=3;ib_charset=ISO8859_1";
+    return "dbi:Firebird:db=$path;host=$host;ib_dialect=3;ib_charset=ISO8859_1";
 }
 
 =head2 get_path
@@ -365,8 +379,10 @@ Create the test database.
 sub create_test_database {
     my $param = shift;
 
-    my ( $isql, $user, $pass, $path ) =
-      ( $param->{isql}, $param->{user}, $param->{pass}, $param->{path} );
+    my ( $isql, $user, $pass, $path, $host ) = (
+        $param->{isql}, $param->{user}, $param->{pass},
+        $param->{path}, $param->{host}
+    );
 
     #- Create test database
 
@@ -374,7 +390,7 @@ sub create_test_database {
 
     open my $t_fh, '>', $test_sql_create
       or die qq{Can't write to $test_sql_create};
-    print $t_fh qq{create database "$path"};
+    print $t_fh qq{create database "$host:$path"};
     print $t_fh qq{ user "$user" password "$pass"}
         unless $param->{use_libfbembed};
     print $t_fh ";\nquit;\n";
@@ -418,8 +434,10 @@ If I/O error then conclude that the database doesn't exists.
 sub check_database {
     my $param = shift;
 
-    my ( $isql, $user, $pass, $path ) =
-      ( $param->{isql}, $param->{user}, $param->{pass}, $param->{path} );
+    my ( $isql, $user, $pass, $path, $host ) = (
+        $param->{isql}, $param->{user}, $param->{pass},
+        $param->{path}, $param->{host}
+    );
 
     #- Connect to the test database
 
@@ -432,7 +450,7 @@ sub check_database {
     local $ENV{ISC_USER};
     local $ENV{ISC_PASSWORD};
 
-    my $ocmd = qq("$isql" -x "$path" 2>&1);
+    my $ocmd = qq("$isql" -x "$host:$path" 2>&1);
 
     unless ( $param->{use_libfbembed} ) {
         $ENV{ISC_USER} = $user;
@@ -519,14 +537,16 @@ sub drop_test_database {
 
     return unless scalar %{$param};
 
-    my ( $isql, $user, $pass, $path ) =
-      ( $param->{isql}, $param->{user}, $param->{pass}, $param->{path} );
+    my ( $isql, $user, $pass, $path, $host ) = (
+        $param->{isql}, $param->{user}, $param->{pass},
+        $param->{path}, $param->{host}
+    );
 
     #-- Create the SQL file with DROP statement
 
     open my $t_fh, '>', $test_sql_dropdb
       or die qq{Can't write to $test_sql_dropdb};
-    print $t_fh qq{connect "$path"};
+    print $t_fh qq{connect "$host:$path"};
     print $t_fh qq{ user "$user" password "$pass"}
         unless $param->{use_libfbembed};
     print $t_fh qq{;\n};
