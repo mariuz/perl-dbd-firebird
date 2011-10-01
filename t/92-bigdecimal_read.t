@@ -33,7 +33,7 @@ unless ( $dbh1->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 11;
+    plan tests => 12;
 }
 
 ok($dbh1, 'dbh1 OK');
@@ -69,14 +69,16 @@ COMMIT;
 quit;
 ISQLDEF
 
+my $test_sql_insert = './t/insert.sql';      # temp file name
+
 # Create an SQL file with the SQL statements
-open my $t_fh, '>', './t/insert.sql'
-    or die qq{Can't write to t/insert.sql};
+open my $t_fh, '>', $test_sql_insert
+    or die qq{Can't write to $test_sql_insert};
 print {$t_fh} $insert_sql;
 close $t_fh;
 
 # Run isql
-my $ocmd = qq("$test_isql" -sql_dialect 3 -i "t/insert.sql" 2>&1);
+my $ocmd = qq("$test_isql" -sql_dialect 3 -i "$test_sql_insert" 2>&1);
 # print "cmd: $ocmd\n";
 system($ocmd) == 0
     or die "system '$ocmd' failed: $?";
@@ -125,3 +127,7 @@ ok( $dbh2->do("DROP TABLE $table"), "DROP TABLE '$table'" );
 
 # Finally disconnect.
 ok($dbh2->disconnect(), 'DISCONNECT');
+
+ok( unlink "$test_sql_insert", 'Cleanup temp file' );
+
+#-- end TESTS

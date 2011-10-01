@@ -19,6 +19,10 @@ use File::Basename;
 my $test_conf = 't/tests-setup.tmp.conf';
 my $test_mark = 't/tests-setup.tmp.OK';
 
+# Temp SQL script files
+my $test_sql_create = './t/create.sql';
+my $test_sql_dropdb = './t/dropdb.sql';
+
 use Test::More;
 
 my $param = read_cached_configs();
@@ -109,6 +113,9 @@ Simply (double)check every value and return what's missing.
 
 sub check_and_set_cached_configs {
     my $param = shift;
+
+    return qq{Please, run "perl Makefile.PL" (to setup isql path)}
+        unless exists $param->{isql};
 
     my $error_str = q{};
 
@@ -247,7 +254,7 @@ sub setup_test_database {
         create_test_database($param);
 
         # Check again
-        die "Failed to create test database!"
+        return "Failed to create test database!"
           unless $have_testdb = check_database($param);
     }
 
@@ -361,8 +368,8 @@ sub create_test_database {
 
     #-- Create the SQL file with CREATE statement
 
-    open my $t_fh, '>', './t/create.sql'
-      or die qq{Can't write to t/create.sql};
+    open my $t_fh, '>', $test_sql_create
+      or die qq{Can't write to $test_sql_create};
     print $t_fh qq{create database "$path"};
     print $t_fh qq{ user "$user" password "$pass"}
         unless $param->{use_libfbembed};
@@ -372,7 +379,7 @@ sub create_test_database {
     #-- Try to execute isql and create the test database
 
     print 'Create the test database ... ';
-    my $ocmd = qq("$isql" -sql_dialect 3 -i ./t/create.sql 2>&1);
+    my $ocmd = qq("$isql" -sql_dialect 3 -i "$test_sql_create" 2>&1);
     eval {
         # print "cmd is $ocmd\n";
         open( my $isql_fh, '-|', $ocmd ) or die $!;
@@ -496,5 +503,91 @@ sub check_mark {
     return (-f $test_mark);
 }
 
-1;
+=head2 drop_test_database
 
+Cleanup time, drop the test database, return 1 on success.
+
+=cut
+
+sub drop_test_database {
+
+    my $param = read_cached_configs();
+
+    return unless scalar %{$param};
+
+    my ( $isql, $user, $pass, $path ) =
+      ( $param->{isql}, $param->{user}, $param->{pass}, $param->{path} );
+
+    #-- Create the SQL file with DROP statement
+
+    open my $t_fh, '>', $test_sql_dropdb
+      or die qq{Can't write to $test_sql_dropdb};
+    print $t_fh qq{connect "$path"};
+    print $t_fh qq{ user "$user" password "$pass"}
+        unless $param->{use_libfbembed};
+    print $t_fh qq{;\n};
+    print $t_fh qq{drop database;\n};
+    print $t_fh qq{quit;\n};
+    close $t_fh;
+
+    #-- Try to execute isql
+
+    print 'Drop the test database ... ';
+    my $ocmd = qq("$isql" -sql_dialect 3 -i "$test_sql_dropdb" 2>&1);
+    eval {
+        print "cmd is $ocmd\n";
+        open( my $isql_fh, '-|', $ocmd ) or die $!;
+        while (<$isql_fh>) {
+            # For debug:
+            print "> $_\n";
+        }
+        close $isql_fh;
+    };
+    if ($@) {
+        die "ISQL open error: $@\n";
+    }
+    else {
+        if ( !-f $path ) {
+            print " done\n";
+        }
+        else {
+            print " failed!\n";
+        }
+    }
+
+    return 1;
+}
+
+=head2 cleanup
+
+Cleanup temporary files, return 1 on success.
+
+=cut
+
+sub cleanup {
+
+    my @tmp_files = (
+        $test_conf,
+        $test_mark,
+        $test_sql_create,
+        $test_sql_dropdb,
+    );
+
+    my $unlinked = 0;
+    foreach my $tmp_file (@tmp_files) {
+        print qq{Cleanup $tmp_file };
+        if (unlink $tmp_file) {
+            $unlinked++;
+            print qq{ done\n};
+        }
+        else {
+            print qq{could not unlink: $!\n};
+        }
+    }
+
+    return 1 if $unlinked == scalar @tmp_files;
+
+    return;
+}
+
+1;
