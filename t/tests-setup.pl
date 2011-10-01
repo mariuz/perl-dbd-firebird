@@ -27,7 +27,11 @@ use Test::More;
 
 my $param = read_cached_configs();
 
-unless ( $param->{use_libfbembed} or $ENV{DBI_PASS} or $ENV{ISC_PASSWORD} ) {
+unless ( $param->{use_libfbembed}
+    or $param->{pass}
+    or $ENV{DBI_PASS}
+    or $ENV{ISC_PASSWORD} )
+{
     Test::More->import( skip_all =>
             "Neither DBI_PASS nor ISC_PASSWORD present in the environment" );
     exit 0;    # do not fail with CPAN testers
