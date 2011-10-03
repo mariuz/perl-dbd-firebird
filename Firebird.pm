@@ -18,7 +18,7 @@ require Exporter;
 require DynaLoader;
 
 @ISA = qw(Exporter DynaLoader);
-$VERSION = '0.70';
+$VERSION = '0.80';
 
 bootstrap DBD::Firebird $VERSION;
 

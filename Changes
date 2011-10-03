@@ -1,4 +1,15 @@
 Revision history for Perl extension DBD::Firebird.
+0.80 [2011-10-03]
+[Details: https://github.com/mariuz/perl-dbd-firebird/commits/release0.80]
+ * Reimplement bind_param_array without calling bind_param calling bind_param is not necessary as we ignore $attr anyway it also causes problems when the column has non-NULL constraint this makes bind_param_array work again. Fixes RT 54561
+ * Append $Config{ccflags} to CCFLAGS This makes it possible for binary distributions to rebuild the module if perl's $Config{ccflags} is changed for whatever reason. Without this appending, binary compatibility can't be guaranteed. http://bugs.debian.org/643038
+ * Fix test skipping in t/75-utf8t and t/dbi-rowcount.t
+ * Add support for 'gnukfreebsd' platform This is the FreeBSD kernel with GNU userland. For our needs, this is identical
+    to 'freebsd' and 'linux'.Closes Debian bug http://bugs.debian.org/643717
+ * Define is_ascii_string for perls before 5.12.0 RC1 Fixes #23
+ * Cleanup temp files at the end of tests.
+ * Client only testing using the interactive test setup. Add host parameter to dns.
+ * Simplified condition to test the DB path.
 
 0.70 [2011-09-26]
  [Details: https://github.com/mariuz/perl-dbd-firebird/commits/release0.70]
