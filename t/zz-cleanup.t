@@ -13,8 +13,13 @@ require 'tests-setup.pl';
 
 plan tests => 2;
 
-ok( drop_test_database() );
+pass('clean1');
+my $msg1 = drop_test_database();
+diag($msg1) if $msg1;
 
-ok( cleanup() );
+#ok(1);
+pass('clean2');
+my $msg2 = cleanup();
+diag($msg2) if $msg2;
 
 # end

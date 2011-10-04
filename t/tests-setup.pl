@@ -399,7 +399,7 @@ sub create_test_database {
     my $ocmd = qq("$isql" -sql_dialect 3 -i "$test_sql_create" 2>&1);
     eval {
         # print "cmd is $ocmd\n";
-        open( my $isql_fh, '-|', $ocmd ) or die $!;
+        open my $isql_fh, '-|', $ocmd;
         while (<$isql_fh>) {
             # For debug:
             print "> $_\n";
@@ -408,14 +408,6 @@ sub create_test_database {
     };
     if ($@) {
         die "ISQL open error: $@\n";
-    }
-    else {
-        if ( -f $path ) {
-            print " done\n";
-        }
-        else {
-            print " failed!\n";
-        }
     }
 
     return;
@@ -524,7 +516,7 @@ sub check_mark {
 
 =head2 drop_test_database
 
-Cleanup time, drop the test database, return 1 on success.
+Cleanup time, drop the test database, warn on failure or sql errors.
 
 =cut
 
@@ -554,34 +546,27 @@ sub drop_test_database {
     #-- Try to execute isql
 
     print 'Drop the test database ... ';
-    my $ocmd = qq("$isql" -sql_dialect 3 -i "$test_sql_dropdb" 2>&1);
+    my $error = 0;              # flag
+
+    my $ocmd = qq("$isql" -sql_dialect 3 -q -i "$test_sql_dropdb" 2>&1);
     eval {
-        print "cmd is $ocmd\n";
-        open( my $isql_fh, '-|', $ocmd ) or die $!;
+        print "cmd: $ocmd\n";
+        open my $isql_fh, '-|', $ocmd;
         while (<$isql_fh>) {
-            # For debug:
-            print "> $_\n";
+            print "> $_\n";     # for debug
+            $error++ if $_ =~ m{error}i;
         }
         close $isql_fh;
     };
-    if ($@) {
-        die "ISQL open error: $@\n";
-    }
-    else {
-        if ( !-f $path ) {
-            print " done\n";
-        }
-        else {
-            print " failed!\n";
-        }
-    }
 
-    return 1;
+    $error++ if $@;
+
+    return 'warning: drop test database failed.' if $error;
 }
 
 =head2 cleanup
 
-Cleanup temporary files, return 1 on success.
+Cleanup temporary files, warn on failure.
 
 =cut
 
@@ -606,9 +591,7 @@ sub cleanup {
         }
     }
 
-    return 1 if $unlinked == scalar @tmp_files;
-
-    return;
+    return 'warning: file cleanup failed.' if $unlinked != scalar @tmp_files;
 }
 
 1;
