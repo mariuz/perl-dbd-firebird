@@ -61,7 +61,6 @@ use Config;
 my $interactive;
 my $help;
 my $os = $^O;
-my $isql_path;
 
 # Temp file names
 my $test_conf = 't/tests-setup.tmp.conf';
@@ -85,15 +84,15 @@ print "Configuring DBD::Firebird (on $os)\n";
 # 3. Helper subs (search Firebird in the known locations)
 
 # 1. Environment variables
-my $fb_HOME = $ENV{FIREBIRD_HOME};
-my $fb_INC  = $ENV{FIREBIRD_INCLUDE};
-my $fb_LIB  = $ENV{FIREBIRD_LIB};
+$FB::HOME = $ENV{FIREBIRD_HOME};
+$FB::INC  = $ENV{FIREBIRD_INCLUDE};
+$FB::LIB  = $ENV{FIREBIRD_LIB};
 
-if ($fb_HOME) {
+if ($FB::HOME) {
 
     # 2. Subdirectory of FIREBIRD_HOME
-    $fb_INC = $fb_INC || File::Spec->catdir( $fb_HOME, 'include' );
-    $fb_LIB = $fb_LIB || File::Spec->catdir( $fb_HOME, 'lib' );
+    $FB::INC = $FB::INC || File::Spec->catdir( $FB::HOME, 'include' );
+    $FB::LIB = $FB::LIB || File::Spec->catdir( $FB::HOME, 'lib' );
 }
 else {
     # No FIREBIRD_HOME
@@ -127,17 +126,16 @@ if ($interactive) {
 }
 else {
     print "\n";
-    print 'FIREBIRD_HOME   : ', $fb_HOME, "\n";
-    print 'FIREBIRD_INCLUDE: ', $fb_INC,  "\n";
-    print 'FIREBIRD_LIB    : ', $fb_LIB,  "\n";
-    print 'ISQL            : ', $isql_path,"\n";
+    print 'FIREBIRD_HOME   : ', $FB::HOME, "\n";
+    print 'FIREBIRD_INCLUDE: ', $FB::INC,  "\n";
+    print 'FIREBIRD_LIB    : ', $FB::LIB,  "\n";
+    print 'ISQL            : ', $FB::ISQL,"\n";
     print 'Client library  : ', $client_lib,"\n";
     print "\n";
 
     save_test_parameters();
 }
 
-my $dbi_arch_dir;
 {
     eval {
         require DBI::DBD;
@@ -148,7 +146,7 @@ my $dbi_arch_dir;
     }
     ## Prevent duplicate debug info as WriteMakefile also calls this
     local *STDOUT;
-    $dbi_arch_dir = DBI::DBD::dbd_dbi_arch_dir();
+    $FB::dbi_arch_dir = DBI::DBD::dbd_dbi_arch_dir();
 }
 
 my $comp_opts = $Config{q{ccflags}};
@@ -159,7 +157,7 @@ my %MakeParams = (
     C            => ['dbdimp.c'],
     H            => [ 'dbdimp.h', 'Firebird.h' ],
     CCFLAGS      => "-Wall -fno-strict-aliasing $Config{ccflags}",
-    INC          => qq(-I"$fb_INC" -I"$dbi_arch_dir"),
+    INC          => qq(-I"$FB::INC" -I"$FB::dbi_arch_dir"),
     OBJECT       => "Firebird.o dbdimp.o",
     LIBS         => [''],
     OPTIMIZE     => $Config{optimize},
@@ -210,15 +208,15 @@ SWITCH: {
         last SWITCH;
     };
     $os eq 'linux' && do {
-        $MakeParams{LIBS} = "-L$fb_LIB -l$client_lib ";
+        $MakeParams{LIBS} = "-L$FB::LIB -l$client_lib ";
         last SWITCH;
     };
     $os eq 'freebsd' && do {
-        $MakeParams{LIBS} = "-L$fb_LIB -l$client_lib ";
+        $MakeParams{LIBS} = "-L$FB::LIB -l$client_lib ";
         last SWITCH;
     };
     $os eq 'gnukfreebsd' && do {
-        $MakeParams{LIBS} = "-L$fb_LIB -l$client_lib ";
+        $MakeParams{LIBS} = "-L$FB::LIB -l$client_lib ";
         last SWITCH;
     };
     $os eq 'hpux' && do {
@@ -336,8 +334,10 @@ sub setup_for_ms_gcc {
     my $cur_lddlflags = $Config{lddlflags};
 
     my $lib;
-    if   ( -f "$fb_LIB/fbclient_ms.lib" ) { $lib = "$fb_LIB/fbclient_ms.lib"; }
-    else                                  { $lib = "$fb_LIB/gds32_ms.lib"; }
+    if ( -f "$FB::LIB/fbclient_ms.lib" ) {
+        $lib = "$FB::LIB/fbclient_ms.lib";
+    }
+    else { $lib = "$FB::LIB/gds32_ms.lib"; }
 
     # This is ugly :)
     eval "
@@ -374,7 +374,7 @@ sub setup_for_ms_cl {
 
     my $ib_lib = dir_choice(
         "Firebird lib directory",
-        [ $fb_LIB . "SDK\\lib_ms", $fb_LIB . "lib" ],
+        [ $FB::LIB . "SDK\\lib_ms", $FB::LIB . "lib" ],
         [qw(gds32_ms.lib fbclient_ms.lib)]
     );
 
@@ -382,10 +382,10 @@ sub setup_for_ms_cl {
     my $cur_lddlflags = $Config{lddlflags};
 
     my $lib;
-    if (-f "$fb_LIB/fbclient_ms.lib")
-        { $lib = "$fb_LIB/fbclient_ms.lib"; }
+    if (-f "$FB::LIB/fbclient_ms.lib")
+        { $lib = "$FB::LIB/fbclient_ms.lib"; }
     else
-        { $lib = "$fb_LIB/gds32_ms.lib"; }
+        { $lib = "$FB::LIB/gds32_ms.lib"; }
 
     eval "
     sub MY::const_loadlibs {
@@ -432,7 +432,7 @@ sub locate_firebird {
                     next unless $out =~ /firebird/si;   # Firebird's isql?
 
                     check_and_set_devlibs($dir);
-                    $isql_path = File::Spec->canonpath($file);
+                    $FB::ISQL = File::Spec->canonpath($file);
                     last;
                 }
             }
@@ -451,13 +451,13 @@ Check and set global variables for home, inc and lib (?...).
 sub check_and_set_devlibs {
     my $fb_dir = shift;
 
-    $fb_HOME = File::Spec->canonpath($fb_dir);
+    $FB::HOME = File::Spec->canonpath($fb_dir);
 
-    $fb_INC = $fb_INC || File::Spec->catdir( $fb_HOME, 'include' );
-    $fb_INC = alternative_locations('inc') if !-d $fb_INC;
+    $FB::INC = $FB::INC || File::Spec->catdir( $FB::HOME, 'include' );
+    $FB::INC = alternative_locations('inc') if !-d $FB::INC;
 
-    $fb_LIB = $fb_LIB || File::Spec->catdir( $fb_HOME, 'lib' );
-    $fb_LIB = alternative_locations('lib') if !-d $fb_LIB;
+    $FB::LIB = $FB::LIB || File::Spec->catdir( $FB::HOME, 'lib' );
+    $FB::LIB = alternative_locations('lib') if !-d $FB::LIB;
 
     return;
 }
@@ -550,12 +550,12 @@ sub locate_firebird_ms {
 
     my $hp_ref = registry_lookup('fb');
     if (ref $hp_ref) {
-        $fb_HOME = $fb_HOME || File::Spec->canonpath($hp_ref->[0]);
-        $fb_INC  = $fb_INC  || File::Spec->catdir( $fb_HOME, 'include' );
-        $fb_LIB  = $fb_LIB  || File::Spec->catdir( $fb_HOME, 'lib' );
+        $FB::HOME = $FB::HOME || File::Spec->canonpath($hp_ref->[0]);
+        $FB::INC  = $FB::INC  || File::Spec->catdir( $FB::HOME, 'include' );
+        $FB::LIB  = $FB::LIB  || File::Spec->catdir( $FB::HOME, 'lib' );
 
-        my $isql_file = File::Spec->catfile( $fb_HOME, 'bin', 'isql.exe' );
-        $isql_path = File::Spec->canonpath($isql_file);
+        my $isql_file = File::Spec->catfile( $FB::HOME, 'bin', 'isql.exe' );
+        $FB::ISQL = File::Spec->canonpath($isql_file);
     }
 }
 
@@ -624,7 +624,7 @@ sub save_test_parameters {
         q(# Should be deleted at the end of installation #),
         q(# Init section ------ (created by Makefile.PL) #),
         q(# Time: ) . $test_time,
-        qq(isql:=$isql_path),
+        qq(isql:=$FB::ISQL),
     );
 
     $db_host = $db_host || q{localhost}; # not ||= for compatibility
@@ -688,7 +688,7 @@ sub prompt_for_settings {
     if ( ref $param ) {
         $user = $param->{user} || $user;
         $pass = $param->{pass} || $pass;
-        $isql = $param->{isql} || $isql_path;
+        $isql = $param->{isql} || $FB::ISQL;
         $db_host = $param->{host} || 'localhost';
         $db_path = $param->{path}
           || File::Spec->catfile( File::Spec->tmpdir(), 'dbd-fb-testdb.fdb' );
@@ -697,13 +697,13 @@ sub prompt_for_settings {
     print qq{\nStarting interactive setup, two attempts for each option,\n};
     print qq{ if both fail, the script will abort ...\n};
     print qq{\n Enter the full paths to the Firebird instalation:\n};
-    $fb_HOME = prompt_for( 'path', '      Home:', $fb_HOME );
+    $FB::HOME = prompt_for( 'path', '      Home:', $FB::HOME );
 
-    $fb_INC = $fb_INC || File::Spec->catdir( $fb_HOME, 'include' );
-    $fb_LIB = $fb_LIB || File::Spec->catdir( $fb_HOME, 'lib' );
+    $FB::INC = $FB::INC || File::Spec->catdir( $FB::HOME, 'include' );
+    $FB::LIB = $FB::LIB || File::Spec->catdir( $FB::HOME, 'lib' );
 
-    $fb_INC = prompt_for( 'path', '   Include:', $fb_INC );
-    $fb_LIB = prompt_for( 'path', '       Lib:', $fb_LIB );
+    $FB::INC = prompt_for( 'path', '   Include:', $FB::INC );
+    $FB::LIB = prompt_for( 'path', '       Lib:', $FB::LIB );
 
     print qq{\n Configuring the test environment ...\n};
     print qq{\n Enter the full paths to the Firebird tools:\n};
