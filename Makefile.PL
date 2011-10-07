@@ -46,6 +46,16 @@
 # Copy Firebird client library to <system> directory? - Yes
 #
 
+package MY;
+
+sub postamble {
+    return DBI::DBD->dbd_postamble(@_);
+}
+
+1;
+
+package main;
+
 use strict;
 use warnings;
 use Carp;
@@ -294,10 +304,6 @@ sub WriteMakefile1 {
     delete $params{BINARY_LOCATION}    if $] < 5.005;
 
     WriteMakefile(%params);
-}
-
-sub MY::postamble {
-    return DBI::DBD->dbd_postamble(@_);
 }
 
 #- Helper SUBS ---------------------------------------------------------------#
