@@ -2,6 +2,7 @@
 ^Makefile.old$
 ^MANIFEST\.SKIP$
 ^Firebird.c$
+^embed/
 \.bs$
 \.xsi$
 ^pm_to_blib$
