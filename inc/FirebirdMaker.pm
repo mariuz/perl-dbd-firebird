@@ -609,9 +609,7 @@ sub copy_mangled {
 
     my $dir = 'embed';
 
-    my $df = $src;
-    &{ $p->{mangle_name} }($df) if $p->{mangle_name};
-    $df = File::Spec->catfile( $dir, $df );
+    my $df = File::Spec->catfile( $dir, $p->{name} || $src );
     open( my $dfh, '>', $df )  or die "Unable to open $df for writing: $!\n";
     open( my $sfh, '<', $src ) or die "Unable to open $src: $!\n";
     while ( defined( $_ = <$sfh> ) ) {
@@ -646,7 +644,7 @@ sub create_embedded_files {
     }
     copy_mangled(
         'Firebird.h' => {
-            mangle_name => sub { $_[0] = 'FirebirdEmbedded.h' },
+            name => 'FirebirdEmbedded.h',
         },
     );
 
