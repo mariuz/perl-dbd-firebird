@@ -626,7 +626,10 @@ sub create_embedded_files {
 
     # Simple copies
     use File::Copy qw(copy);
-    copy 'Firebird.h', File::Spec->catfile($dir, 'Firebird.h');
+    for my $f (qw( dbdimp.h Firebird.h )) {
+        copy $f, File::Spec->catfile( $dir, $f )
+            or die "Error copying $f: $!\n";
+    }
 
     # dbdimp.c
     my $target = File::Spec->catfile( $dir, 'dbdimp.c' );
