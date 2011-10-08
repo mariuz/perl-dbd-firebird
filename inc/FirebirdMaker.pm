@@ -613,7 +613,7 @@ sub copy_mangled {
     open( my $dfh, '>', $df )  or die "Unable to open $df for writing: $!\n";
     open( my $sfh, '<', $src ) or die "Unable to open $src: $!\n";
     while ( defined( $_ = <$sfh> ) ) {
-        last if $p->{last} and &{ $p->{last} };
+        last if $p->{last} and &{ $p->{last} }($_);
         &{ $p->{mangle} }($_) if $p->{mangle};
         print $dfh $_;
     }
@@ -653,6 +653,16 @@ sub create_embedded_files {
         'dbdimp.c' => {
             mangle =>
                 sub { $_[0] =~ s/^#include "Firebird\K\.h"/Embedded.h"/ },
+        },
+    );
+
+    copy_mangled(
+        'Firebird.pm' => {
+            name => 'FirebirdEmbedded.pm',
+            mangle => sub {
+                $_[0] =~ s/DBD::Firebird\b(?!::(?:Get|Type|Table)Info)/DBD::FirebirdEmbedded/g;
+                $_[0] =~ s/'Firebird'/'FirebirdEmbedded'/g;
+            },
         },
     );
 }
