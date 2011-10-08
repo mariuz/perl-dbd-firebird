@@ -665,6 +665,17 @@ sub create_embedded_files {
             },
         },
     );
+
+    copy_mangled(
+        'Firebird.xs' => {
+            name => 'FirebirdEmbedded.xs',
+            mangle => sub {
+                $_[0] =~ s/Firebird.h/FirebirdEmbedded.h/;
+                $_[0] =~ s/DBD::Firebird/DBD::FirebirdEmbedded/g;
+                $_[0] =~ s/^INCLUDE: Firebird\K.xsi/Embedded.xsi/;
+            },
+        },
+    );
 }
 
 1;
