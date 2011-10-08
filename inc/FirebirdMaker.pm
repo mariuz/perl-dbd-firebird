@@ -638,7 +638,7 @@ sub create_embedded_files {
 
     # Simple copies
     use File::Copy qw(copy);
-    for my $f (qw( dbdimp.h dbdimp.c )) {
+    for my $f (qw( dbdimp.h )) {
         copy $f, File::Spec->catfile( $dir, $f )
             or die "Error copying $f: $!\n";
     }
@@ -656,10 +656,105 @@ sub create_embedded_files {
         },
     );
 
+    my $next_is_last = 0;
     copy_mangled(
         'Firebird.pm' => {
             name => 'FirebirdEmbedded.pm',
+            last => sub {
+                return 1 if $next_is_last;
+                if ( $_[0] =~ /^=head1 DESCRIPTION$/ ) {
+                    $next_is_last = 1;
+                    $_[0] .= <<EOT;
+
+
+B<DBD::FirebirdEmbedded> is a variant of L<DBD::Firebird>, linked with the
+Firebird embedded library, F<libfbembed>. In addition to the ability to work
+with remote Firebird servers (which DBD::Firebird has, being linked with the
+Firebird client library, F<libfbclient>), DBD::FirebirdEmbedded can be used to
+work with Firebird databases without the need of a dedicated Firebird server.
+
+The following things should be set up first:
+
+=over
+
+=item Username/password
+
+These should be unset. Both in the C<< DBI->connection(...) >> call and in the
+environment (C<ISC_USER>, C<ISC_PASSWORD>, C<DBI_USER>, C<DBI_PASSWORD> variables).
+
+=item Firebird lock directory
+
+The C<FIREBIRD_LOCK> environment variable should be set to some place where the
+process can write. Note that if you plan for several processes to access the
+database file directly, they all should have C<FIREBIRD_LOCK> set to the same
+directory, or else database corruption will occur.
+
+=item No C<host> in the DSN
+
+Obviously, do not set any host when calling C<< DBI->connection(...) >>, not
+even C<localhost>.
+
+=item Permissions to read/write the database
+
+Obviously, the process needs to be able to read/write the database file.
+
+=back
+
+=head1 COMPARISON WITH DBD::FIREBIRD
+
+DBD::FirebirdEmbedded provides exactly the same functionality as the Firebird
+server of the same version as the F<libfbembed> library. It still can work with
+remote datases, in which case the use is exactly the same (DSN, environment) as
+with the regular L<DBD::Firebird>.
+
+=head2 Pros
+
+=over
+
+=item Standalone work with Firebird databases
+
+No need to setup/administer a Firebird server. All the server functionality is
+available via the F<libfbembed> library. Shared access to databases is still
+possible (but read L</Firebird lock directory> above).
+
+=item No network latency
+
+Working directly with the database file elliminates possible network delays
+(even if the server is on the local host).
+
+=back
+
+=head2 Cons
+
+=over
+
+=item Memory footprint
+
+The F<libfbembed> library contains a fully functional Firebird server and is
+therefore bigger than the ordinary client library, F<libfbclient>.
+
+=item Setup complexity
+
+It is very important to make sure that all processes that access a given
+database use the same lock directory. See L</Firebird lock directory> above.
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+=item L<DBD::Firebird>
+
+=back
+
+EOT
+                }
+                return 0;
+                },
             mangle => sub {
+                $_[0] =~ s/DBD::Firebird - DBI driver for.+/DBD::FirebirdEmbedded - embedded Firebird server (and client)/;
+                $_[0] =~ s/dbi:Firebird:.+/dbi:FirebirdEmbedded:db=\$dbname", undef, undef);/g;
                 $_[0] =~ s/DBD::Firebird\b(?!::(?:Get|Type|Table)Info)/DBD::FirebirdEmbedded/g;
                 $_[0] =~ s/'Firebird'/'FirebirdEmbedded'/g;
             },
