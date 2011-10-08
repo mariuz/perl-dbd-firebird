@@ -48,8 +48,10 @@
 
 package MY;
 
+our $postamble;
+
 sub postamble {
-    return DBI::DBD->dbd_postamble(@_);
+    return $postamble;
 }
 
 1;
@@ -166,9 +168,10 @@ do {
         print "Could not load DBI::DBD - is the DBI module installed?\n";
         exit 0;
     }
-    ## Prevent duplicate debug info as WriteMakefile also calls this
+    $MY::postamble ||= DBI::DBD::dbd_postamble();
+    ## Prevent duplicate debug info as dbd_postamble also calls this
     local *STDOUT;
-    $FB::dbi_arch_dir = DBI::DBD::dbd_dbi_arch_dir();
+    $FB::dbi_arch_dir ||= DBI::DBD::dbd_dbi_arch_dir();
 } unless $EMBEDDED;
 
 my $comp_opts = $Config{q{ccflags}};
