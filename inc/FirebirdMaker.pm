@@ -604,6 +604,25 @@ MSG
     print $msg unless $use_libfbembed;
 }
 
+sub copy_mangled {
+    my ( $src, $p ) = @_;
+
+    my $dir = 'embed';
+
+    my $df = $src;
+    &{ $p->{mangle_name} }($df) if $p->{mangle_name};
+    $df = File::Spec->catfile( $dir, $df );
+    open( my $dfh, '>', $df )  or die "Unable to open $df for writing: $!\n";
+    open( my $sfh, '<', $src ) or die "Unable to open $src: $!\n";
+    while ( defined( $_ = <$sfh> ) ) {
+        last if $p->{last} and &{ $p->{last} };
+        &{ $p->{mangle} }($_) if $p->{mangle};
+        print $dfh $_;
+    }
+    close($dfh) or die "Error closing $df: $!\n";
+    close($sfh)  or die "Error closing $src: $!\n";
+}
+
 sub create_embedded_files {
     my $dir = "embed";
 
@@ -612,37 +631,32 @@ sub create_embedded_files {
     }
 
     # Makefile.PL
-    my $mf = File::Spec->catfile( $dir, 'Makefile.PL' );
-    open( my $mfh, '>', $mf ) or die "Unable to open $mf for writing: $!\n";
-    open( my $in, '<', 'Makefile.PL' )
-        or die "Unable to open Makefile.PL for reading: $!\n";
-    while ( defined( $_ = <$in> ) ) {
-        last if /^exit 0/;
-        s/^our \$EMBEDDED = \K0/1/;
-        print $mfh $_;
-    }
-    close($mfh) or die "Error closing $mf: $!\n";
-    close($in)  or die "Error closing Makefile.PL: $!\n";
+    copy_mangled(
+        'Makefile.PL' => {
+            last   => sub { $_[0] =~ /^exit 0/ },
+            mangle => sub { $_[0] =~ s/^our \$EMBEDDED = \K0/1/ },
+        }
+    );
 
     # Simple copies
     use File::Copy qw(copy);
-    for my $f (qw( dbdimp.h Firebird.h )) {
+    for my $f (qw( dbdimp.h dbdimp.c )) {
         copy $f, File::Spec->catfile( $dir, $f )
             or die "Error copying $f: $!\n";
     }
+    copy_mangled(
+        'Firebird.h' => {
+            mangle_name => sub { $_[0] = 'FirebirdEmbedded.h' },
+        },
+    );
 
     # dbdimp.c
-    my $target = File::Spec->catfile( $dir, 'dbdimp.c' );
-    open( my $target_fh, '>', $target )
-        or die "Unable to open $target for writing: $!\n";
-    open( my $source_fh, '<', 'dbdimp.c' )
-        or die "Unable to open dbdimp.c for reading: $!\n";
-    while ( defined( $_ = <$source_fh> ) ) {
-        s/^#include "Firebird\K\.h"/Embedded.h"/;
-        print $target_fh $_;
-    }
-    close($target_fh) or die "Error closing $target: $!\n";
-    close($source_fh) or die "Error closing dbdimp.c: $!\n";
+    copy_mangled(
+        'dbdimp.c' => {
+            mangle =>
+                sub { $_[0] =~ s/^#include "Firebird\K\.h"/Embedded.h"/ },
+        },
+    );
 }
 
 1;
