@@ -102,6 +102,8 @@ my $module_name = $EMBEDDED ? 'DBD::FirebirdEmbedded' : 'DBD::Firebird';
 
 print "Configuring $module_name (on $os)\n";
 
+$FB::libfbembed_available = 0;
+
 # We set FIREBIRD_HOME from the first found of:
 # 1. Environment variable
 # 2. Subdirectory of FIREBIRD_HOME
@@ -279,7 +281,16 @@ SWITCH: {
     exit 1;
 }
 
-create_embedded_files() unless $EMBEDDED;
+unless ($EMBEDDED) {
+    if ($FB::libfbembed_available) {
+        create_embedded_files();
+    }
+    else {
+        # make sure there is no embedded build involved
+        my $mfpl = File::Spec->catfile( 'embed', 'Makefile.PL' );
+        unlink $mfpl if -e $mfpl;
+    }
+}
 
 # And last but not least write the Makefile
 WriteMakefile1(%MakeParams);

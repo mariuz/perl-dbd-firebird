@@ -217,6 +217,14 @@ sub check_and_set_devlibs {
     $FB::LIB = $FB::LIB || File::Spec->catdir( $FB::HOME, 'lib' );
     $FB::LIB = alternative_locations('lib') if !-d $FB::LIB;
 
+    for my $dir ( split(/ /, $Config{libpth} ), $FB::LIB//() ) {
+        if ( -e File::Spec->catfile( $dir, 'libfbembed.so' ) ) {
+            $FB::libfbembed_available = 1;
+            print "libfbembed.so found in $dir\n";
+            last;
+        }
+    }
+
     return;
 }
 
