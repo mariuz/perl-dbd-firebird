@@ -627,6 +627,19 @@ sub create_embedded_files {
     # Simple copies
     use File::Copy qw(copy);
     copy 'Firebird.h', File::Spec->catfile($dir, 'Firebird.h');
+
+    # dbdimp.c
+    my $target = File::Spec->catfile( $dir, 'dbdimp.c' );
+    open( my $target_fh, '>', $target )
+        or die "Unable to open $target for writing: $!\n";
+    open( my $source_fh, '<', 'dbdimp.c' )
+        or die "Unable to open dbdimp.c for reading: $!\n";
+    while ( defined( $_ = <$source_fh> ) ) {
+        s/^#include "Firebird\K\.h"/Embedded.h"/;
+        print $target_fh $_;
+    }
+    close($target_fh) or die "Error closing $target: $!\n";
+    close($source_fh) or die "Error closing dbdimp.c: $!\n";
 }
 
 1;
