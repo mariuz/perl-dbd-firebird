@@ -16,7 +16,7 @@ use DBI qw(:sql_types);
 
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
 
 my ( $dbh, $error_str ) =
   connect_to_database( { ChopBlanks => 1, LongReadLen => 524288, } );

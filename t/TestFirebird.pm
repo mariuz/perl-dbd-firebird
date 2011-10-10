@@ -1,4 +1,4 @@
-#!perl
+package TestFirebird;
 #
 # Helper file for the DBD::Firebird tests
 #
@@ -16,8 +16,7 @@ use DBI 1.43;                   # minimum version for 'parse_dsn'
 use File::Spec;
 use File::Basename;
 
-my $test_conf = 't/tests-setup.tmp.conf';
-my $test_mark = 't/tests-setup.tmp.OK';
+our ( $test_conf, $test_mark );
 
 # Temp SQL script files
 my $test_sql_create = './t/create.sql';
@@ -25,26 +24,71 @@ my $test_sql_dropdb = './t/dropdb.sql';
 
 use Test::More;
 
-my $param = read_cached_configs();
+our @EXPORT = qw( connect_to_database drop_test_database find_new_table read_cached_configs cleanup );
+our @EXPORT_OK = @EXPORT;
+use base 'Exporter';
 
-unless ( $param->{use_libfbembed}
-    or $param->{pass}
-    or $ENV{DBI_PASS}
-    or $ENV{ISC_PASSWORD} )
-{
-    Test::More->import( skip_all =>
-            "Neither DBI_PASS nor ISC_PASSWORD present in the environment" );
-    exit 0;    # do not fail with CPAN testers
+=head2 read_cached_configs
+
+Read the connection parameters from the 'tests-setup.conf' file.
+
+=cut
+
+sub read_cached_configs {
+
+    my $record = {};
+
+    if (-f $test_conf) {
+        # print "\nReading cached test configuration...\n";
+
+        open my $file_fh, '<', $test_conf
+            or croak "Can't open file ", $test_conf, ": $!";
+
+        foreach my $line (<$file_fh>) {
+            next if $line =~ m{^#+};         # skip comments
+
+            my ($key, $val) = split /:=/, $line, 2;
+            chomp $val;
+            $record->{$key} = $val;
+        }
+
+        close $file_fh;
+    }
+
+    return $record;
 }
 
+our $param;
 
-if ( $param->{use_libfbembed} ) {
-    # no interaction with anybody else
-    $ENV{FIREBIRD} = $ENV{FIREBIRD_LOCK} = '.';
-    delete $ENV{ISC_USER};
-    delete $ENV{ISC_PASSWORD};
-    delete $ENV{DBI_USER};
-    delete $ENV{DBI_PASS};
+BEGIN {
+    $test_conf = 't/tests-setup.tmp.conf';
+    $test_mark = 't/tests-setup.tmp.OK';
+
+    $param = read_cached_configs();
+}
+
+sub import {
+    my $class = shift;
+    $class->export_to_level(1, undef, @EXPORT);
+    unless ( $param->{use_libfbembed}
+        or $param->{pass}
+        or $ENV{DBI_PASS}
+        or $ENV{ISC_PASSWORD} )
+    {
+        Test::More->import( skip_all =>
+                "Neither DBI_PASS nor ISC_PASSWORD present in the environment" );
+        exit 0;    # do not fail with CPAN testers
+    }
+
+
+    if ( $param->{use_libfbembed} ) {
+        # no interaction with anybody else
+        $ENV{FIREBIRD} = $ENV{FIREBIRD_LOCK} = '.';
+        delete $ENV{ISC_USER};
+        delete $ENV{ISC_PASSWORD};
+        delete $ENV{DBI_USER};
+        delete $ENV{DBI_PASS};
+    }
 }
 
 =head2 connect_to_database
@@ -301,36 +345,6 @@ sub find_new_table {
     }
 
     return $try_name;
-}
-
-=head2 read_cached_configs
-
-Read the connection parameters from the 'tests-setup.conf' file.
-
-=cut
-
-sub read_cached_configs {
-
-    my $record = {};
-
-    if (-f $test_conf) {
-        # print "\nReading cached test configuration...\n";
-
-        open my $file_fh, '<', $test_conf
-            or croak "Can't open file ", $test_conf, ": $!";
-
-        foreach my $line (<$file_fh>) {
-            next if $line =~ m{^#+};         # skip comments
-
-            my ($key, $val) = split /:=/, $line, 2;
-            chomp $val;
-            $record->{$key} = $val;
-        }
-
-        close $file_fh;
-    }
-
-    return $record;
 }
 
 =head2 save_configs

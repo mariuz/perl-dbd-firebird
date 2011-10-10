@@ -17,7 +17,7 @@ use lib 't','.';
 use constant TI_DBI_FIELDS =>
              [qw/ TABLE_CAT TABLE_SCHEM TABLE_NAME TABLE_TYPE REMARKS / ];
 
-require 'tests-setup.pl';
+use TestFirebird;
 
 my ( $dbh, $error_str ) =
   connect_to_database( { RaiseError => 1, FetchHashKeyName => 'NAME_uc' } );

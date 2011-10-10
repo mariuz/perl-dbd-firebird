@@ -11,7 +11,7 @@ use POSIX qw(:signal_h);
 use Test::More;
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
 
 my $rc = read_cached_configs();
 

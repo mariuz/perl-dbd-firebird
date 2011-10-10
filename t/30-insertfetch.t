@@ -15,7 +15,7 @@ use warnings;
 use Test::More;
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
 
 my ($dbh, $error_str) = connect_to_database();
 

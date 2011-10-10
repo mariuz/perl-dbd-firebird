@@ -20,7 +20,7 @@ use DBI;
 
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
 
 my ( $dbh1, $error_str1 ) =
   connect_to_database( { ChopBlanks => 1 } );

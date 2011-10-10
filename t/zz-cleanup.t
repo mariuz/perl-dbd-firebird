@@ -9,7 +9,7 @@ use warnings;
 use Test::More;
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
 
 plan tests => 2;
 

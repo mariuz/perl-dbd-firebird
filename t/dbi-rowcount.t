@@ -10,9 +10,10 @@ use Test::More;
 use DBI;
 use vars qw($dbh $table);
 
-BEGIN {
-        require 't/tests-setup.pl';
-}
+use lib 't';
+
+use TestFirebird;
+
 END {
        if (defined $dbh and defined $table) {
                eval { $dbh->do("DROP TABLE $table"); };
