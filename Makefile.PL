@@ -184,6 +184,7 @@ my %MakeParams = (
     C            => ['dbdimp.c'],
     H => [ 'dbdimp.h', $EMBEDDED ? 'FirebirdEmbedded.h' : 'Firebird.h' ],
     CCFLAGS      => "-Wall -fno-strict-aliasing $Config{ccflags}",
+    ( $EMBEDDED ? ( DEFINE => '-DEMBEDDED' ) : () ),
     INC          => qq(-I"$FB::INC" -I"$FB::dbi_arch_dir"),
     OBJECT => join( ' ',
         $EMBEDDED ? "FirebirdEmbedded.o" : "Firebird.o", "dbdimp.o" ),

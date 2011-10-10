@@ -715,6 +715,12 @@ SV *dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if ((kl==18) && strEQ(key, "ib_timestampformat"))
         result = newSVpvn(imp_dbh->timestampformat,
                           strlen(imp_dbh->timestampformat));
+    else if ((kl==11) && strEQ(key, "ib_embedded"))
+#ifdef EMBEDDED
+        result = &PL_sv_yes;
+#else
+        result = &PL_sv_no;
+#endif
 
     if (result == NULL)
         return Nullsv;
