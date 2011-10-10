@@ -587,7 +587,6 @@ Cleanup temporary files, warn on failure.
 sub cleanup {
 
     my @tmp_files = (
-        $test_conf,
         $test_mark,
         $test_sql_create,
         $test_sql_dropdb,
