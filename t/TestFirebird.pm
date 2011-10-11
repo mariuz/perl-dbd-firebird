@@ -15,12 +15,9 @@ use Carp;
 use DBI 1.43;                   # minimum version for 'parse_dsn'
 use File::Spec;
 use File::Basename;
+use File::Temp;
 
 our ( $test_conf, $test_mark );
-
-# Temp SQL script files
-my $test_sql_create = './t/create.sql';
-my $test_sql_dropdb = './t/dropdb.sql';
 
 use Test::More;
 
@@ -401,18 +398,16 @@ sub create_test_database {
 
     #-- Create the SQL file with CREATE statement
 
-    open my $t_fh, '>', $test_sql_create
-      or die qq{Can't write to $test_sql_create};
-    print $t_fh qq{create database "$db_path"};
-    print $t_fh qq{ user "$user" password "$pass"}
+    my $sql_create = File::Temp->new();
+    print $sql_create qq{create database "$db_path"};
+    print $sql_create qq{ user "$user" password "$pass"}
         unless $param->{use_libfbembed};
-    print $t_fh ";\nquit;\n";
-    close $t_fh;
+    print $sql_create ";\nquit;\n";
 
     #-- Try to execute isql and create the test database
 
     print 'Create the test database ... ';
-    my $ocmd = qq("$isql" -sql_dialect 3 -i "$test_sql_create" 2>&1);
+    my $ocmd = qq("$isql" -sql_dialect 3 -i "$sql_create" 2>&1);
     eval {
         # print "cmd is $ocmd\n";
         open my $isql_fh, '-|', $ocmd;
@@ -557,23 +552,21 @@ sub drop_test_database {
     );
 
     #-- Create the SQL file with DROP statement
+    my $sql_dropdb = File::Temp->new();
 
-    open my $t_fh, '>', $test_sql_dropdb
-      or die qq{Can't write to $test_sql_dropdb};
-    print $t_fh qq{connect "$host:$path"};
-    print $t_fh qq{ user "$user" password "$pass"}
+    print $sql_dropdb qq{connect "$host:$path"};
+    print $sql_dropdb qq{ user "$user" password "$pass"}
         unless $param->{use_libfbembed};
-    print $t_fh qq{;\n};
-    print $t_fh qq{drop database;\n};
-    print $t_fh qq{quit;\n};
-    close $t_fh;
+    print $sql_dropdb qq{;\n};
+    print $sql_dropdb qq{drop database;\n};
+    print $sql_dropdb qq{quit;\n};
 
     #-- Try to execute isql
 
     print 'Drop the test database ... ';
     my $error = 0;              # flag
 
-    my $ocmd = qq("$isql" -sql_dialect 3 -q -i "$test_sql_dropdb" 2>&1);
+    my $ocmd = qq("$isql" -sql_dialect 3 -q -i "$sql_dropdb" 2>&1);
     eval {
         print "cmd: $ocmd\n";
         open my $isql_fh, '-|', $ocmd;
@@ -599,8 +592,6 @@ sub cleanup {
 
     my @tmp_files = (
         $test_mark,
-        $test_sql_create,
-        $test_sql_dropdb,
     );
 
     my $unlinked = 0;
