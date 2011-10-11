@@ -191,6 +191,11 @@ sub locate_firebird {
 
                     check_and_set_devlibs($dir);
                     $FB::ISQL = File::Spec->canonpath($file);
+
+                    # gfix here too?
+                    $file = File::Spec->catfile( $dir, 'bin', 'gfix' );
+                    $FB::GFIX = File::Spec->canonpath($file) if -x $file;
+
                     last;
                 }
             }
@@ -322,6 +327,8 @@ sub locate_firebird_ms {
 
         my $isql_file = File::Spec->catfile( $FB::HOME, 'bin', 'isql.exe' );
         $FB::ISQL = File::Spec->canonpath($isql_file);
+        $FB::GFIX = File::Spec->canonpath(
+            File::Spec->catfile( $FB::HOME, 'bin', 'gfix.exe' ) );
     }
 }
 
@@ -391,6 +398,7 @@ sub save_test_parameters {
         q(# Init section ------ (created by Makefile.PL) #),
         q(# Time: ) . $test_time,
         qq(isql:=$FB::ISQL),
+        $FB::GFIX ? qq(gfix:=$FB::GFIX) : (),
     );
 
     $db_host = $db_host || q{localhost}; # not ||= for compatibility
