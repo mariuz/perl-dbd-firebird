@@ -395,13 +395,15 @@ sub create_test_database {
         $param->{path}, $param->{host}
     );
 
+    my $db_path = join( ':', $host || (), $path );
+
     #- Create test database
 
     #-- Create the SQL file with CREATE statement
 
     open my $t_fh, '>', $test_sql_create
       or die qq{Can't write to $test_sql_create};
-    print $t_fh qq{create database "$host:$path"};
+    print $t_fh qq{create database "$db_path"};
     print $t_fh qq{ user "$user" password "$pass"}
         unless $param->{use_libfbembed};
     print $t_fh ";\nquit;\n";
