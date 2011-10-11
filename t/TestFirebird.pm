@@ -390,9 +390,9 @@ Create the test database.
 sub create_test_database {
     my $param = shift;
 
-    my ( $isql, $user, $pass, $path, $host ) = (
-        $param->{isql}, $param->{user}, $param->{pass},
-        $param->{path}, $param->{host}
+    my ( $isql, $gfix, $user, $pass, $path, $host ) = (
+        $param->{isql}, $param->{gfix}, $param->{user},
+        $param->{pass}, $param->{path}, $param->{host}
     );
 
     my $db_path = join( ':', $host || (), $path );
@@ -424,6 +424,15 @@ sub create_test_database {
     };
     if ($@) {
         die "ISQL open error: $@\n";
+    }
+
+    #-- turn forced writes off
+
+    if ($gfix) {
+        print "Turning forced writes off\n";
+        local $ENV{ISC_USER} = $user;
+        local $ENV{ISC_PASSWORD} = $pass;
+        system($gfix, '-write', 'async', $db_path); # errors here aren't fatal
     }
 
     return;
