@@ -17,13 +17,27 @@ use File::Spec;
 use File::Basename;
 use File::Temp;
 
-our ( $test_conf, $test_mark );
-
 use Test::More;
 
-our @EXPORT = qw( connect_to_database drop_test_database find_new_table read_cached_configs cleanup );
-our @EXPORT_OK = @EXPORT;
 use base 'Exporter';
+
+our @EXPORT = qw(find_new_table);
+
+sub import {
+    my $me = shift;
+    $me->export_to_level(1,undef, qw(find_new_table));
+}
+
+use constant test_conf => 't/tests-setup.tmp.conf';
+use constant test_mark => 't/tests-setup.tmp.OK';
+
+sub new {
+    my $self = bless {}, shift;
+
+    $self->read_cached_configs;
+
+    return $self;
+}
 
 =head2 read_cached_configs
 
@@ -32,8 +46,9 @@ Read the connection parameters from the 'tests-setup.conf' file.
 =cut
 
 sub read_cached_configs {
+    my $self = shift;
 
-    my $record = {};
+    my $test_conf = $self->test_conf;
 
     if (-f $test_conf) {
         # print "\nReading cached test configuration...\n";
@@ -46,45 +61,10 @@ sub read_cached_configs {
 
             my ($key, $val) = split /:=/, $line, 2;
             chomp $val;
-            $record->{$key} = $val;
+            $self->{$key} = $val;
         }
 
         close $file_fh;
-    }
-
-    return $record;
-}
-
-our $param;
-
-BEGIN {
-    $test_conf = 't/tests-setup.tmp.conf';
-    $test_mark = 't/tests-setup.tmp.OK';
-
-    $param = read_cached_configs();
-}
-
-sub import {
-    my $class = shift;
-    $class->export_to_level(1, undef, @EXPORT);
-    unless ( $param->{use_libfbembed}
-        or $param->{pass}
-        or $ENV{DBI_PASS}
-        or $ENV{ISC_PASSWORD} )
-    {
-        Test::More->import( skip_all =>
-                "Neither DBI_PASS nor ISC_PASSWORD present in the environment" );
-        exit 0;    # do not fail with CPAN testers
-    }
-
-
-    if ( $param->{use_libfbembed} ) {
-        # no interaction with anybody else
-        $ENV{FIREBIRD} = $ENV{FIREBIRD_LOCK} = '.';
-        delete $ENV{ISC_USER};
-        delete $ENV{ISC_PASSWORD};
-        delete $ENV{DBI_USER};
-        delete $ENV{DBI_PASS};
     }
 }
 
@@ -99,9 +79,10 @@ Takes optional parameter for connection attributes.
 =cut
 
 sub connect_to_database {
+    my $self = shift or confess;
     my $attr = shift;
 
-    my ( $param, $error_str ) = tests_init();
+    my $error_str = $self->tests_init();
 
     my $dbh;
     unless ($error_str) {
@@ -114,7 +95,7 @@ sub connect_to_database {
         # Connect to the database
         eval {
         $dbh =
-          DBI->connect( $param->{tdsn}, $param->{user}, $param->{pass},
+          DBI->connect( $self->{tdsn}, $self->{user}, $self->{pass},
             $default_attr );
         };
         if ($@) {
@@ -133,21 +114,20 @@ they are valid.
 =cut
 
 sub tests_init {
-
-    my $param = read_cached_configs();
+    my $self = shift or confess;
 
     my $error_str;
-    if ( check_mark() ) {
-        return ($param, undef);
+    if ( $self->check_mark() ) {
+        return undef;
     }
     else {
-        $error_str = check_and_set_cached_configs($param);
+        $error_str = $self->check_and_set_cached_configs;
         unless ($error_str) {
-            $error_str = setup_test_database($param);
+            $error_str = $self->setup_test_database;
         }
     }
 
-    return ($param, $error_str);
+    return $error_str;
 }
 
 =head2 check_cached_configs
@@ -157,66 +137,68 @@ Simply (double)check every value and return what's missing.
 =cut
 
 sub check_and_set_cached_configs {
-    my $param = shift;
+    my $self = shift;
 
     return qq{Please, run "perl Makefile.PL" (to setup isql path)}
-        unless exists $param->{isql};
+        unless exists $self->{isql};
 
     my $error_str = q{};
 
     # Check user and pass, try the get from ENV if missing
-    $param->{user} = $param->{user} ? $param->{user} : get_user($param);
-    $param->{pass} = $param->{pass} ? $param->{pass} : get_pass($param);
+    $self->{user} ||= $self->get_user;
+    $self->{pass} ||= $self->get_pass;
 
     # Check host
-    $param->{host} = $param->{host} ? $param->{host} : get_host($param);
+    $self->{host} ||= $self->get_host;
 
     # Won't try to find isql here, just repport that it's missing
-    $error_str .= ( -x $param->{isql} ) ? q{} : q{isql, };
+    $error_str .= ( -x $self->{isql} ) ? q{} : q{isql, };
 
     # The user can control the test database name and path using the
     # DBI_DSN environment var.  Other option is a default made up dsn
-    $param->{tdsn}
-        = $param->{tdsn} ? check_dsn( $param->{tdsn} ) : get_dsn($param);
-    $error_str .= $param->{tdsn} ? q{} : q{wrong dsn,};
+    $self->{tdsn}
+        = $self->{tdsn}
+        ? $self->check_dsn( $self->{tdsn} )
+        : $self->get_dsn;
+    $error_str .= $self->{tdsn} ? q{} : q{wrong dsn,};
 
     # The database path
-    $param->{path} = get_path($param);
-    my ($base, $path, $type) = fileparse($param->{path}, '\.fdb' );
+    $self->{path} = $self->get_path;
+    my ( $base, $path, $type ) = $self->fileparse( $self->{path}, '\.fdb' );
 
     # Check database path only if local
-    if ( $param->{host} eq 'localhost' ) {
+    if ( $self->{host} eq 'localhost' ) {
         $error_str .= 'wrong path, '
             if $type eq q{.fdb} and not( -d $path and $base );
 
         # if no .fdb extension, then it may be an alias
     }
 
-    save_configs($param);
+    $self->save_configs;
 
     return $error_str;
 }
 
 sub get_user {
-   my $param = shift;
+   my $self = shift;
 
-   return if $param->{use_libfbembed};
+   return if $self->{use_libfbembed};
 
    return $ENV{DBI_USER} || $ENV{ISC_USER} || q{sysdba};
 }
 
 sub get_pass {
-   my $param = shift;
+   my $self = shift;
 
-   return if $param->{use_libfbembed};
+   return if $self->{use_libfbembed};
 
    return $ENV{DBI_PASS} || $ENV{ISC_PASSWORD} || q{masterkey};
 }
 
 sub get_host {
-   my $param = shift;
+   my $self = shift;
 
-   return if $param->{use_libfbembed};
+   return if $self->{use_libfbembed};
 
    return q{localhost};
 }
@@ -228,6 +210,7 @@ Parse and check the DSN.
 =cut
 
 sub check_dsn {
+    my $self = shift;
     my $dsn = shift;
 
     # Check user provided DSN
@@ -252,13 +235,12 @@ Save the database path for L<isql>.
 =cut
 
 sub get_dsn {
-
-    my $param = shift;
+    my $self = shift;
 
     my $path;
-    my $host = $param->{host};
+    my $host = $self->{host};
 
-    if ( $param->{use_libfbembed} ) {
+    if ( $self->{use_libfbembed} ) {
         $path = "dbd-fb-testdb.fdb";
     }
     else {
@@ -280,9 +262,9 @@ Extract the database path from the dsn.
 =cut
 
 sub get_path {
-    my $param = shift;
+    my $self = shift;
 
-    my $dsn = $param->{tdsn};
+    my $dsn = $self->{tdsn};
 
     my ( $scheme, $driver, undef, undef, $driver_dsn ) =
         DBI->parse_dsn($dsn)
@@ -303,19 +285,19 @@ Check if we can connect, get the dialect as test.
 =cut
 
 sub setup_test_database {
-    my $param = shift;
+    my $self = shift;
 
-    my $have_testdb = check_database($param);
+    my $have_testdb = $self->check_database;
     unless ($have_testdb) {
-        create_test_database($param);
+        $self->create_test_database;
 
         # Check again
         return "Failed to create test database!"
-          unless $have_testdb = check_database($param);
+          unless $have_testdb = $self->check_database;
     }
 
     # Create a mark
-    create_mark();
+    $self->create_mark;
 
     return;
 }
@@ -351,21 +333,22 @@ Append the connection parameters to the 'tests-setup.conf' file.
 =cut
 
 sub save_configs {
-    my $param = shift;
+    my $self = shift;
 
-    open my $t_fh, '>>', $test_conf or die "Can't write $test_conf: $!";
+    open my $t_fh, '>>', $self->test_conf
+        or die "Can't write " . $self->test_conf . ": $!";
 
     my $test_time = scalar localtime();
     my @record = (
         q(# Test section: -- (created by tests-setup.pl) #),
         q(# Time: ) . $test_time,
-        qq(tdsn:=$param->{tdsn}),
-        qq(path:=$param->{path}),
-        $param->{use_libfbembed}
+        qq(tdsn:=$self->{tdsn}),
+        qq(path:=$self->{path}),
+        $self->{use_libfbembed}
             ? ()
             : (
-                qq(user:=$param->{user}),
-                qq(pass:=$param->{pass}),
+                qq(user:=$self->{user}),
+                qq(pass:=$self->{pass}),
             ),
         q(# This is a temporary file used for test setup #),
     );
@@ -373,7 +356,7 @@ sub save_configs {
 
     print {$t_fh} $rec, "\n";
 
-    close $t_fh or die "Can't close $test_conf: $!";
+    close $t_fh or die "Can't close " . $self->test_conf . ": $!";
 
     return;
 }
@@ -385,11 +368,11 @@ Create the test database.
 =cut
 
 sub create_test_database {
-    my $param = shift;
+    my $self = shift;
 
     my ( $isql, $gfix, $user, $pass, $path, $host ) = (
-        $param->{isql}, $param->{gfix}, $param->{user},
-        $param->{pass}, $param->{path}, $param->{host}
+        $self->{isql}, $self->{gfix}, $self->{user},
+        $self->{pass}, $self->{path}, $self->{host}
     );
 
     my $db_path = join( ':', $host || (), $path );
@@ -401,7 +384,7 @@ sub create_test_database {
     my $sql_create = File::Temp->new();
     print $sql_create qq{create database "$db_path"};
     print $sql_create qq{ user "$user" password "$pass"}
-        unless $param->{use_libfbembed};
+        unless $self->{use_libfbembed};
     print $sql_create ";\nquit;\n";
 
     #-- Try to execute isql and create the test database
@@ -441,11 +424,11 @@ If I/O error then conclude that the database doesn't exists.
 =cut
 
 sub check_database {
-    my $param = shift;
+    my $self = shift;
 
     my ( $isql, $user, $pass, $path, $host ) = (
-        $param->{isql}, $param->{user}, $param->{pass},
-        $param->{path}, $param->{host}
+        $self->{isql}, $self->{user}, $self->{pass},
+        $self->{path}, $self->{host}
     );
 
     #- Connect to the test database
@@ -461,7 +444,7 @@ sub check_database {
 
     my $ocmd = qq("$isql" -x "$host:$path" 2>&1);
 
-    unless ( $param->{use_libfbembed} ) {
+    unless ( $self->{use_libfbembed} ) {
         $ENV{ISC_USER} = $user;
         $ENV{ISC_PASSWORD} = $pass;
     }
@@ -516,9 +499,10 @@ the first time L<test_init> is called.
 =cut
 
 sub create_mark {
+    my $self = shift;
 
-    open my $file_fh, '>', $test_mark
-        or croak "Can't open file ",$test_mark, ": $!";
+    open my $file_fh, '>', $self->test_mark
+        or croak "Can't open file ",$self->test_mark, ": $!";
     close $file_fh;
 
     return;
@@ -531,7 +515,8 @@ Check is mark file exists.
 =cut
 
 sub check_mark {
-    return (-f $test_mark);
+    my $self = shift;
+    return (-f $self->test_mark);
 }
 
 =head2 drop_test_database
@@ -541,14 +526,13 @@ Cleanup time, drop the test database, warn on failure or sql errors.
 =cut
 
 sub drop_test_database {
+    my $self = shift;
 
-    my $param = read_cached_configs();
-
-    return unless scalar %{$param};
+    return unless scalar %{$self};
 
     my ( $isql, $user, $pass, $path, $host ) = (
-        $param->{isql}, $param->{user}, $param->{pass},
-        $param->{path}, $param->{host}
+        $self->{isql}, $self->{user}, $self->{pass},
+        $self->{path}, $self->{host}
     );
 
     #-- Create the SQL file with DROP statement
@@ -556,7 +540,7 @@ sub drop_test_database {
 
     print $sql_dropdb qq{connect "$host:$path"};
     print $sql_dropdb qq{ user "$user" password "$pass"}
-        unless $param->{use_libfbembed};
+        unless $self->{use_libfbembed};
     print $sql_dropdb qq{;\n};
     print $sql_dropdb qq{drop database;\n};
     print $sql_dropdb qq{quit;\n};
@@ -589,9 +573,10 @@ Cleanup temporary files, warn on failure.
 =cut
 
 sub cleanup {
+    my $self = shift;
 
     my @tmp_files = (
-        $test_mark,
+        $self->test_mark,
     );
 
     my $unlinked = 0;

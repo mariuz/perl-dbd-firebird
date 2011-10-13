@@ -16,8 +16,9 @@ use DBI;
 use lib 't','.';
 
 use TestFirebird;
+my $T = TestFirebird->new;
 
-my ( $dbh, $error_str ) = connect_to_database( { ChopBlanks => 1 } );
+my ( $dbh, $error_str ) = $T->connect_to_database( { ChopBlanks => 1 } );
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");

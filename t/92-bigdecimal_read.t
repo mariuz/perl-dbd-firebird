@@ -22,8 +22,9 @@ use DBI;
 use lib 't','.';
 
 use TestFirebird;
+my $T = TestFirebird->new;
 
-my ($dbh1, $error_str) = connect_to_database();
+my ($dbh1, $error_str) = $T->connect_to_database();
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");
@@ -44,9 +45,8 @@ ok($dbh1, 'dbh1 OK');
 my $table = find_new_table($dbh1);
 ok($table, "TABLE is '$table'");
 
-my $rc = read_cached_configs();
 my ( $db, $test_user, $test_password, $test_isql, $host ) =
-  ( $rc->{path}, $rc->{user}, $rc->{pass}, $rc->{isql}, $rc->{host} );
+  ( $T->{path}, $T->{user}, $T->{pass}, $T->{isql}, $T->{host} );
 
 my $auth = $test_user ? "USER '$test_user' PASSWORD '$test_password'" : '';
 
@@ -86,7 +86,7 @@ system($ocmd) == 0
 ok($dbh1->disconnect(), 'DISCONNECT dbh1');
 
 # reConnect to the database
-my ($dbh2, $error_str2) = connect_to_database({ ChopBlanks => 1 });
+my ($dbh2, $error_str2) = $T->connect_to_database({ ChopBlanks => 1 });
 
 # DBI->trace(4, "trace.txt");
 
