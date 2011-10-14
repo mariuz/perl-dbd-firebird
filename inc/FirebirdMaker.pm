@@ -617,7 +617,7 @@ sub copy_mangled {
 
     my $dir = 'embed';
 
-    my $df = File::Spec->catfile( $dir, $p->{name} || $src );
+    my $df = $p->{new_path} || File::Spec->catfile( $dir, $p->{name} || $src );
     open( my $dfh, '>', $df )  or die "Unable to open $df for writing: $!\n";
     open( my $sfh, '<', $src ) or die "Unable to open $src: $!\n";
     while ( defined( $_ = <$sfh> ) ) {
@@ -779,6 +779,20 @@ EOT
             },
         },
     );
+
+    for my $f ( glob('t/*.t') ) {
+        next if $f =~ 't/embed';
+        ( my $n = $f ) =~ s,t/\K,embed-,;
+        copy_mangled(
+            $f => {
+                new_path => $n,
+                mangle => sub {
+                    $_[0] =~ s/DBD::Firebird\b/DBD::FirebirdEmbedded/g;
+                    $_[0] =~ s/TestFirebird\b/TestFirebirdEmbedded/g;
+                },
+            }
+        );
+    }
 }
 
 1;
