@@ -182,23 +182,17 @@ sub check_and_set_cached_configs {
 sub get_user {
    my $self = shift;
 
-   return if $self->{use_libfbembed};
-
    return $ENV{DBI_USER} || $ENV{ISC_USER} || q{sysdba};
 }
 
 sub get_pass {
    my $self = shift;
 
-   return if $self->{use_libfbembed};
-
    return $ENV{DBI_PASS} || $ENV{ISC_PASSWORD} || q{masterkey};
 }
 
 sub get_host {
    my $self = shift;
-
-   return if $self->{use_libfbembed};
 
    return q{localhost};
 }
@@ -240,17 +234,12 @@ sub get_dsn {
     my $path;
     my $host = $self->{host};
 
-    if ( $self->{use_libfbembed} ) {
-        $path = "dbd-fb-testdb.fdb";
-    }
-    else {
-        # $path
-        #     = 'localhost:'
-        #     . File::Spec->catfile( File::Spec->tmpdir(),
-        #     'dbd-fb-testdb.fdb' );
-        $path = File::Spec->catfile( File::Spec->tmpdir(),
-            'dbd-fb-testdb.fdb' );
-    }
+    # $path
+    #     = 'localhost:'
+    #     . File::Spec->catfile( File::Spec->tmpdir(),
+    #     'dbd-fb-testdb.fdb' );
+    $path = File::Spec->catfile( File::Spec->tmpdir(),
+        'dbd-fb-testdb.fdb' );
 
     return "dbi:Firebird:db=$path;host=$host;ib_dialect=3;ib_charset=ISO8859_1";
 }
@@ -344,12 +333,8 @@ sub save_configs {
         q(# Time: ) . $test_time,
         qq(tdsn:=$self->{tdsn}),
         qq(path:=$self->{path}),
-        $self->{use_libfbembed}
-            ? ()
-            : (
-                qq(user:=$self->{user}),
-                qq(pass:=$self->{pass}),
-            ),
+        qq(user:=$self->{user}),
+        qq(pass:=$self->{pass}),
         q(# This is a temporary file used for test setup #),
     );
     my $rec = join "\n", @record;
@@ -383,8 +368,7 @@ sub create_test_database {
 
     my $sql_create = File::Temp->new();
     print $sql_create qq{create database "$db_path"};
-    print $sql_create qq{ user "$user" password "$pass"}
-        unless $self->{use_libfbembed};
+    print $sql_create qq{ user "$user" password "$pass"};
     print $sql_create ";\nquit;\n";
 
     #-- Try to execute isql and create the test database
@@ -444,10 +428,9 @@ sub check_database {
 
     my $ocmd = qq("$isql" -x "$host:$path" 2>&1);
 
-    unless ( $self->{use_libfbembed} ) {
-        $ENV{ISC_USER} = $user;
-        $ENV{ISC_PASSWORD} = $pass;
-    }
+    $ENV{ISC_USER} = $user;
+    $ENV{ISC_PASSWORD} = $pass;
+
     # print "cmd: $ocmd\n";
     eval {
         open my $fh, '-|', $ocmd;
@@ -539,8 +522,7 @@ sub drop_test_database {
     my $sql_dropdb = File::Temp->new();
 
     print $sql_dropdb qq{connect "$host:$path"};
-    print $sql_dropdb qq{ user "$user" password "$pass"}
-        unless $self->{use_libfbembed};
+    print $sql_dropdb qq{ user "$user" password "$pass"};
     print $sql_dropdb qq{;\n};
     print $sql_dropdb qq{drop database;\n};
     print $sql_dropdb qq{quit;\n};
