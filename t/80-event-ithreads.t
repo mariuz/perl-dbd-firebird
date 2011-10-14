@@ -79,7 +79,6 @@ my $worker = sub {
     my $dbh = DBI->connect(@_, {AutoCommit => 1 }) or return 0;
     for (1..5) {
         $dbh->do(qq{INSERT INTO $table VALUES($_, 'bar')});
-        sleep 1;
     }
     $dbh->do(qq{DELETE FROM $table});
     $dbh->disconnect;
