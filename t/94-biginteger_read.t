@@ -50,9 +50,11 @@ my ( $db, $test_user, $test_password, $test_isql, $host ) =
 
 my $auth = $test_user ? "USER '$test_user' PASSWORD '$test_password'" : '';
 
+$db = join( ':', $host || (), $db );
+
 # Prepare isql commands
 my $insert_sql =<<"ISQLDEF";
-CONNECT '$host:$db' $auth;
+CONNECT '$db' $auth;
 CREATE TABLE $table (
     BINT_MIN  BIGINT,
     BINT_MAX  BIGINT

@@ -48,11 +48,13 @@ ok($table, "TABLE is '$table'");
 my ( $db, $test_user, $test_password, $test_isql, $host ) =
   ( $T->{path}, $T->{user}, $T->{pass}, $T->{isql}, $T->{host} );
 
+$db = join( ':', $host || (), $db );
+
 my $auth = $test_user ? "USER '$test_user' PASSWORD '$test_password'" : '';
 
 # Prepare isql commands
 my $insert_sql =<<"ISQLDEF";
-CONNECT '$host:$db' $auth;
+CONNECT '$db' $auth;
 CREATE TABLE $table (
     DEC_MIN  NUMERIC(18,4),
     DEC_MAX  NUMERIC(18,4)
