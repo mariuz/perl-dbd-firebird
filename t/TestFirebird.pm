@@ -366,6 +366,8 @@ sub create_test_database {
 
     #-- Create the SQL file with CREATE statement
 
+    diag "Creating test database at $db_path";
+
     my $sql_create = File::Temp->new();
     print $sql_create qq{create database "$db_path"};
     print $sql_create qq{ user "$user" password "$pass"};
@@ -544,6 +546,8 @@ sub drop_test_database {
     };
 
     $error++ if $@;
+
+    diag "Test datanase at $host:$path dropped";
 
     return 'warning: drop test database failed.' if $error;
 }
