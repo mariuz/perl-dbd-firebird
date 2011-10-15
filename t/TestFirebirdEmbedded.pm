@@ -26,6 +26,10 @@ sub import {
 
 use constant is_embedded => 1;
 
+sub check_credentials {
+    # this is embedded, nothing to check, we don't need credentials
+}
+
 sub read_cached_configs {
     my $self = shift;
     $self->SUPER::read_cached_configs;

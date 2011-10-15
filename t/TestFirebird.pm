@@ -36,7 +36,22 @@ sub new {
 
     $self->read_cached_configs;
 
+    $self->check_credentials;
+
     return $self;
+}
+
+sub check_credentials {
+    my $self = shift;
+
+    unless ( $self->{pass}
+        or $ENV{DBI_PASS}
+        or $ENV{ISC_PASSWORD} )
+    {
+        plan skip_all =>
+            "Neither DBI_PASS nor ISC_PASSWORD present in the environment";
+        exit 0;    # do not fail with CPAN testers
+    }
 }
 
 =head2 read_cached_configs
