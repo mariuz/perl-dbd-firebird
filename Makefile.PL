@@ -287,9 +287,11 @@ SWITCH: {
 
 unless ($EMBEDDED) {
     if ($FB::libfbembed_available) {
+        print "Found libfbembed, will build DBD::FirebirdEmbed too.\n";
         create_embedded_files();
     }
     else {
+        print "libfbembed not found, building of DBD::FirebirdEmbed skipped.\n";
         # make sure there is no embedded build involved
         my $mfpl = File::Spec->catfile( 'embed', 'Makefile.PL' );
         unlink $mfpl if -e $mfpl;
