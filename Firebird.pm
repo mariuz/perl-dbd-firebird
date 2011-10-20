@@ -1368,8 +1368,8 @@ C<set_tx_param()> is obsoleted by C<ib_set_tx_param()>.
 
 =item * DBI by Tim Bunce <Tim.Bunce@pobox.com>
 
-=item * DBD::Firebird by Edwin Pratomo <edpratomo@cpan.org> and Daniel Ritz 
-<daniel.ritz@gmx.ch>.
+=item * DBD::Firebird by Edwin Pratomo <edpratomo@cpan.org>, Daniel Ritz
+<daniel.ritz@gmx.ch> and many others. See L</COPYRIGHT & LICENSE>.
 
 This module is originally based on the work of Bill Karwin's IBPerl.
 
