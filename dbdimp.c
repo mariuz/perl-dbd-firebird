@@ -140,55 +140,60 @@ void do_error(SV *h, int rc, char *what)
 
 #define CALC_AVAILABLE(buff) sizeof(buff) - strlen(buff) - 1
 
-/* higher level error handling, check and decode status */
-int ib_error_check(SV *h, ISC_STATUS *status)
-{
+/*
+   decode status vector into a char pointer (implemented by a mortal scalar)
+   Returns NULL if there is no error
+ */
+char* ib_error_decode(const ISC_STATUS *status) {
     if (status[0] == 1 && status[1] > 0)
     {
+        SV *sv = NULL;
         long sqlcode;
-        unsigned int avail = 0;
 #if !defined(FB_API_VER) || FB_API_VER < 20
         ISC_STATUS *pvector = status;
 #else
         const ISC_STATUS *pvector = status;
 #endif
 #if defined (INCLUDE_TYPES_PUB_H) 
-        ISC_SCHAR msg[1024], *pmsg;
+        ISC_SCHAR msg[1024];
 #else
-        char msg[1024], *pmsg;
+        char msg[1024];
 #endif
-        Zero(msg, sizeof(msg), char);
-        pmsg = msg;
 
         if ((sqlcode = isc_sqlcode(status)) != 0)
         {
-            isc_sql_interprete((short) sqlcode, pmsg, sizeof(msg));
-            avail = CALC_AVAILABLE(msg);
-            if (avail > 1) {
-                while (*pmsg) pmsg++;
-                *pmsg++ = '\n';
-                *pmsg++ = '-';
-                avail = CALC_AVAILABLE(msg);
-            }
+            isc_sql_interprete((short) sqlcode, msg, sizeof(msg));
+            sv = sv_2mortal(newSVpv(msg, 0));
         }
 
 #if !defined(FB_API_VER) || FB_API_VER < 20
-        while (isc_interprete(pmsg, &pvector))
+        while (isc_interprete(msg, &pvector))
 #else
-        while (avail > 0 && fb_interpret(pmsg, avail, &pvector))
+        while (fb_interpret(msg, sizeof(msg), &pvector))
 #endif
         {
-            avail = CALC_AVAILABLE(msg);
-            if (avail > 1) {
-                while (*pmsg) pmsg++;
-                *pmsg++ = '\n';
-                *pmsg++ = '-';
-                avail = CALC_AVAILABLE(msg);
+            if ( sv != NULL ) {
+                sv_catpvn(sv, "\n-", 2);
+                sv_catpv(sv, msg);
             }
+            else sv = sv_2mortal(newSVpv(msg,0));
         }
-        *--pmsg = '\0';
 
-        do_error(h, sqlcode, msg);
+        sv_catpvn(sv, "\0", 1);  // NUL-terminate
+
+        return SvPV_nolen(sv);
+    }
+    else return NULL;
+}
+
+/* higher level error handling, check and decode status */
+int ib_error_check(SV *h, ISC_STATUS *status)
+{
+    char *msg = ib_error_decode(status);
+
+    if (msg != NULL)
+    {
+        do_error(h, isc_sqlcode(status), msg);
         return FAILURE;
     }
     else return SUCCESS;

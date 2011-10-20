@@ -288,6 +288,7 @@ void    dbd_preparse _((SV *sth, imp_sth_t *imp_sth, char *statement));
 int     dbd_describe _((SV *sth, imp_sth_t *imp_sth));
 int     dbd_db_ping   (SV *dbh);
 
+char* ib_error_decode(const ISC_STATUS *status);
 int ib_error_check(SV *h, ISC_STATUS *status);
 
 int ib_start_transaction   (SV *h, imp_dbh_t *imp_dbh);
