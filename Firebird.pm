@@ -98,6 +98,24 @@ sub _OdbcParse($$$)
     $hash->{database} = "$hash->{host}:$hash->{database}" if $hash->{host};
 }
 
+sub create_database {
+    my ( $self, $params ) = ( shift, shift );
+    $self and $params and ref($params) and ref($params) eq 'HASH' and not @_
+        or croak 'Usage: '
+        . __PACKAGE__
+        . '->create_database( { params...} )';
+
+    exists $params->{db_path} and defined( $params->{db_path} )
+        or croak "Required parameter 'db_path' not supplied";
+
+    for( qw(db_path user password character_set) ) {
+        next unless exists $params->{$_};
+
+        $params->{$_} =~ s/'/''/g if defined($params->{$_});
+    }
+
+    DBD::Firebird::db::_create_database($params);
+}
 
 package DBD::Firebird::dr;
 
@@ -1173,6 +1191,57 @@ The driver is untested with C<Apache::Session::DBI>. Doesn't work with
 C<Tie::DBI>. C<Tie::DBI> calls $dbh->prepare("LISTFIELDS $table_name") on 
 which Firebird fails to parse. I think that the call should be made within 
 an eval block.
+
+=head1 CREATING DATABASES
+
+C<DBD::Firebird> provides one class method for creating empty databases.
+
+=head2 DBD::Firebird->create_database( { params... } )
+
+The method croaks on error. Params may be:
+
+=over
+
+=item db_path (string, required)
+
+Path to database, including host name if necessary.
+
+Examples:
+
+=over
+
+=item server:/path/to/db.fdb
+
+=item /srv/db/base.fdb
+
+=back
+
+=item user (string, optional)
+
+User name to be used for the request.
+
+=item password (string, optional)
+
+Password to be used for the request.
+
+=item page_size (integer, optional)
+
+Page size of the newly created database. Should be something supported by the
+server. Firebird 2.5 supports the following page sizes: 1024, 2048, 4096, 8192
+and 16384 and defaults to 4096.
+
+=item character_set (string, optional)
+
+The default character set of the database. Firebird 2.5 defaults to C<NONE>.
+
+=item dialect (integer, optional)
+
+The dialect of the database. Defaults to 3.
+
+=back
+
+After creation, the new database can be used after connecting to it with the
+usual DBI->connect(...)
 
 =head1 FAQ
 

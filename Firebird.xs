@@ -1347,6 +1347,84 @@ ib_wait_event(dbh, ev)
     OUTPUT:
     RETVAL
 
+void
+_create_database(params)
+    HV *params
+  CODE:
+{
+    ISC_STATUS status[ISC_STATUS_LENGTH]; /* isc api status vector    */
+    char *str;
+    size_t len;
+    int page_size;
+    SV  *sql, **sv;
+    unsigned short dialect;
+    isc_db_handle db = 0;
+    isc_tr_handle tr = 0;
+
+    sv = hv_fetch(params, "db_path", 7, FALSE);
+    if ((sv == NULL) || !SvOK(*sv))
+        croak("Missing db_path");
+
+    sql = sv_2mortal( newSVpv( "CREATE DATABASE '", 0 ) );
+    str = SvPV( *sv, len );
+    sv_catpvn( sql, str, len );
+    sv_catpvn( sql, "'", 1 );
+
+    sv = hv_fetch( params, "user", 4, FALSE );
+    if ( (sv != NULL) && SvOK(*sv) ) {
+        str = SvPV( *sv, len );
+        sv_catpvn( sql, " USER '", 7 );
+        sv_catpvn( sql, str, len );
+        sv_catpvn( sql, "'", 1 );
+    }
+
+    sv = hv_fetch( params, "password", 8, FALSE );
+    if ( (sv != NULL) && SvOK(*sv) ) {
+        str = SvPV( *sv, len );
+        sv_catpvn( sql, " PASSWORD '", 11 );
+        sv_catpvn( sql, str, len );
+        sv_catpvn( sql, "'", 1 );
+    }
+
+    sv = hv_fetch( params, "page_size", 9, FALSE );
+    if ( (sv != NULL) && SvOK(*sv) ) {
+        page_size = SvIV(*sv);
+        sv_catpvf( sql, " PAGE_SIZE %d", page_size );
+    }
+
+    sv = hv_fetch( params, "character_set", 13, FALSE );
+    if ( (sv != NULL) && SvOK(*sv) ) {
+        str = SvPV_nolen(*sv);
+        sv_catpvf( sql, " DEFAULT CHARACTER SET %s", str );
+    }
+
+    sv = hv_fetch( params, "dialect", 7, FALSE );
+    if ( (sv != NULL) && SvOK(*sv) ) {
+        dialect = SvIV(*sv);
+    }
+    else {
+        dialect = DEFAULT_SQL_DIALECT;
+    }
+
+    str = SvPV(sql, len);
+
+    isc_dsql_execute_immediate(
+        status,
+        &db, &tr,
+        len, str,
+        dialect, NULL );
+
+    if( (str = ib_error_decode(status)) != NULL ) {
+        croak(str);
+    }
+
+    // disconnect from the just created database
+    isc_detach_database( status, &db );
+    if ( (str = ib_error_decode(status)) != NULL ) {
+        warn(str);
+    }
+}
+
 
 MODULE = DBD::Firebird     PACKAGE = DBD::Firebird::Event
 PROTOTYPES: DISABLE
