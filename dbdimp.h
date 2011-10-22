@@ -125,6 +125,14 @@ do {                                   \
     dpb += l;                          \
 } while (0)
 
+#define DPB_FILL_STRING_LEN(dpb, string, len)   \
+do {                                   \
+    if ( len > 255 ) croak("DPB string too long (%d)", len); \
+    *(dpb++) = len;                        \
+    strncpy(dpb, string, (size_t) len);  \
+    dpb += len;                          \
+} while (0)
+
 
 #  define TIMESTAMP_FPSECS(value) \
    (long)(((ISC_TIMESTAMP *)value)->timestamp_time % ISC_TIME_SECONDS_PRECISION)
