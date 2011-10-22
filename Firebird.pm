@@ -1152,6 +1152,15 @@ Retrieve query plan from a prepared SQL statement.
  my $sth = $dbh->prepare('SELECT * FROM foo');
  print $sth->func('ib_plan'); # PLAN (FOO NATURAL)
 
+=item C<ib_drop_database>
+
+ $result = $dbh->func('ib_drop_database');
+
+Drops the database, associated with the connection. The database handle is no
+longer valid after calling this function.
+
+Caution is advised as the drop is irrevocable.
+
 =back
 
 

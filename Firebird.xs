@@ -1170,6 +1170,43 @@ ib_database_info(dbh, ...)
 #undef DB_INFOBUF
 #undef DB_RESBUF_CASEHDR
 
+int
+ib_drop_database(dbh)
+    SV *dbh
+    PREINIT:
+    ISC_STATUS status[ISC_STATUS_LENGTH];
+    CODE:
+{
+    D_imp_dbh(dbh);
+
+    /* set the database handle to inactive */
+    DBIc_ACTIVE_off(imp_dbh);
+
+    /* rollback */
+    if (imp_dbh->tr)
+    {
+        isc_rollback_transaction(status, &(imp_dbh->tr));
+        if (ib_error_check(dbh, status))
+            XSRETURN(FALSE);
+
+        imp_dbh->tr = 0L;
+    }
+
+    FREE_SETNULL(imp_dbh->ib_charset);
+    FREE_SETNULL(imp_dbh->tpb_buffer);
+    FREE_SETNULL(imp_dbh->dateformat);
+    FREE_SETNULL(imp_dbh->timeformat);
+    FREE_SETNULL(imp_dbh->timestampformat);
+
+    /* drop */
+    isc_drop_database(status, &(imp_dbh->db));
+
+    if (ib_error_check(dbh, status)) RETVAL = 0;
+    else RETVAL = 1;
+}
+    OUTPUT:
+    RETVAL
+
 #*******************************************************************************
 
 IB_EVENT *
