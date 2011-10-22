@@ -483,43 +483,15 @@ Cleanup time, drop the test database, warn on failure or sql errors.
 sub drop_test_database {
     my $self = shift;
 
-    return unless scalar %{$self};
+    my ( $dbh, $error ) = $self->connect_to_database( { RaiseError => 0 } );
 
-    my ( $isql, $user, $pass, $path, $host ) = (
-        $self->{isql}, $self->{user}, $self->{pass},
-        $self->{path}, $self->{host}
-    );
+    return unless $dbh; # nothing to drop
 
-    #-- Create the SQL file with DROP statement
-    my $sql_dropdb = File::Temp->new();
+    $dbh->func('ib_drop_database') or return 'Error dropping test database';
 
-    print $sql_dropdb qq{connect "$host:$path"};
-    print $sql_dropdb qq{ user "$user" password "$pass"};
-    print $sql_dropdb qq{;\n};
-    print $sql_dropdb qq{drop database;\n};
-    print $sql_dropdb qq{quit;\n};
+    diag "Test database dropped";
 
-    #-- Try to execute isql
-
-    print 'Drop the test database ... ';
-    my $error = 0;              # flag
-
-    my $ocmd = qq("$isql" -sql_dialect 3 -q -i "$sql_dropdb" 2>&1);
-    eval {
-        print "cmd: $ocmd\n";
-        open my $isql_fh, '-|', $ocmd;
-        while (<$isql_fh>) {
-            print "> $_\n";     # for debug
-            $error++ if $_ =~ m{error}i;
-        }
-        close $isql_fh;
-    };
-
-    $error++ if $@;
-
-    diag "Test datanase at $host:$path dropped";
-
-    return 'warning: drop test database failed.' if $error;
+    return '';
 }
 
 =head2 cleanup

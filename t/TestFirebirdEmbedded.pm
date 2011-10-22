@@ -81,48 +81,6 @@ sub check_mark {
     -f $self->get_path;
 }
 
-=head2 drop_test_database
-
-Cleanup time, drop the test database, warn on failure or sql errors.
-
-=cut
-
-sub drop_test_database {
-    my $self = shift;
-
-    return unless scalar %{$self};
-
-    my ( $isql, $path ) = ( $self->{isql}, $self->get_path );
-
-    #-- Create the SQL file with DROP statement
-    my $sql_dropdb = File::Temp->new();
-
-    print $sql_dropdb qq{connect "$path";\n};
-    print $sql_dropdb qq{drop database;\n};
-    print $sql_dropdb qq{quit;\n};
-
-    #-- Try to execute isql
-
-    print 'Drop the test database ... ';
-    my $error = 0;              # flag
-
-    my $ocmd = qq("$isql" -sql_dialect 3 -q -i "$sql_dropdb" 2>&1);
-    eval {
-        print "cmd: $ocmd\n";
-        open my $isql_fh, '-|', $ocmd;
-        while (<$isql_fh>) {
-            print "> $_\n";     # for debug
-            $error++ if $_ =~ m{error}i;
-        }
-        close $isql_fh;
-    };
-
-    $error++ if $@;
-
-    diag "Test database at $path dropped";
-
-    return 'warning: drop test database failed.' if $error;
-}
 
 
 1;
