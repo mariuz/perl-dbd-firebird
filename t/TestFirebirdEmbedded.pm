@@ -25,6 +25,7 @@ sub import {
 }
 
 use constant is_embedded => 1;
+use constant dbd => 'DBD::FirebirdEmbedded';
 
 sub check_credentials {
     # this is embedded, nothing to check, we don't need credentials
@@ -79,93 +80,6 @@ sub check_mark {
     # mimic first run if the test database is not present
     -f $self->get_path;
 }
-
-sub create_test_database {
-    my $self = shift;
-
-    my ( $gfix, $path )
-        = ( $self->{gfix}, $self->get_path );
-
-    #- Create test database
-
-    print 'Create the test database ... ';
-    use DBD::FirebirdEmbedded;
-    DBD::FirebirdEmbedded->create_database({
-            db_path => $path,
-        });
-
-    diag "Test database created at $path";
-
-    #-- turn forced writes off
-
-    DBD::FirebirdEmbedded->gfix(
-        {   db_path       => $path,
-            forced_writes => 0,
-        }
-    );
-
-    return;
-}
-
-
-sub check_database {
-    my $self = shift;
-
-    my ( $isql, $path ) = ( $self->{isql}, $self->get_path );
-
-    #- Connect to the test database
-
-    print "The isql path is $isql\n";
-    print "The databse path is $path\n";
-
-    my $dialect;
-    my $database_ok = 1;
-
-    my $ocmd = qq("$isql" -x "$path" 2>&1);
-
-    # print "cmd: $ocmd\n";
-    eval {
-        open my $fh, '-|', $ocmd;
-      LINE:
-        while (<$fh>) {
-            my $line = $_;
-            # Check for I/O error or 'not recognized' ... from cmd.exe
-            # print "II $line\n";
-            # The systems LANG setting may be a problem ...
-            if ($line =~ m{error|recognized}i) {
-                $database_ok = 0;
-                last LINE;
-            }
-            # Check for Firebird login errors
-            if ($line =~ m{Firebird login}i) {
-                print "Please, check your Firebird login parameters.\n";
-            }
-            # Get dialect if got here
-            if ($line =~ m{DIALECT (\d)}i) {
-                $dialect = $1;
-                last LINE;
-            }
-        }
-        close $fh;
-    };
-    if ($@) {
-        die "isql open error!\n";
-    }
-
-    unless ($database_ok) {
-        return;
-    }
-
-    unless (defined $dialect) {
-        print "No dialect?\n";
-        return;
-    }
-    else {
-        print "Dialect is $dialect\n";
-        return $dialect;
-    }
-}
-
 
 =head2 drop_test_database
 

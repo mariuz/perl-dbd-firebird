@@ -30,6 +30,7 @@ sub import {
 
 use constant test_conf => 't/tests-setup.tmp.conf';
 use constant test_mark => 't/tests-setup.tmp.OK';
+use constant dbd => 'DBD::Firebird';
 
 sub new {
     my $self = bless {}, shift;
@@ -373,14 +374,16 @@ sub create_test_database {
     my ( $user, $pass, $path, $host )
         = ( $self->{user}, $self->{pass}, $self->{path}, $self->{host} );
 
-    my $db_path = join( ':', $host || (), $path );
+    $path = "$host:$path" if $host;
 
     #- Create test database
 
-    diag "Creating test database at $db_path";
+    eval 'require ' . $self->dbd . '; 1' or die $@;
 
-    DBD::Firebird->create_database({
-            db_path => $db_path,
+    diag "Creating test database at $path";
+
+    $self->dbd->create_database({
+            db_path => $path,
             user => $user,
             password => $pass,
             # dialect defaults to 3
@@ -388,8 +391,8 @@ sub create_test_database {
 
     #-- turn forced writes off
 
-    DBD::Firebird->gfix(
-        {   db_path       => $db_path,
+    $self->dbd->gfix(
+        {   db_path       => $path,
             user          => $user,
             password      => $pass,
             forced_writes => 0,
