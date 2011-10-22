@@ -117,6 +117,16 @@ sub create_database {
     DBD::Firebird::db::_create_database($params);
 }
 
+sub gfix {
+    my ( $self, $params ) = ( shift, shift );
+    $self and $params and ref($params) and ref($params) eq 'HASH' and not @_
+        or croak 'Usage: '
+        . __PACKAGE__
+        . '->gfix( { params...} )';
+
+    DBD::Firebird::db::_gfix($params);
+}
+
 package DBD::Firebird::dr;
 
 sub connect 
@@ -1192,11 +1202,11 @@ C<Tie::DBI>. C<Tie::DBI> calls $dbh->prepare("LISTFIELDS $table_name") on
 which Firebird fails to parse. I think that the call should be made within 
 an eval block.
 
-=head1 CREATING DATABASES
-
-C<DBD::Firebird> provides one class method for creating empty databases.
+=head1 SERVICE METHODS
 
 =head2 DBD::Firebird->create_database( { params... } )
+
+A class method for creating empty databases.
 
 The method croaks on error. Params may be:
 
@@ -1242,6 +1252,44 @@ The dialect of the database. Defaults to 3.
 
 After creation, the new database can be used after connecting to it with the
 usual DBI->connect(...)
+
+=head2 DBD::Firebird->gfix( { params } )
+
+A class method for simulating a subset of the functionality of the
+Firebird's L<gfix(1)> utility.
+
+Params is a hash reference, with the following keys:
+
+=over
+
+=item db_path (string, required)
+
+The path to the database to connect to. Should include host name if
+necessary.
+
+=item user (string, optional)
+
+User name to connect as. Must be SYSDBA or database owner.
+
+=item password (string, optional)
+
+Password to be used for the connection.
+
+Note that user and password are not needed for embedded connections.
+
+=item forced_writes (boolean, optional)
+
+If given, sets the forced writes flag of the database, causing Firebird
+to use synchronous writes when working with that database.
+
+=item buffers (integer, optional)
+
+If given, sets the default number of buffers for the database. Can
+be overriden on connect time. Note that buffers are measured in database
+pages, not bytes.
+
+
+=back
 
 =head1 FAQ
 
