@@ -155,9 +155,6 @@ Simply (double)check every value and return what's missing.
 sub check_and_set_cached_configs {
     my $self = shift;
 
-    return qq{Please, run "perl Makefile.PL" (to setup isql path)}
-        unless exists $self->{isql};
-
     my $error_str = q{};
 
     # Check user and pass, try the get from ENV if missing
@@ -166,9 +163,6 @@ sub check_and_set_cached_configs {
 
     # Check host
     $self->{host} ||= $self->get_host;
-
-    # Won't try to find isql here, just repport that it's missing
-    $error_str .= ( -x $self->{isql} ) ? q{} : q{isql, };
 
     # The user can control the test database name and path using the
     # DBI_DSN environment var.  Other option is a default made up dsn
@@ -183,7 +177,7 @@ sub check_and_set_cached_configs {
     my ( $base, $path, $type ) = $self->fileparse( $self->{path}, '\.fdb' );
 
     # Check database path only if local
-    if ( $self->{host} eq 'localhost' ) {
+    if ( !$self->{host} or $self->{host} eq 'localhost' ) {
         $error_str .= 'wrong path, '
             if $type eq q{.fdb} and not( -d $path and $base );
 
@@ -239,8 +233,6 @@ sub check_dsn {
 
 Make a DSN, using a temporary database in the L</tmp> dir for tests as
 default.
-
-Save the database path for L<isql>.
 
 =cut
 

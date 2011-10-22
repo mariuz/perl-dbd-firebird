@@ -153,7 +153,6 @@ else {
     print 'FIREBIRD_HOME   : ', $FB::HOME, "\n";
     print 'FIREBIRD_INCLUDE: ', $FB::INC,  "\n";
     print 'FIREBIRD_LIB    : ', $FB::LIB,  "\n";
-    print 'ISQL            : ', $FB::ISQL,"\n";
     print 'Client library  : ', $client_lib,"\n";
     print "\n";
 

@@ -190,7 +190,6 @@ sub locate_firebird {
                     next unless $out =~ /firebird/si;   # Firebird's isql?
 
                     check_and_set_devlibs($dir);
-                    $FB::ISQL = File::Spec->canonpath($file);
 
                     last;
                 }
@@ -254,10 +253,6 @@ sub alternative_locations {
 
 Common places for the Firebird home dir.
 
-There is a potential problem when adding here paths like B</usr>,
-because the setup might locate a wrong B<isql> and the connect test
-hangs.
-
 =cut
 
 sub search_fb_home_dirs {
@@ -320,9 +315,6 @@ sub locate_firebird_ms {
         $FB::HOME = $FB::HOME || File::Spec->canonpath($hp_ref->[0]);
         $FB::INC  = $FB::INC  || File::Spec->catdir( $FB::HOME, 'include' );
         $FB::LIB  = $FB::LIB  || File::Spec->catdir( $FB::HOME, 'lib' );
-
-        my $isql_file = File::Spec->catfile( $FB::HOME, 'bin', 'isql.exe' );
-        $FB::ISQL = File::Spec->canonpath($isql_file);
     }
 }
 
@@ -391,7 +383,6 @@ sub save_test_parameters {
         q(# Should be deleted at the end of installation #),
         q(# Init section ------ (created by Makefile.PL) #),
         q(# Time: ) . $test_time,
-        qq(isql:=$FB::ISQL),
     );
 
     $db_host = $db_host || q{localhost}; # not ||= for compatibility
@@ -449,13 +440,12 @@ sub prompt_for_settings {
     my $param = read_test_parameters();
 
     my ($user, $pass) = (qw{SYSDBA masterkey}); # some defaults
-    my ($isql, $db_path, $db_host);
+    my ($db_path, $db_host);
 
     # If saved configs exists set them as defaults
     if ( ref $param ) {
         $user = $param->{user} || $user;
         $pass = $param->{pass} || $pass;
-        $isql = $param->{isql} || $FB::ISQL;
         $db_host = $param->{host} || 'localhost';
         $db_path = $param->{path}
           || File::Spec->catfile( File::Spec->tmpdir(), 'dbd-fb-testdb.fdb' );
@@ -473,8 +463,6 @@ sub prompt_for_settings {
     $FB::LIB = prompt_for( 'path', '       Lib:', $FB::LIB );
 
     print qq{\n Configuring the test environment ...\n};
-    print qq{\n Enter the full paths to the Firebird tools:\n};
-    $isql   = prompt_for( 'exe', '      isql:', $isql );
 
     $db_host = prompt_for('str', '  Hostname:', $db_host );
 
