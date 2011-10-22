@@ -83,33 +83,16 @@ sub check_mark {
 sub create_test_database {
     my $self = shift;
 
-    my ( $isql, $gfix, $path )
-        = ( $self->{isql}, $self->{gfix}, $self->get_path );
+    my ( $gfix, $path )
+        = ( $self->{gfix}, $self->get_path );
 
     #- Create test database
 
-    #-- Create the SQL file with CREATE statement
-
-    my $sql_create = File::Temp->new();
-    print $sql_create qq{create database "$path"};
-    print $sql_create ";\nquit;\n";
-
-    #-- Try to execute isql and create the test database
-
     print 'Create the test database ... ';
-    my $ocmd = qq("$isql" -sql_dialect 3 -i "$sql_create" 2>&1);
-    eval {
-        # print "cmd is $ocmd\n";
-        open my $isql_fh, '-|', $ocmd;
-        while (<$isql_fh>) {
-            # For debug:
-            print "> $_\n";
-        }
-        close $isql_fh;
-    };
-    if ($@) {
-        die "ISQL open error: $@\n";
-    }
+    use DBD::FirebirdEmbedded;
+    DBD::FirebirdEmbedded->create_database({
+            db_path => $path,
+        });
 
     diag "Test database created at $path";
 

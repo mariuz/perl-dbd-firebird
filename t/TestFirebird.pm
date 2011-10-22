@@ -370,8 +370,8 @@ Create the test database.
 sub create_test_database {
     my $self = shift;
 
-    my ( $isql, $gfix, $user, $pass, $path, $host ) = (
-        $self->{isql}, $self->{gfix}, $self->{user},
+    my ( $gfix, $user, $pass, $path, $host ) = (
+        $self->{gfix}, $self->{user},
         $self->{pass}, $self->{path}, $self->{host}
     );
 
@@ -379,31 +379,14 @@ sub create_test_database {
 
     #- Create test database
 
-    #-- Create the SQL file with CREATE statement
-
     diag "Creating test database at $db_path";
 
-    my $sql_create = File::Temp->new();
-    print $sql_create qq{create database "$db_path"};
-    print $sql_create qq{ user "$user" password "$pass"};
-    print $sql_create ";\nquit;\n";
-
-    #-- Try to execute isql and create the test database
-
-    print 'Create the test database ... ';
-    my $ocmd = qq("$isql" -sql_dialect 3 -i "$sql_create" 2>&1);
-    eval {
-        # print "cmd is $ocmd\n";
-        open my $isql_fh, '-|', $ocmd;
-        while (<$isql_fh>) {
-            # For debug:
-            print "> $_\n";
-        }
-        close $isql_fh;
-    };
-    if ($@) {
-        die "ISQL open error: $@\n";
-    }
+    DBD::Firebird->create_database({
+            db_path => $db_path,
+            user => $user,
+            password => $pass,
+            # dialect defaults to 3
+        });
 
     #-- turn forced writes off
 
