@@ -404,76 +404,46 @@ sub create_test_database {
 
 =head2 check_database
 
-Using isql CLI to connect to the database and retrieve the dialect.
-If I/O error then conclude that the database doesn't exists.
+Try to connect and conclude that the database doesn't exist on error.
 
 =cut
 
 sub check_database {
     my $self = shift;
 
-    my ( $isql, $user, $pass, $path, $host ) = (
-        $self->{isql}, $self->{user}, $self->{pass},
+    my ( $user, $pass, $path, $host ) = (
+        $self->{user}, $self->{pass},
         $self->{path}, $self->{host}
     );
 
     #- Connect to the test database
 
-    print "The isql path is $isql\n";
+    $path = "$host:$path" if $host;
+
     print "The databse path is $path\n";
 
-    my $dialect;
-    my $database_ok = 1;
+    my $driver = $self->dbd;
+    $driver =~ s/^DBD:://;
 
-    local $ENV{ISC_USER};
-    local $ENV{ISC_PASSWORD};
-
-    my $ocmd = qq("$isql" -x "$host:$path" 2>&1);
-
-    $ENV{ISC_USER} = $user;
-    $ENV{ISC_PASSWORD} = $pass;
-
-    # print "cmd: $ocmd\n";
-    eval {
-        open my $fh, '-|', $ocmd;
-      LINE:
-        while (<$fh>) {
-            my $line = $_;
-            # Check for I/O error or 'not recognized' ... from cmd.exe
-            # print "II $line\n";
-            # The systems LANG setting may be a problem ...
-            if ($line =~ m{error|recognized}i) {
-                $database_ok = 0;
-                last LINE;
-            }
-            # Check for Firebird login errors
-            if ($line =~ m{Firebird login}i) {
-                print "Please, check your Firebird login parameters.\n";
-            }
-            # Get dialect if got here
-            if ($line =~ m{DIALECT (\d)}i) {
-                $dialect = $1;
-                last LINE;
-            }
-        }
-        close $fh;
+    my $dbh = eval {
+        DBI->connect( "dbi:$driver:database=$path", $user, $pass,
+            { RaiseError => 1, PrintError => 0 } );
     };
-    if ($@) {
-        die "isql open error!\n";
-    }
 
-    unless ($database_ok) {
-        return;
-    }
+    return 0 unless $dbh;
 
-    unless (defined $dialect) {
-        print "No dialect?\n";
-        return;
-    }
-    else {
-        print "Dialect is $dialect\n";
-        return $dialect;
-    }
+    # check the dialect
+    my $info = $dbh->func('db_sql_dialect', 'ib_database_info');
+
+    $dbh->disconnect;
+
+    die "Unable to retrieve SQL dialect"
+        unless $info->{db_sql_dialect};
+
+    die "Database dialect wrong ($info->{db_sql_dialect})"
+        unless $info->{db_sql_dialect} == 3;
+
+    return 1;
 }
 
 =head2 create_mark
