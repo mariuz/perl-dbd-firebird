@@ -98,10 +98,11 @@ sub create_test_database {
 
     #-- turn forced writes off
 
-    if ($gfix) {
-        print "Turning forced writes off\n";
-        system($gfix, '-write', 'async', $path); # errors here aren't fatal
-    }
+    DBD::FirebirdEmbedded->gfix(
+        {   db_path       => $path,
+            forced_writes => 0,
+        }
+    );
 
     return;
 }

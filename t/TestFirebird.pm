@@ -370,10 +370,8 @@ Create the test database.
 sub create_test_database {
     my $self = shift;
 
-    my ( $gfix, $user, $pass, $path, $host ) = (
-        $self->{gfix}, $self->{user},
-        $self->{pass}, $self->{path}, $self->{host}
-    );
+    my ( $user, $pass, $path, $host )
+        = ( $self->{user}, $self->{pass}, $self->{path}, $self->{host} );
 
     my $db_path = join( ':', $host || (), $path );
 
@@ -390,12 +388,13 @@ sub create_test_database {
 
     #-- turn forced writes off
 
-    if ($gfix) {
-        print "Turning forced writes off\n";
-        local $ENV{ISC_USER} = $user;
-        local $ENV{ISC_PASSWORD} = $pass;
-        system($gfix, '-write', 'async', $db_path); # errors here aren't fatal
-    }
+    DBD::Firebird->gfix(
+        {   db_path       => $db_path,
+            user          => $user,
+            password      => $pass,
+            forced_writes => 0,
+        }
+    );
 
     return;
 }
