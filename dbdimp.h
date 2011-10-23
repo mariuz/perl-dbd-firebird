@@ -112,7 +112,7 @@ do {                                         \
     *(dpb) = 4;                              \
     dpb += 1;                                \
     tmp = isc_vax_integer((char *) &tmp, 4); \
-    Copy(&tmp, dpb, 1, sizeof(tmp));         \
+    Copy(&tmp, dpb, 1, int);                 \
     dpb += 4;                                \
 } while (0)
 
