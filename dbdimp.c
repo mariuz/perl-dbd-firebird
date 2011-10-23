@@ -386,7 +386,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
         buflen += len + 2;
 
         Newx(imp_dbh->ib_charset, len+1, char);
-        strncpy(imp_dbh->ib_charset, p, len+1);
+        strncpy(imp_dbh->ib_charset, p, len);
         *(imp_dbh->ib_charset + len) = '\0';
     }
     else {
