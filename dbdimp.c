@@ -294,7 +294,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
 
     char ISC_FAR *database;
 
-    STRLEN len; /* for SvPV */
+    STRLEN len, db_len; /* for SvPV */
 
     char  dbkey_scope   = 0;
     short dpb_length    = 0;
@@ -359,7 +359,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
 
     /* does't go to DPB -> no buflen inc */
     if ((svp = hv_fetch(hv, "database", 8, FALSE)))
-        database = SvPV(*svp, len);
+        database = SvPV(*svp, db_len);
     else database = NULL;
 
 
@@ -468,7 +468,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     DBI_TRACE_imp_xxh(imp_dbh, 3, (DBIc_LOGPIO(imp_dbh), "dbd_db_login6: attaching to database %s..\n", database));
 
     isc_attach_database(status,           /* status vector */
-                        0,                /* connect string is null-terminated */
+                        db_len,
                         database,         /* connect string */
                         &(imp_dbh->db),   /* ref to db handle */
                         dpb_length,       /* length of dpb */
