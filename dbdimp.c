@@ -463,6 +463,8 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
 
     dpb_length = dpb - dpb_buffer;
 
+    assert(dpb_length == buflen);
+
     DBI_TRACE_imp_xxh(imp_dbh, 3, (DBIc_LOGPIO(imp_dbh), "dbd_db_login6: attaching to database %s..\n", database));
 
     isc_attach_database(status,           /* status vector */
