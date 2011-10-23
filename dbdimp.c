@@ -348,12 +348,12 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
         return FALSE;
 
     if (uid != NULL) {
-        buflen += strlen(uid) + 1;
+        buflen += strlen(uid);
         buflen += 2;
     }
 
     if (pwd != NULL) {
-        buflen += strlen(pwd) + 1;
+        buflen += strlen(pwd);
         buflen += 2;
     }
 
@@ -369,13 +369,13 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
         ib_dialect = (unsigned short) SvIV(*svp);
     else
         ib_dialect = DEFAULT_SQL_DIALECT;
-    buflen += 5;
+    buflen += 6;
 
 
     if ((svp = hv_fetch(hv, "ib_cache", 8, FALSE)))
     {
         ib_cache = (unsigned short) SvIV(*svp);
-        buflen += 5;
+        buflen += 6;
     }
     else
         ib_cache = 0;
@@ -405,7 +405,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     {
         dbkey_scope = (char)SvIV(*svp);
         if (dbkey_scope)
-            buflen += 5;
+            buflen += 6;
     }
 
     /* add length of other parameters to needed buflen */
