@@ -1538,7 +1538,11 @@ _gfix(params)
         DPB_FILL_INTEGER(dpb, isc_dpb_force_write, forced_writes);
     }
 
-    assert( (dpb-dpb_buffer) == buflen );
+    if ( (dpb-dpb_buffer) != buflen ) {
+        fprintf(stderr, "# gfix: DPB length mismatch: %ld != %d\n", dpb-dpb_buffer, buflen);
+        fflush(stderr);
+        abort();
+    }
 
     isc_attach_database(status,           /* status vector */
                         db_path_len,
