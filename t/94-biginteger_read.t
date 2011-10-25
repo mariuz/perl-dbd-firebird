@@ -7,10 +7,6 @@
 # Smallest and biggest integer supported by Firebird:
 #   -9223372036854775808, 9223372036854775807
 #
-# This test uses isql CLI for the creation of the table and for the
-# insertion of the values.  Look at biginteger.t for a Perl only
-# variant.
-#
 
 use strict;
 use warnings;

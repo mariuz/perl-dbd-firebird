@@ -5,8 +5,8 @@
 # Smallest and biggest decimal supported by Firebird:
 #   -922337203685477.5808, 922337203685477.5807
 #
-# Look at bigdecimal_read.t for a variant that uses isql CLI for the
-# creation of the table and for the insertion of the values.
+# Look at bigdecimal_read.t for a variant that uses plain do() without
+# parameters for the insertion of the values.
 #
 
 use strict;
