@@ -601,7 +601,34 @@ sub copy_mangled {
     my $df = $p->{new_path} || File::Spec->catfile( $dir, $p->{name} || $src );
     open( my $dfh, '>', $df )  or die "Unable to open $df for writing: $!\n";
     open( my $sfh, '<', $src ) or die "Unable to open $src: $!\n";
+
+    my ($prefix, $skip_shebang);
+    if ( $src =~ /\.(?:xs|[ch])$/ ) {
+        $prefix = '//';
+        $skip_shebang = 0;
+    } elsif ( $src =~ /\.pl$/i ) {
+        $prefix = '#';
+        $skip_shebang = 1;
+    }
+    else {
+        $prefix = '#';
+        $skip_shebang = 0;
+    }
+
+    my $header_warning = sub {
+        my $line = '*' x 60;
+        print $dfh "\n" if $skip_shebang;
+        print $dfh "$prefix $line\n";
+        print $dfh "$prefix This is an automaticaly generated file.\n";
+        print $dfh "$prefix If needed, edit $src in the parent directory\n";
+        print $dfh "$prefix and run perl Makefile.PL to re-generate it.\n";
+        print $dfh "$prefix $line\n\n";
+    };
+
+    my $line_no = 0;
     while ( defined( $_ = <$sfh> ) ) {
+        &$header_warning if $line_no++ == $skip_shebang;
+
         last if $p->{last} and &{ $p->{last} }($_);
         &{ $p->{mangle} }($_) if $p->{mangle};
         print $dfh $_;
@@ -626,10 +653,8 @@ sub create_embedded_files {
     );
 
     # Simple copies
-    use File::Copy qw(copy);
     for my $f (qw( dbdimp.h )) {
-        copy $f, File::Spec->catfile( $dir, $f )
-            or die "Error copying $f: $!\n";
+        copy_mangled($f);
     }
     copy_mangled(
         'Firebird.h' => {
