@@ -348,13 +348,11 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
         return FALSE;
 
     if (uid != NULL) {
-        buflen += strlen(uid);
-        buflen += 2;
+        DPB_PREP_STRING(buflen, uid);
     }
 
     if (pwd != NULL) {
-        buflen += strlen(pwd);
-        buflen += 2;
+        DPB_PREP_STRING(buflen, pwd);
     }
 
     /* does't go to DPB -> no buflen inc */
@@ -369,13 +367,13 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
         ib_dialect = (unsigned short) SvIV(*svp);
     else
         ib_dialect = DEFAULT_SQL_DIALECT;
-    buflen += 6;
+    DPB_PREP_INTEGER(buflen);
 
 
     if ((svp = hv_fetch(hv, "ib_cache", 8, FALSE)))
     {
         ib_cache = (unsigned short) SvIV(*svp);
-        buflen += 6;
+        DPB_PREP_INTEGER(buflen);
     }
     else
         ib_cache = 0;
@@ -383,7 +381,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     if ((svp = hv_fetch(hv, "ib_charset", 10, FALSE)))
     {
         char *p = SvPV(*svp, len);
-        buflen += len + 2;
+        DPB_PREP_STRING_LEN(buflen, len);
 
         Newx(imp_dbh->ib_charset, len+1, char);
         strncpy(imp_dbh->ib_charset, p, len);
@@ -396,7 +394,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     if ((svp = hv_fetch(hv, "ib_role", 7, FALSE)))
     {
         ib_role = SvPV(*svp, len);
-        buflen += len + 2;
+        DPB_PREP_STRING_LEN(buflen, len);
     }
     else
         ib_role = NULL;
@@ -405,7 +403,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     {
         dbkey_scope = (char)SvIV(*svp);
         if (dbkey_scope)
-            buflen += 6;
+            DPB_PREP_INTEGER(buflen);
     }
 
     /* add length of other parameters to needed buflen */
@@ -421,13 +419,11 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
 
     /* Fill DPB */
     dpb = dpb_buffer;
-    DPB_FILL_BYTE(dpb, isc_dpb_version1);
+    *dpb++ = isc_dpb_version1;
 
-    DPB_FILL_BYTE(dpb, isc_dpb_user_name);
-    DPB_FILL_STRING(dpb, uid);
+    DPB_FILL_STRING(dpb, isc_dpb_user_name, uid);
 
-    DPB_FILL_BYTE(dpb, isc_dpb_password);
-    DPB_FILL_STRING(dpb, pwd);
+    DPB_FILL_STRING(dpb, isc_dpb_password, pwd);
 
     if (ib_cache)
     {
@@ -436,29 +432,24 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
          * 10000 pages, so we don't exhaust memory inadvertently.
          */
         if (ib_cache > 10000) ib_cache = 10000;
-        DPB_FILL_BYTE(dpb, isc_dpb_num_buffers);
-        DPB_FILL_INTEGER(dpb, ib_cache);
+        DPB_FILL_INTEGER(dpb, isc_dpb_num_buffers, ib_cache);
     }
 
-    DPB_FILL_BYTE(dpb, isc_dpb_sql_dialect);
-    DPB_FILL_INTEGER(dpb, ib_dialect);
+    DPB_FILL_INTEGER(dpb, isc_dpb_sql_dialect, ib_dialect);
 
     if (dbkey_scope)
     {
-        DPB_FILL_BYTE(dpb, isc_dpb_dbkey_scope);
-        DPB_FILL_INTEGER(dpb, dbkey_scope);
+        DPB_FILL_INTEGER(dpb, isc_dpb_dbkey_scope, dbkey_scope);
     }
 
     if (imp_dbh->ib_charset)
     {
-        DPB_FILL_BYTE(dpb, isc_dpb_lc_ctype);
-        DPB_FILL_STRING(dpb, imp_dbh->ib_charset);
+        DPB_FILL_STRING(dpb, isc_dpb_lc_ctype, imp_dbh->ib_charset);
     }
 
     if (ib_role)
     {
-        DPB_FILL_BYTE(dpb, isc_dpb_sql_role_name);
-        DPB_FILL_STRING(dpb, ib_role);
+        DPB_FILL_STRING(dpb, isc_dpb_sql_role_name, ib_role);
     }
 
     dpb_length = dpb - dpb_buffer;

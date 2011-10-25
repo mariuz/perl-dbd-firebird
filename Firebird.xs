@@ -1488,12 +1488,12 @@ _gfix(params)
 
     if (( (sv = hv_fetch(params, "user", 4, FALSE)) != NULL) && SvOK(*sv)) {
         user = SvPV(*sv, user_len);
-        buflen += user_len + 2;
+        DPB_PREP_STRING_LEN(buflen, user_len);
     }
 
     if (( (sv = hv_fetch(params, "password", 8, FALSE)) != NULL) && SvOK(*sv)) {
         pwd = SvPV(*sv, pwd_len);
-        buflen += pwd_len + 2;
+        DPB_PREP_STRING_LEN(buflen, pwd_len);
     }
 
     /* the actual interesting stuff -- database parameters */
@@ -1501,13 +1501,13 @@ _gfix(params)
     if (((sv = hv_fetch(params, "buffers", 7, FALSE)) != NULL) && SvOK(*sv))
     {
         buffers = (unsigned short) SvIV(*sv);
-        buflen += 6;
+        DPB_PREP_INTEGER(buflen);
     }
 
     if (((sv = hv_fetch(params, "forced_writes", 13, FALSE)) != NULL) && SvOK(*sv))
     {
         forced_writes = SvTRUE(*sv) ? 1 : 0;
-        buflen += 6;
+        DPB_PREP_INTEGER(buflen);
     }
 
     /* add length of other parameters to needed buflen */
@@ -1518,28 +1518,24 @@ _gfix(params)
 
     /* Fill DPB */
     dpb = dpb_buffer;
-    DPB_FILL_BYTE(dpb, isc_dpb_version1);
+    *dpb++ = isc_dpb_version1;
 
     if ( user != NULL ) {
-        DPB_FILL_BYTE(dpb, isc_dpb_user_name);
-        DPB_FILL_STRING_LEN(dpb, user, user_len);
+        DPB_FILL_STRING_LEN(dpb, isc_dpb_user_name, user, user_len);
     }
 
     if ( pwd != NULL ) {
-        DPB_FILL_BYTE(dpb, isc_dpb_password);
-        DPB_FILL_STRING_LEN(dpb, pwd, pwd_len);
+        DPB_FILL_STRING_LEN(dpb, isc_dpb_password, pwd, pwd_len);
     }
 
     if (buffers)
     {
-        DPB_FILL_BYTE(dpb, isc_dpb_num_buffers);
-        DPB_FILL_INTEGER(dpb, buffers);
+        DPB_FILL_INTEGER(dpb, isc_dpb_num_buffers, buffers);
     }
 
     if (forced_writes >= 0)
     {
-        DPB_FILL_BYTE(dpb, isc_dpb_force_write);
-        DPB_FILL_INTEGER(dpb, forced_writes);
+        DPB_FILL_INTEGER(dpb, isc_dpb_force_write, forced_writes);
     }
 
     assert( (dpb-dpb_buffer) == buflen );
