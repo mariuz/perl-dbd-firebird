@@ -151,14 +151,15 @@ my $dbi_arch_dir;
     $dbi_arch_dir = DBI::DBD::dbd_dbi_arch_dir();
 }
 
-my $comp_opts = $Config{q{ccflags}};
+my $comp_opts = $Config{q{ccflags}}//'';
+$comp_opts .= " $ENV{CFLAGS}" if $ENV{CFLAGS};
 
 my %MakeParams = (
     NAME         => 'DBD::Firebird',
     VERSION_FROM => 'Firebird.pm',                              # finds $VERSION
     C            => ['dbdimp.c'],
     H            => [ 'dbdimp.h', 'Firebird.h' ],
-    CCFLAGS      => "-Wall -fno-strict-aliasing $Config{ccflags}",
+    CCFLAGS      => "-Wall -fno-strict-aliasing $comp_opts",
     INC          => qq(-I"$fb_INC" -I"$dbi_arch_dir"),
     OBJECT       => "Firebird.o dbdimp.o",
     LIBS         => [''],
