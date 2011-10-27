@@ -2061,7 +2061,7 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
     p = string;
     while (total_length > 0)
     {
-        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "ib_blob_write: %ld bytes left\n", total_length));
+        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "ib_blob_write: %"PRIdMAX" bytes left\n", total_length));
 
         /* set new segment start pointer */
         seg = p;
