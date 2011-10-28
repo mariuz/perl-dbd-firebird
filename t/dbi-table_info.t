@@ -17,10 +17,12 @@ use lib 't','.';
 use constant TI_DBI_FIELDS =>
              [qw/ TABLE_CAT TABLE_SCHEM TABLE_NAME TABLE_TYPE REMARKS / ];
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
-my ( $dbh, $error_str ) =
-  connect_to_database( { RaiseError => 1, FetchHashKeyName => 'NAME_uc' } );
+my ( $dbh, $error_str )
+    = $T->connect_to_database(
+    { RaiseError => 1, FetchHashKeyName => 'NAME_uc' } );
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");

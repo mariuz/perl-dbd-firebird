@@ -10,9 +10,10 @@ use warnings;
 use Test::More;
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
-my ($dbh2, $error_str2) = connect_to_database();
+my ($dbh2, $error_str2) = $T->connect_to_database();
 
 if ($error_str2) {
     BAIL_OUT("Unknown: $error_str2!");
@@ -37,7 +38,7 @@ SKIP: {
     defined $r or skip "wait timeout is not available", 12;
 
 
-    my ($dbh1, $error_str1) = connect_to_database();
+    my ($dbh1, $error_str1) = $T->connect_to_database();
     ok($dbh1, 'Connected to the database (1)');
 
     my $table = find_new_table($dbh1);

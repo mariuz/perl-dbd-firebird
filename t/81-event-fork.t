@@ -11,11 +11,10 @@ use POSIX qw(:signal_h);
 use Test::More;
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
-my $rc = read_cached_configs();
-
-my ($dbh, $error_str) = connect_to_database();
+my ($dbh, $error_str) = $T->connect_to_database();
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");
@@ -62,7 +61,7 @@ DDL
 # detect SIGNAL availability
 my $sig_ok = grep { /HUP$/ } split(/ /, $Config{sig_name});
 
-$dbh->disconnect if $rc->{use_libfbembed};
+$dbh->disconnect if $dbh->{ib_embedded};
 
 # try fork
 {
@@ -76,7 +75,7 @@ SKIP: {
     if ($pid) {
         %::CNT = ();
 
-        my ($dbh, $error_str) = connect_to_database();
+        my ($dbh, $error_str) = $T->connect_to_database();
         ok($dbh, "Connected: $pid");
 
         my $evh = $dbh->func('foo_inserted', 'foo_deleted', 'ib_init_event');
@@ -114,7 +113,7 @@ SKIP: {
         while ($::SLEEP) {}
 
         #diag "Kid about to connect";
-        my ($dbh, $error_str) = connect_to_database({AutoCommit => 1 });
+        my ($dbh, $error_str) = $T->connect_to_database({AutoCommit => 1 });
         if ($error_str) {
             #diag "Kid connection error: $error_str";
             die;
@@ -133,7 +132,7 @@ SKIP: {
     }
 }}
 
-($dbh, $error_str) = connect_to_database() if $rc->{use_libfbembed};
+($dbh, $error_str) = $T->connect_to_database() if $dbh->{ib_embedded};
 
 ok($dbh->do(qq(DROP TRIGGER ins_${table}_trig)));
 ok($dbh->do(qq(DROP TRIGGER del_${table}_trig)));

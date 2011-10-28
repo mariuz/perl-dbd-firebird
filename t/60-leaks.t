@@ -20,9 +20,10 @@ plan skip_all => "Long memory leak test (try with MEMORY_TEST on linux)\n"
 
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
-my ($dbh, $error_str) = connect_to_database();
+my ($dbh, $error_str) = $T->connect_to_database();
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");

@@ -2,12 +2,14 @@
 ^Makefile.old$
 ^MANIFEST\.SKIP$
 ^Firebird.c$
-^Firebird.bs$
-^Firebird.xsi$
+^embed/
+\.bs$
+\.xsi$
 ^pm_to_blib$
 ^_build
 ^blib
 ~$
+\.swp$
 \.bak$
 \.o$
 \.tmp$

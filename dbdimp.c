@@ -140,55 +140,60 @@ void do_error(SV *h, int rc, char *what)
 
 #define CALC_AVAILABLE(buff) sizeof(buff) - strlen(buff) - 1
 
-/* higher level error handling, check and decode status */
-int ib_error_check(SV *h, ISC_STATUS *status)
-{
+/*
+   decode status vector into a char pointer (implemented by a mortal scalar)
+   Returns NULL if there is no error
+ */
+char* ib_error_decode(const ISC_STATUS *status) {
     if (status[0] == 1 && status[1] > 0)
     {
+        SV *sv = NULL;
         long sqlcode;
-        unsigned int avail = 0;
 #if !defined(FB_API_VER) || FB_API_VER < 20
         ISC_STATUS *pvector = status;
 #else
         const ISC_STATUS *pvector = status;
 #endif
 #if defined (INCLUDE_TYPES_PUB_H) 
-        ISC_SCHAR msg[1024], *pmsg;
+        ISC_SCHAR msg[1024];
 #else
-        char msg[1024], *pmsg;
+        char msg[1024];
 #endif
-        Zero(msg, sizeof(msg), char);
-        pmsg = msg;
 
         if ((sqlcode = isc_sqlcode(status)) != 0)
         {
-            isc_sql_interprete((short) sqlcode, pmsg, sizeof(msg));
-            avail = CALC_AVAILABLE(msg);
-            if (avail > 1) {
-                while (*pmsg) pmsg++;
-                *pmsg++ = '\n';
-                *pmsg++ = '-';
-                avail = CALC_AVAILABLE(msg);
-            }
+            isc_sql_interprete((short) sqlcode, msg, sizeof(msg));
+            sv = sv_2mortal(newSVpv(msg, 0));
         }
 
 #if !defined(FB_API_VER) || FB_API_VER < 20
-        while (isc_interprete(pmsg, &pvector))
+        while (isc_interprete(msg, &pvector))
 #else
-        while (avail > 0 && fb_interpret(pmsg, avail, &pvector))
+        while (fb_interpret(msg, sizeof(msg), &pvector))
 #endif
         {
-            avail = CALC_AVAILABLE(msg);
-            if (avail > 1) {
-                while (*pmsg) pmsg++;
-                *pmsg++ = '\n';
-                *pmsg++ = '-';
-                avail = CALC_AVAILABLE(msg);
+            if ( sv != NULL ) {
+                sv_catpvn(sv, "\n-", 2);
+                sv_catpv(sv, msg);
             }
+            else sv = sv_2mortal(newSVpv(msg,0));
         }
-        *--pmsg = '\0';
 
-        do_error(h, sqlcode, msg);
+        sv_catpvn(sv, "\0", 1);  // NUL-terminate
+
+        return SvPV_nolen(sv);
+    }
+    else return NULL;
+}
+
+/* higher level error handling, check and decode status */
+int ib_error_check(SV *h, ISC_STATUS *status)
+{
+    char *msg = ib_error_decode(status);
+
+    if (msg != NULL)
+    {
+        do_error(h, isc_sqlcode(status), msg);
         return FAILURE;
     }
     else return SUCCESS;
@@ -289,7 +294,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
 
     char ISC_FAR *database;
 
-    STRLEN len; /* for SvPV */
+    STRLEN len, db_len; /* for SvPV */
 
     char  dbkey_scope   = 0;
     short dpb_length    = 0;
@@ -343,18 +348,16 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
         return FALSE;
 
     if (uid != NULL) {
-        buflen += strlen(uid) + 1;
-        buflen += 2;
+        DPB_PREP_STRING(buflen, uid);
     }
 
     if (pwd != NULL) {
-        buflen += strlen(pwd) + 1;
-        buflen += 2;
+        DPB_PREP_STRING(buflen, pwd);
     }
 
     /* does't go to DPB -> no buflen inc */
     if ((svp = hv_fetch(hv, "database", 8, FALSE)))
-        database = SvPV(*svp, len);
+        database = SvPV(*svp, db_len);
     else database = NULL;
 
 
@@ -364,13 +367,13 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
         ib_dialect = (unsigned short) SvIV(*svp);
     else
         ib_dialect = DEFAULT_SQL_DIALECT;
-    buflen += 5;
+    DPB_PREP_INTEGER(buflen);
 
 
     if ((svp = hv_fetch(hv, "ib_cache", 8, FALSE)))
     {
         ib_cache = (unsigned short) SvIV(*svp);
-        buflen += 5;
+        DPB_PREP_INTEGER(buflen);
     }
     else
         ib_cache = 0;
@@ -378,10 +381,10 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     if ((svp = hv_fetch(hv, "ib_charset", 10, FALSE)))
     {
         char *p = SvPV(*svp, len);
-        buflen += len + 2;
+        DPB_PREP_STRING_LEN(buflen, len);
 
         Newx(imp_dbh->ib_charset, len+1, char);
-        strncpy(imp_dbh->ib_charset, p, len+1);
+        strncpy(imp_dbh->ib_charset, p, len);
         *(imp_dbh->ib_charset + len) = '\0';
     }
     else {
@@ -391,7 +394,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     if ((svp = hv_fetch(hv, "ib_role", 7, FALSE)))
     {
         ib_role = SvPV(*svp, len);
-        buflen += len + 2;
+        DPB_PREP_STRING_LEN(buflen, len);
     }
     else
         ib_role = NULL;
@@ -400,7 +403,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     {
         dbkey_scope = (char)SvIV(*svp);
         if (dbkey_scope)
-            buflen += 5;
+            DPB_PREP_INTEGER(buflen);
     }
 
     /* add length of other parameters to needed buflen */
@@ -416,13 +419,11 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
 
     /* Fill DPB */
     dpb = dpb_buffer;
-    DPB_FILL_BYTE(dpb, isc_dpb_version1);
+    *dpb++ = isc_dpb_version1;
 
-    DPB_FILL_BYTE(dpb, isc_dpb_user_name);
-    DPB_FILL_STRING(dpb, uid);
+    DPB_FILL_STRING(dpb, isc_dpb_user_name, uid);
 
-    DPB_FILL_BYTE(dpb, isc_dpb_password);
-    DPB_FILL_STRING(dpb, pwd);
+    DPB_FILL_STRING(dpb, isc_dpb_password, pwd);
 
     if (ib_cache)
     {
@@ -431,37 +432,38 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
          * 10000 pages, so we don't exhaust memory inadvertently.
          */
         if (ib_cache > 10000) ib_cache = 10000;
-        DPB_FILL_BYTE(dpb, isc_dpb_num_buffers);
-        DPB_FILL_INTEGER(dpb, ib_cache);
+        DPB_FILL_INTEGER(dpb, isc_dpb_num_buffers, ib_cache);
     }
 
-    DPB_FILL_BYTE(dpb, isc_dpb_sql_dialect);
-    DPB_FILL_INTEGER(dpb, ib_dialect);
+    DPB_FILL_INTEGER(dpb, isc_dpb_sql_dialect, ib_dialect);
 
     if (dbkey_scope)
     {
-        DPB_FILL_BYTE(dpb, isc_dpb_dbkey_scope);
-        DPB_FILL_INTEGER(dpb, dbkey_scope);
+        DPB_FILL_INTEGER(dpb, isc_dpb_dbkey_scope, dbkey_scope);
     }
 
     if (imp_dbh->ib_charset)
     {
-        DPB_FILL_BYTE(dpb, isc_dpb_lc_ctype);
-        DPB_FILL_STRING(dpb, imp_dbh->ib_charset);
+        DPB_FILL_STRING(dpb, isc_dpb_lc_ctype, imp_dbh->ib_charset);
     }
 
     if (ib_role)
     {
-        DPB_FILL_BYTE(dpb, isc_dpb_sql_role_name);
-        DPB_FILL_STRING(dpb, ib_role);
+        DPB_FILL_STRING(dpb, isc_dpb_sql_role_name, ib_role);
     }
 
     dpb_length = dpb - dpb_buffer;
 
+    if ( dpb_length != buflen ) {
+        fprintf(stderr, "# db_login6: %d != %d\n", dpb_length, buflen);
+        fflush(stderr);
+        abort();
+    }
+
     DBI_TRACE_imp_xxh(imp_dbh, 3, (DBIc_LOGPIO(imp_dbh), "dbd_db_login6: attaching to database %s..\n", database));
 
     isc_attach_database(status,           /* status vector */
-                        0,                /* connect string is null-terminated */
+                        db_len,
                         database,         /* connect string */
                         &(imp_dbh->db),   /* ref to db handle */
                         dpb_length,       /* length of dpb */
@@ -715,6 +717,12 @@ SV *dbd_db_FETCH_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv)
     else if ((kl==18) && strEQ(key, "ib_timestampformat"))
         result = newSVpvn(imp_dbh->timestampformat,
                           strlen(imp_dbh->timestampformat));
+    else if ((kl==11) && strEQ(key, "ib_embedded"))
+#ifdef EMBEDDED
+        result = &PL_sv_yes;
+#else
+        result = &PL_sv_no;
+#endif
 
     if (result == NULL)
         return Nullsv;

@@ -100,29 +100,47 @@ do {                      \
     }                     \
 } while (0)
 
-#define DPB_FILL_BYTE(dpb, byte)  \
-do {                              \
-    *dpb = byte;                  \
-    dpb += 1;                     \
+#define DPB_FILL_BYTE(dpb, code, byte)  \
+do {                                    \
+    *dpb++ = code;                      \
+    *dpb++ = 1;                         \
+    *dpb++ = byte;                      \
 } while (0)
 
-#define DPB_FILL_INTEGER(dpb, integer)       \
-do {                                         \
-    int tmp = integer;                       \
-    *(dpb) = 4;                              \
-    dpb += 1;                                \
-    tmp = isc_vax_integer((char *) &tmp, 4); \
-    Copy(&tmp, dpb, 1, int);                 \
-    dpb += 4;                                \
+#define DPB_FILL_INTEGER(dpb, code, integer)    \
+do {                                            \
+    ISC_LONG tmp = integer;                     \
+    *dpb++ = code;                              \
+    *dpb++ = sizeof(tmp);                                  \
+    tmp = isc_vax_integer((char *) &tmp, sizeof(tmp));    \
+    Copy(&tmp, dpb, 1, ISC_LONG);            \
+    dpb += sizeof(tmp);                         \
 } while (0)
 
-#define DPB_FILL_STRING(dpb, string)   \
-do {                                   \
-    char l = strlen(string) & 0xFF;    \
-    *(dpb) = l;                        \
-    dpb += 1;                          \
-    strncpy(dpb, string, (size_t) l);  \
-    dpb += l;                          \
+#define DPB_FILL_STRING(dpb, code, string)  \
+    DPB_FILL_STRING_LEN(dpb, code, string, strlen(string) )
+
+#define DPB_FILL_STRING_LEN(dpb, code, string, len) \
+do {                                                \
+    if ( len > 255 )                                \
+        croak("DPB string too long (%d)", len);     \
+    *dpb++ = code;                                  \
+    *dpb++ = len;                                   \
+    strncpy(dpb, string, (size_t) len);             \
+    dpb += len;                                     \
+} while (0)
+
+#define DPB_PREP_INTEGER(buflen)    \
+do {                                \
+    buflen += sizeof(ISC_LONG) + 2; \
+} while (0)
+
+#define DPB_PREP_STRING(buflen, string) \
+    DPB_PREP_STRING_LEN(buflen, strlen(string))
+
+#define DPB_PREP_STRING_LEN(buflen, len)    \
+do {                                        \
+    buflen += len + 2;                      \
 } while (0)
 
 
@@ -288,6 +306,7 @@ void    dbd_preparse _((SV *sth, imp_sth_t *imp_sth, char *statement));
 int     dbd_describe _((SV *sth, imp_sth_t *imp_sth));
 int     dbd_db_ping   (SV *dbh);
 
+char* ib_error_decode(const ISC_STATUS *status);
 int ib_error_check(SV *h, ISC_STATUS *status);
 
 int ib_start_transaction   (SV *h, imp_dbh_t *imp_dbh);

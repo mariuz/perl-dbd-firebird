@@ -6,7 +6,6 @@ MYMETA.*
 MANIFEST
 pm_to_blib
 blib/
-inc/
 *.tmp
 *~
 *.log

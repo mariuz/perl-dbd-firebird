@@ -7,10 +7,6 @@
 # Smallest and biggest decimal supported by Firebird:
 #   -922337203685477.5808, 922337203685477.5807
 #
-# This test uses isql CLI for the creation of the table and for the
-# insertion of the values.  Look at bigdecimal.t for a Perl only
-# variant.
-#
 
 use strict;
 use warnings;
@@ -21,76 +17,47 @@ use DBI;
 
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
-my ($dbh1, $error_str) = connect_to_database();
+my ($dbh, $error_str) = $T->connect_to_database();
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");
 }
 
-unless ( $dbh1->isa('DBI::db') ) {
+unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 12;
+    plan tests => 9;
 }
 
-ok($dbh1, 'dbh1 OK');
+ok($dbh, 'dbh OK');
 
 # ------- TESTS ------------------------------------------------------------- #
 
 # Find a new table name
-my $table = find_new_table($dbh1);
+my $table = find_new_table($dbh);
 ok($table, "TABLE is '$table'");
 
-my $rc = read_cached_configs();
-my ( $db, $test_user, $test_password, $test_isql, $host ) =
-  ( $rc->{path}, $rc->{user}, $rc->{pass}, $rc->{isql}, $rc->{host} );
-
-my $auth = $test_user ? "USER '$test_user' PASSWORD '$test_password'" : '';
-
-# Prepare isql commands
-my $insert_sql =<<"ISQLDEF";
-CONNECT '$host:$db' $auth;
+$dbh->do(<<DEF);
 CREATE TABLE $table (
     DEC_MIN  NUMERIC(18,4),
     DEC_MAX  NUMERIC(18,4)
-);
-COMMIT;
+)
+DEF
+$dbh->do(<<DEF);
 INSERT INTO $table (
     DEC_MIN,
     DEC_MAX
 ) VALUES (
     -922337203685477.5808,
     922337203685477.5807
-);
-COMMIT;
-quit;
-ISQLDEF
-
-my $test_sql_insert = './t/insert.sql';      # temp file name
-
-# Create an SQL file with the SQL statements
-open my $t_fh, '>', $test_sql_insert
-    or die qq{Can't write to $test_sql_insert};
-print {$t_fh} $insert_sql;
-close $t_fh;
-
-# Run isql
-my $ocmd = qq("$test_isql" -sql_dialect 3 -i "$test_sql_insert" 2>&1);
-# print "cmd: $ocmd\n";
-system($ocmd) == 0
-    or die "system '$ocmd' failed: $?";
-
-ok($dbh1->disconnect(), 'DISCONNECT dbh1');
-
-# reConnect to the database
-my ($dbh2, $error_str2) = connect_to_database({ ChopBlanks => 1 });
+)
+DEF
 
 # DBI->trace(4, "trace.txt");
-
-ok($dbh2, 'dbh2 OK');
 
 # Expected fetched values
 my @correct = (
@@ -98,7 +65,7 @@ my @correct = (
 );
 
 # Select the values
-ok( my $cursor = $dbh2->prepare( qq{SELECT * FROM $table} ), 'PREPARE SELECT' );
+ok( my $cursor = $dbh->prepare( qq{SELECT * FROM $table} ), 'PREPARE SELECT' );
 
 ok($cursor->execute, 'EXECUTE SELECT');
 
@@ -121,13 +88,11 @@ for (my $i = 0; $i < @$res; $i++) {
 }
 
 # Drop the test table
-$dbh2->{AutoCommit} = 1;
+$dbh->{AutoCommit} = 1;
 
-ok( $dbh2->do("DROP TABLE $table"), "DROP TABLE '$table'" );
+ok( $dbh->do("DROP TABLE $table"), "DROP TABLE '$table'" );
 
 # Finally disconnect.
-ok($dbh2->disconnect(), 'DISCONNECT');
-
-ok( unlink "$test_sql_insert", 'Cleanup temp file' );
+ok($dbh->disconnect(), 'DISCONNECT');
 
 #-- end TESTS

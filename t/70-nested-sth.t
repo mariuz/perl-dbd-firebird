@@ -10,9 +10,10 @@ use warnings;
 use Test::More;
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
-my ( $dbh, $error_str ) = connect_to_database( { AutoCommit => 1 } );
+my ( $dbh, $error_str ) = $T->connect_to_database( { AutoCommit => 1 } );
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");

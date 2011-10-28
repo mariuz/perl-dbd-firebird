@@ -5,9 +5,6 @@
 # Smallest and biggest integer supported by Firebird:
 #   -9223372036854775808, 9223372036854775807
 #
-# Look at bigdecimal_read.t for a variant that uses isql CLI for the
-# creation of the table and for the insertion of the values.
-#
 
 use strict;
 use warnings;
@@ -18,9 +15,10 @@ use DBI;
 
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
-my ($dbh, $error_str) = connect_to_database();
+my ($dbh, $error_str) = $T->connect_to_database();
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");

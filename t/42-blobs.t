@@ -16,10 +16,11 @@ use DBI qw(:sql_types);
 
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
 my ( $dbh, $error_str ) =
-  connect_to_database( { ChopBlanks => 1, LongReadLen => 524288, } );
+  $T->connect_to_database( { ChopBlanks => 1, LongReadLen => 524288, } );
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");

@@ -14,10 +14,11 @@ use DBI;
 
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
 my ( $dbh, $error_str ) =
-  connect_to_database( { ChopBlanks => 1, AutoCommit => 1 } );
+  $T->connect_to_database( { ChopBlanks => 1, AutoCommit => 1 } );
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");
@@ -95,7 +96,7 @@ ok($dbh->disconnect, 'DISCONNECT for auto rollback');
 
 #--- Reconnect
 
-( $dbh, $error_str ) = connect_to_database( { ChopBlanks => 1 } );
+( $dbh, $error_str ) = $T->connect_to_database( { ChopBlanks => 1 } );
 
 ok($dbh, 'reConnected to the database');
 
@@ -115,7 +116,7 @@ ok($dbh->disconnect, 'DISCONNECT for auto commit');
 
 #--- Reconnect
 
-( $dbh, $error_str ) = connect_to_database( { ChopBlanks => 1 } );
+( $dbh, $error_str ) = $T->connect_to_database( { ChopBlanks => 1 } );
 
 ok($dbh, 'reConnected to the database');
 

@@ -20,10 +20,11 @@ use DBI;
 
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
 my ( $dbh1, $error_str1 ) =
-  connect_to_database( { ChopBlanks => 1 } );
+  $T->connect_to_database( { ChopBlanks => 1 } );
 
 if ($error_str1) {
     BAIL_OUT("Unknown: $error_str1!");
@@ -39,7 +40,7 @@ unless ( $dbh1->isa('DBI::db') ) {
 ok($dbh1, 'Connected to the database (1)');
 
 my ( $dbh2, $error_str2 ) =
-  connect_to_database( { ChopBlanks => 1 } );
+  $T->connect_to_database( { ChopBlanks => 1 } );
 
 ok($dbh2, 'Connected to the database (2)');
 

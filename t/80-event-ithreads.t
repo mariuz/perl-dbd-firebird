@@ -18,13 +18,13 @@ use Config;
 use Test::More;
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
-my ($dbh, $error_str) = connect_to_database();
+my ($dbh, $error_str) = $T->connect_to_database;
 
-my $rc = read_cached_configs();
 my ( $test_dsn, $test_user, $test_password ) =
-  ( $rc->{tdsn}, $rc->{user}, $rc->{pass} );
+  ( $T->{tdsn}, $T->{user}, $T->{pass} );
 
 if ($error_str) {
     BAIL_OUT("Error! $error_str!");
@@ -79,7 +79,6 @@ my $worker = sub {
     my $dbh = DBI->connect(@_, {AutoCommit => 1 }) or return 0;
     for (1..5) {
         $dbh->do(qq{INSERT INTO $table VALUES($_, 'bar')});
-        sleep 1;
     }
     $dbh->do(qq{DELETE FROM $table});
     $dbh->disconnect;

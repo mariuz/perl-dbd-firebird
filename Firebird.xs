@@ -1170,6 +1170,43 @@ ib_database_info(dbh, ...)
 #undef DB_INFOBUF
 #undef DB_RESBUF_CASEHDR
 
+int
+ib_drop_database(dbh)
+    SV *dbh
+    PREINIT:
+    ISC_STATUS status[ISC_STATUS_LENGTH];
+    CODE:
+{
+    D_imp_dbh(dbh);
+
+    /* set the database handle to inactive */
+    DBIc_ACTIVE_off(imp_dbh);
+
+    /* rollback */
+    if (imp_dbh->tr)
+    {
+        isc_rollback_transaction(status, &(imp_dbh->tr));
+        if (ib_error_check(dbh, status))
+            XSRETURN(FALSE);
+
+        imp_dbh->tr = 0L;
+    }
+
+    FREE_SETNULL(imp_dbh->ib_charset);
+    FREE_SETNULL(imp_dbh->tpb_buffer);
+    FREE_SETNULL(imp_dbh->dateformat);
+    FREE_SETNULL(imp_dbh->timeformat);
+    FREE_SETNULL(imp_dbh->timestampformat);
+
+    /* drop */
+    isc_drop_database(status, &(imp_dbh->db));
+
+    if (ib_error_check(dbh, status)) RETVAL = 0;
+    else RETVAL = 1;
+}
+    OUTPUT:
+    RETVAL
+
 #*******************************************************************************
 
 IB_EVENT *
@@ -1346,6 +1383,187 @@ ib_wait_event(dbh, ev)
 }
     OUTPUT:
     RETVAL
+
+void
+_create_database(params)
+    HV *params
+  CODE:
+{
+    ISC_STATUS status[ISC_STATUS_LENGTH]; /* isc api status vector    */
+    char *str;
+    size_t len;
+    int page_size;
+    SV  *sql, **sv;
+    unsigned short dialect;
+    isc_db_handle db = 0;
+    isc_tr_handle tr = 0;
+
+    sv = hv_fetch(params, "db_path", 7, FALSE);
+    if ((sv == NULL) || !SvOK(*sv))
+        croak("Missing db_path");
+
+    sql = sv_2mortal( newSVpv( "CREATE DATABASE '", 0 ) );
+    str = SvPV( *sv, len );
+    sv_catpvn( sql, str, len );
+    sv_catpvn( sql, "'", 1 );
+
+    sv = hv_fetch( params, "user", 4, FALSE );
+    if ( (sv != NULL) && SvOK(*sv) ) {
+        str = SvPV( *sv, len );
+        sv_catpvn( sql, " USER '", 7 );
+        sv_catpvn( sql, str, len );
+        sv_catpvn( sql, "'", 1 );
+    }
+
+    sv = hv_fetch( params, "password", 8, FALSE );
+    if ( (sv != NULL) && SvOK(*sv) ) {
+        str = SvPV( *sv, len );
+        sv_catpvn( sql, " PASSWORD '", 11 );
+        sv_catpvn( sql, str, len );
+        sv_catpvn( sql, "'", 1 );
+    }
+
+    sv = hv_fetch( params, "page_size", 9, FALSE );
+    if ( (sv != NULL) && SvOK(*sv) ) {
+        page_size = SvIV(*sv);
+        sv_catpvf( sql, " PAGE_SIZE %d", page_size );
+    }
+
+    sv = hv_fetch( params, "character_set", 13, FALSE );
+    if ( (sv != NULL) && SvOK(*sv) ) {
+        str = SvPV_nolen(*sv);
+        sv_catpvf( sql, " DEFAULT CHARACTER SET %s", str );
+    }
+
+    sv = hv_fetch( params, "dialect", 7, FALSE );
+    if ( (sv != NULL) && SvOK(*sv) ) {
+        dialect = SvIV(*sv);
+    }
+    else {
+        dialect = DEFAULT_SQL_DIALECT;
+    }
+
+    str = SvPV(sql, len);
+
+    isc_dsql_execute_immediate(
+        status,
+        &db, &tr,
+        len, str,
+        dialect, NULL );
+
+    if( (str = ib_error_decode(status)) != NULL ) {
+        croak(str);
+    }
+
+    // disconnect from the just created database
+    isc_detach_database( status, &db );
+    if ( (str = ib_error_decode(status)) != NULL ) {
+        warn(str);
+    }
+}
+
+void
+_gfix(params)
+    HV *params
+  CODE:
+{
+    ISC_STATUS status[ISC_STATUS_LENGTH]; /* isc api status vector    */
+    char *db_path;
+    size_t db_path_len;
+    unsigned short buffers = 0;
+    short forced_writes = -1;
+    char *user = NULL, *pwd = NULL;
+    size_t user_len, pwd_len;
+    char ISC_FAR *dpb_buffer, *dpb;
+    short buflen = 0;
+    SV  **sv;
+    isc_db_handle db = 0;
+    char *str;
+
+    sv = hv_fetch(params, "db_path", 7, FALSE);
+    if ((sv == NULL) || !SvOK(*sv))
+        croak("Missing db_path");
+
+    db_path = SvPV(*sv, db_path_len);
+
+    if (( (sv = hv_fetch(params, "user", 4, FALSE)) != NULL) && SvOK(*sv)) {
+        user = SvPV(*sv, user_len);
+        DPB_PREP_STRING_LEN(buflen, user_len);
+    }
+
+    if (( (sv = hv_fetch(params, "password", 8, FALSE)) != NULL) && SvOK(*sv)) {
+        pwd = SvPV(*sv, pwd_len);
+        DPB_PREP_STRING_LEN(buflen, pwd_len);
+    }
+
+    /* the actual interesting stuff -- database parameters */
+
+    if (((sv = hv_fetch(params, "buffers", 7, FALSE)) != NULL) && SvOK(*sv))
+    {
+        buffers = (unsigned short) SvIV(*sv);
+        DPB_PREP_INTEGER(buflen);
+    }
+
+    if (((sv = hv_fetch(params, "forced_writes", 13, FALSE)) != NULL) && SvOK(*sv))
+    {
+        forced_writes = SvTRUE(*sv) ? 1 : 0;
+        DPB_PREP_INTEGER(buflen);
+    }
+
+    /* add length of other parameters to needed buflen */
+    buflen += 1; /* dbpversion */
+
+    /* Allocate DPB */
+    Newx(dpb_buffer, buflen, char);
+
+    /* Fill DPB */
+    dpb = dpb_buffer;
+    *dpb++ = isc_dpb_version1;
+
+    if ( user != NULL ) {
+        DPB_FILL_STRING_LEN(dpb, isc_dpb_user_name, user, user_len);
+    }
+
+    if ( pwd != NULL ) {
+        DPB_FILL_STRING_LEN(dpb, isc_dpb_password, pwd, pwd_len);
+    }
+
+    if (buffers)
+    {
+        DPB_FILL_INTEGER(dpb, isc_dpb_num_buffers, buffers);
+    }
+
+    if (forced_writes >= 0)
+    {
+        DPB_FILL_INTEGER(dpb, isc_dpb_force_write, forced_writes);
+    }
+
+    if ( (dpb-dpb_buffer) != buflen ) {
+        fprintf(stderr, "# gfix: DPB length mismatch: %ld != %d\n", dpb-dpb_buffer, buflen);
+        fflush(stderr);
+        abort();
+    }
+
+    isc_attach_database(status,           /* status vector */
+                        db_path_len,
+                        db_path,
+                        &db,
+                        buflen,
+                        dpb_buffer);
+
+    /* freeing database parameter buffer */
+    Safefree(dpb_buffer);
+
+    /* return false on failed attach */
+    if ( ( str = ib_error_decode(status)) != NULL )
+        croak("gfix: %s", str);
+
+    // disconnect from the just created database
+    isc_detach_database( status, &db );
+    if ( (str = ib_error_decode(status)) != NULL ) {
+        warn("gfix/detach: %s", str);
+    }
+}
 
 
 MODULE = DBD::Firebird     PACKAGE = DBD::Firebird::Event

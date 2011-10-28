@@ -10,9 +10,11 @@ use Test::More;
 use DBI;
 use vars qw($dbh $table);
 
-BEGIN {
-        require 't/tests-setup.pl';
-}
+use lib 't';
+
+use TestFirebird;
+my $T = TestFirebird->new;
+
 END {
        if (defined $dbh and defined $table) {
                eval { $dbh->do("DROP TABLE $table"); };
@@ -31,7 +33,7 @@ sub is_maybe_zbt {
 
 plan tests => 84;
 
-($dbh) = connect_to_database({RaiseError => 1});
+($dbh) = $T->connect_to_database({RaiseError => 1});
 pass("connect");
 $table = find_new_table($dbh);
 $dbh->do("CREATE TABLE $table(ID INTEGER NOT NULL, NAME VARCHAR(16) NOT NULL)");

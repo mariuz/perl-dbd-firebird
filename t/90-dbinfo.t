@@ -7,13 +7,13 @@ use warnings;
 use Test::More;
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
-my ($dbh1, $error_str) = connect_to_database();
+my ($dbh1, $error_str) = $T->connect_to_database();
 
-my $rc = read_cached_configs();
 my ( $test_dsn, $test_user, $test_password ) =
-  ( $rc->{tdsn}, $rc->{user}, $rc->{pass} );
+  ( $T->{tdsn}, $T->{user}, $T->{pass} );
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");
@@ -62,7 +62,7 @@ SKIP: {
 
     skip "$k is not available", 10 unless exists $info->{$k};
 
-    my ($dbh2, $error_str2) = connect_to_database({AutoCommit => 0 });
+    my ($dbh2, $error_str2) = $T->connect_to_database({AutoCommit => 0 });
     ok($dbh2);
 
     is($dbh2->func($k, 'ib_database_info')->{$k}, 0, "tx count should be 0, no tx started yet");

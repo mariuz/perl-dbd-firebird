@@ -9,9 +9,10 @@ use Data::Dumper;
 use Test::More;
 use lib 't','.';
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
-my ($dbh1, $error_str) = connect_to_database({AutoCommit => 0});
+my ($dbh1, $error_str) = $T->connect_to_database({AutoCommit => 0});
 
 if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");

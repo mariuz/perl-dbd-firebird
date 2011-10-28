@@ -16,20 +16,19 @@ use lib 't','.';
 
 use Encode qw(encode_utf8);
 
-require 'tests-setup.pl';
+use TestFirebird;
+my $T = TestFirebird->new;
 
 eval "use Test::Exception; 1"
     or plan skip_all => 'Test::Exception needed for this test';
 plan tests => 37;
 
-my $rc = read_cached_configs();
-
 # first connect with charset ASCII
-my $dsn = $rc->{tdsn};
+my $dsn = $T->{tdsn};
 $dsn =~ s/ib_charset=\K[^;]+/ASCII/;
 my $attr
     = { RaiseError => 1, PrintError => 0, AutoCommit => 1, ChopBlanks => 1 };
-my $dbh = DBI->connect( $dsn, $rc->{user}, $rc->{pass}, $attr );
+my $dbh = DBI->connect( $dsn, $T->{user}, $T->{pass}, $attr );
 
 # …and try to turn on ib_enable_utf8 (should fail)
 
@@ -41,7 +40,7 @@ $dbh->disconnect;
 
 # now connect with UTF8 charset
 $dsn =~ s/ib_charset=\K[^;]+/UTF8/;
-$dbh = DBI->connect( $dsn, $rc->{user}, $rc->{pass}, $attr );
+$dbh = DBI->connect( $dsn, $T->{user}, $T->{pass}, $attr );
 
 # …and try to set ib_enable_utf8 again
 ok( $dbh->{ib_enable_utf8} = 1, 'Set ib_enable_utf8' );
