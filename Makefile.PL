@@ -41,9 +41,9 @@
 # improved support for MinGW (now using the Config module)
 # added support for ActivePerl! :)
 #
-# Notes:
-# MS specific required Firebird installation setting:
-# Copy Firebird client library to <system> directory? - Yes
+# Notes: MS specific required Firebird installation setting: Copy
+# Firebird client library to <system> directory? - Yes, unless the
+# Firebird HOME is in your path.
 #
 
 package MY;
