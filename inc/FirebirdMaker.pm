@@ -6,6 +6,7 @@ use strict;
 use base 'Exporter';
 use Carp;
 use ExtUtils::MakeMaker;
+use File::Basename;
 
 use Config;
 
