@@ -1458,7 +1458,7 @@ _create_database(params)
     // disconnect from the just created database
     isc_detach_database( status, &db );
     if ( (str = ib_error_decode(status)) != NULL ) {
-        warn(str);
+        warn("%s", str);
     }
 }
 
