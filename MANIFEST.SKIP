@@ -3,6 +3,7 @@
 ^MANIFEST\.SKIP$
 ^Firebird.c$
 ^embed/
+t/embed-*
 \.bs$
 \.xsi$
 ^pm_to_blib$
