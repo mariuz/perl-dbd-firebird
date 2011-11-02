@@ -19,3 +19,4 @@ t/embed-*
 \.git/*
 ^tmp/*
 ^t/tests-setup.tmp.*
+^DBD-Firebird-*
