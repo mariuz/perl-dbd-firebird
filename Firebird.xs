@@ -1452,7 +1452,7 @@ _create_database(params)
         dialect, NULL );
 
     if( (str = ib_error_decode(status)) != NULL ) {
-        croak(str);
+        croak("%s", str);
     }
 
     // disconnect from the just created database
