@@ -1,4 +1,50 @@
 Revision history for Perl extension DBD::Firebird.
+0.90 [2011-11-02]
+[Details: https://github.com/mariuz/perl-dbd-firebird/commits/release0.90]
+ * Always pass cleanup test and just warn on failure.
+ * fix DBP_FILL_INTEGER
+ * Note other authors in the AUTHORS section
+ * drop inc/ from .gitignore
+ * skip vim swap files
+ * ignore *.bs and *.xsi regardless of the directory
+ * move test routines in a package (TestFirebird)
+ * Build-time generated DBD::FirebirdEmbedded
+  + factor-out most of Makefile.PL in inc/FirebirdMaker.pm
+  + enable FirebirdEmbedded only if libfbembed.so is available
+  + really prevent multiple debugs by dbi_arch_dir
+  + compile embedded dbdimp.c with -DEMBEDDED
+  + t/cleanup: keep the test configuration file
+  + create_test_database: cater for host-less databases (e.g. embedded)
+  + rely on the ib_embedded dbh attribute for embedded detection
+  + remove generated embedded tests on realclean
+  + add test for the ib_embedded dbh attribute
+  + print some info about libfbembed availability
+  + support DBD_FIREBIRD_REQUIRE_EMBEDDED env. variable
+ * create_test_database: set test database forced writes off
+ * drop sleeping in ithreads test
+ * drop use_libfbembed usage
+ * diagnostics on database creation/drop
+ * move decoding of status into ib_error_decode
+ * implement DBD::Firebird->create_database
+ * add DPB_FILL_STRING_LEN macro for when we know the length
+ * use the driver instead of isql for creating the test database
+ * implement DBD::Firebird->gfix
+ * generic create_test_database
+ * check_database: rework without ISQL
+ * add ib_drop_database function
+ * tests: rework database dropping without ISQL
+ * rework tests 92 and 94 without ISQL
+ * build/test without ISQL
+ * db_login6: use determined database length
+ * db_login6: fix dbp ingrements for strings and integers
+ * db_login/charset: copy only SV content
+ * rework populating of DPB
+ * db_login6, gfix: abort if DPB length doesn't match projected
+ * mark all copied/mangled files for embedded as such
+ * add $ENV{CFLAGS} to CCFLAGS
+ * fix a format string warning on 32-bit CPUs
+ * Fix comment about MS platform requirement.
+ * avoid using warn(char*)
 0.80 [2011-10-03]
 [Details: https://github.com/mariuz/perl-dbd-firebird/commits/release0.80]
  * Reimplement bind_param_array without calling bind_param calling bind_param is not necessary as we ignore $attr anyway it also causes problems when the column has non-NULL constraint this makes bind_param_array work again. Fixes RT 54561
