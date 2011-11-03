@@ -1,4 +1,9 @@
 Revision history for Perl extension DBD::Firebird.
+0.91 [2011-11-03]
+[Details: https://github.com/mariuz/perl-dbd-firebird/commits/release0.91]
+ * fix small typo in Firebird.pm POD
+ * avoid using croak(char*)
+ * fix two cases of format strings != arguments on 32-bit OS
 0.90 [2011-11-02]
 [Details: https://github.com/mariuz/perl-dbd-firebird/commits/release0.90]
  * Always pass cleanup test and just warn on failure.
