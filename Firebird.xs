@@ -1539,7 +1539,7 @@ _gfix(params)
     }
 
     if ( (dpb-dpb_buffer) != buflen ) {
-        fprintf(stderr, "# gfix: DPB length mismatch: %ld != %d\n", dpb-dpb_buffer, buflen);
+        fprintf(stderr, "# gfix: DPB length mismatch: %"PRIdPTR" != %d\n", dpb-dpb_buffer, buflen);
         fflush(stderr);
         abort();
     }
