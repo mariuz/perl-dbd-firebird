@@ -1,0 +1,58 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+use DBD::FirebirdEmbedded;
+
+my $dbh;
+
+while (1) {
+    print "> ";
+    my $in = <>;
+    last unless defined($in);
+
+    next if $in =~ /^\s*--/;
+
+    if ( $in =~ /^\s*create\s*database\s*'([^']+)'\s*$/ ) {
+        my $db_path = $1;
+        DBD::FirebirdEmbedded->create_database({db_path => $1});
+        $dbh = DBI->connect( "dbi:FirebirdEmbedded:db=$1", undef, undef,
+            { AutoCommit => 0 } );
+    }
+    elsif ( $in =~ /^\s*connect '([^']+)'\s*$/ ) {
+        $dbh = DBI->connect( "dbi:FirebirdEmbedded:db=$1", undef, undef,
+            { AutoCommit => 0 } );
+    }
+    elsif ( $in =~ /^\s*exit\s*/i ) {
+        $dbh->commit if $dbh;
+        last;
+    }
+    elsif ( $in =~ /^\s*quit\s*/i ) {
+        $dbh->rollback if $dbh;
+        last;
+    }
+    else {
+        if ($dbh) {
+            my $sth = $dbh->prepare_cached($in);
+            $sth->execute();
+            if ( $sth->{NUM_OF_FIELDS} > 0 ) {
+                print join( "\t", @{ $sth->{NAME} } ), "\n";
+                while ( my $row = $sth->fetchrow_arrayref ) {
+                    print
+                        join( "\t", map( defined($_) ? $_ : 'NULL', @$row ) ),
+                        "\n";
+                }
+                $sth->finish;
+            }
+        }
+        else {
+            warn "E: Not connected to a database.\n";
+        }
+    }
+}
+
+if ($dbh) {
+    $dbh->rollback;
+    $dbh->disconnect;
+}
