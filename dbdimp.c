@@ -2033,7 +2033,7 @@ int dbd_discon_all(SV *drh, imp_drh_t *imp_drh)
     {
         sv_setiv(DBIc_ERR(imp_drh), (IV)1);
         sv_setpv(DBIc_ERRSTR(imp_drh), (char*)"disconnect_all not implemented");
-        DBIh_EVENT2(drh, ERROR_event, DBIc_ERR(imp_drh), DBIc_ERRSTR(imp_drh));
+        (void)DBIh_EVENT2(drh, ERROR_event, DBIc_ERR(imp_drh), DBIc_ERRSTR(imp_drh));
         return FALSE;
     }
     if (PL_perl_destruct_level)
