@@ -906,6 +906,10 @@ Supported by the driver as proposed by DBI.
 
 Not supported by the driver. 
 
+=item B<ParamValues> (hashref, read-only)
+
+Supported by the driver as proposed by DBI.
+
 =back
 
 =head1 TRANSACTION SUPPORT

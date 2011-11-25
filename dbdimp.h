@@ -265,6 +265,7 @@ struct imp_sth_st
     char            *timeformat;
     imp_sth_t       *prev_sth;                /* pointer to prev statement */
     imp_sth_t       *next_sth;                /* pointer to next statement */
+    HV              *param_values;      /* For storing the ParamValues attribute */
 };
 
 
