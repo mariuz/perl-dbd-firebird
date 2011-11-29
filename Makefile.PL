@@ -173,8 +173,12 @@ do {
     $FB::dbi_arch_dir ||= DBI::DBD::dbd_dbi_arch_dir();
 } unless $EMBEDDED;
 
-my $comp_opts = $Config{q{ccflags}}//'';
-$comp_opts .= " $ENV{CFLAGS}" if $ENV{CFLAGS};
+my $cflags = $Config{q{ccflags}}||'';
+$cflags .= " $ENV{CFLAGS}" if $ENV{CFLAGS};
+
+if ($Config{cc} =~ /gcc/) {
+    $cflags = "-Wall -fno-strict-aliasing $cflags";
+}
 
 my %MakeParams = (
     NAME         => $module_name,
@@ -183,7 +187,7 @@ my %MakeParams = (
         : 'Firebird.pm',    # finds $VERSION
     C            => ['dbdimp.c'],
     H => [ 'dbdimp.h', $EMBEDDED ? 'FirebirdEmbedded.h' : 'Firebird.h' ],
-    CCFLAGS      => "-Wall -fno-strict-aliasing $comp_opts",
+    CCFLAGS      => $cflags,
     ( $EMBEDDED ? ( DEFINE => '-DEMBEDDED' ) : () ),
     INC          => qq(-I"$FB::INC" -I"$FB::dbi_arch_dir"),
     OBJECT => join( ' ',
@@ -222,7 +226,7 @@ SWITCH: {
         if ( $Config{cc} =~ m{gcc} ) {
             setup_for_ms_gcc();
         }
-        elsif ( $Config{cc} eq q{cl} ) {     # not tested
+        elsif ( $Config{cc} eq q{cl} ) {
             setup_for_ms_cl();
         }
         else {

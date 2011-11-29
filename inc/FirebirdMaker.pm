@@ -109,34 +109,6 @@ LDDLFLAGS =  -L\"$mingw_lib\" $cur_lddlflags
 }
 
 sub setup_for_ms_cl {
-
-    # NOT tested !!!
-
-    # Try to find Microsoft Visual C++ compiler
-    my $vc_dir = registry_lookup_ms_cl();
-
-    my @vc_dirs = ( $vc_dir . "/bin" );
-
-    my $VC_PATH =
-        dir_choice( "Visual C++ directory", [@vc_dirs], [qw(cl.exe)] );
-
-    unless ( -x $VC_PATH ) {
-        carp
-            "I can't find your MS VC++ installation.\nDBD::Firebird cannot build.\n";
-        exit 1;
-    }
-
-    my $vc_inc = $VC_PATH . "/include";
-    my $vc_lib = $VC_PATH . "/lib";
-
-    $INC .= " -I\"$vc_inc\"";
-
-    my $ib_lib = dir_choice(
-        "Firebird lib directory",
-        [ $FB::LIB . "SDK\\lib_ms", $FB::LIB . "lib" ],
-        [qw(gds32_ms.lib fbclient_ms.lib)]
-    );
-
     my $cur_libs      = $Config{libs};
     my $cur_lddlflags = $Config{lddlflags};
 
@@ -150,7 +122,7 @@ sub setup_for_ms_cl {
     sub MY::const_loadlibs {
     '
 LDLOADLIBS = \"$lib\" $cur_libs
-LDDLFLAGS =  -L\"$vc_lib\" $cur_lddlflags
+LDDLFLAGS  = $cur_lddlflags
     '
 } ";
 
@@ -339,18 +311,21 @@ sub registry_lookup {
 sub read_registry {
     my $rec = shift;
 
-    my @path;
+    my (@path, $path);
     eval {
         require Win32::TieRegistry;
 
-        my $path =
+        $path =
           Win32::TieRegistry->new( $rec->{path} )->GetValue( $rec->{key} );
-
-        push @path, $path if $path;
     };
     if ($@) {
-        warn "Error: $@!\n";
+        # TieRegistry fails on this key sometimes for some reason
+        my $out = `reg query "$rec->{path}" /v $rec->{key}`;
+
+        ($path) = $out =~ /REG_\w+\s+(.*)/;
     }
+
+    push @path, $path if $path;
 
     return wantarray ? @path : \@path;
 }
