@@ -11,6 +11,7 @@ use File::Basename;
 use Config;
 
 our @EXPORT_OK = qw( WriteMakefile1 setup_for_ms_gcc setup_for_ms_cl
+    setup_for_cygwin
     locate_firebird check_and_set_devlibs alternative_locations
     search_fb_home_dirs search_fb_inc_dirs search_fb_lib_dirs
     locate_firebird_ms registry_lookup read_registry read_data
@@ -125,8 +126,25 @@ LDLOADLIBS = \"$lib\" $cur_libs
 LDDLFLAGS  = $cur_lddlflags
     '
 } ";
+}
 
-return;
+sub setup_for_cygwin {
+    my $cur_libs      = $Config{libs};
+    my $cur_lddlflags = $Config{lddlflags};
+
+    my $dll;
+    if ( -f "$FB::HOME/bin/fbclient.dll" ) {
+        $dll = "$FB::HOME/bin/fbclient.dll";
+    }
+    else { $dll = "$FB::HOME/bin/gds32.dll"; }
+
+    eval "
+    sub MY::const_loadlibs {
+    '
+LDLOADLIBS = -Wl,--enable-stdcall-fixup \"$dll\" $cur_libs
+LDDLFLAGS =  $cur_lddlflags
+    '
+} ";
 }
 
 #-- Subs used to locate Firebird
@@ -324,6 +342,8 @@ sub read_registry {
 
         ($path) = $out =~ /REG_\w+\s+(.*)/;
     }
+
+    $path =~ s/[\r\n]+//g;
 
     push @path, $path if $path;
 

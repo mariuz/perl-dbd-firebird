@@ -130,7 +130,7 @@ unless ($EMBEDDED) {
         # Anyway their value take precedence in locate_firebird sub.
 
         # Try to locate Firebird in the ususal places
-        if ($os eq 'MSWin32') {
+        if ($os eq 'MSWin32' || $os eq 'cygwin') {
             locate_firebird_ms();
         }
         else {
@@ -234,6 +234,10 @@ SWITCH: {
             print "(Try: ppm install MinGW, to install MinGW!)\n";
             exit 1;
         }
+        last SWITCH;
+    };
+    $os eq 'cygwin' && do {
+        setup_for_cygwin();
         last SWITCH;
     };
     $os eq 'solaris' && do {
