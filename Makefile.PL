@@ -120,8 +120,23 @@ unless ($EMBEDDED) {
     if ($FB::HOME) {
 
         # 2. Subdirectory of FIREBIRD_HOME
-        $FB::INC = $FB::INC || File::Spec->catdir( $FB::HOME, 'include' );
-        $FB::LIB = $FB::LIB || File::Spec->catdir( $FB::HOME, 'lib' );
+        if ($os eq 'darwin') {
+            $FB::INC ||= (grep -d, (
+                # could be set to Resources/ or not
+                File::Spec->catdir( $FB::HOME, '..', 'Headers' ),
+                File::Spec->catdir( $FB::HOME, 'Headers' ),
+                File::Spec->catdir( $FB::HOME, 'include' ),
+            ))[0];
+            $FB::LIB ||= (grep -d, (
+                File::Spec->catdir( $FB::HOME, '..', 'Libraries' ),
+                File::Spec->catdir( $FB::HOME, 'Libraries' ),
+                File::Spec->catdir( $FB::HOME, 'lib' ),
+            ))[0];
+        }
+        else {
+            $FB::INC ||= File::Spec->catdir( $FB::HOME, 'include' );
+            $FB::LIB ||= File::Spec->catdir( $FB::HOME, 'lib' );
+        }
     }
     else {
         # No FIREBIRD_HOME
@@ -132,6 +147,11 @@ unless ($EMBEDDED) {
         # Try to locate Firebird in the ususal places
         if ($os eq 'MSWin32' || $os eq 'cygwin') {
             locate_firebird_ms();
+        }
+        elsif ($os eq 'darwin') {
+            $FB::HOME = '/Library/Frameworks/Firebird.framework/Resources';
+            $FB::INC  = '/Library/Frameworks/Firebird.framework/Headers';
+            $FB::LIB  = '/Library/Frameworks/Firebird.framework/Libraries';
         }
         else {
             locate_firebird();
