@@ -181,8 +181,8 @@ sub check_and_set_cached_configs {
 
     # Check database path only if local
     if ( !$self->{host} or $self->{host} eq 'localhost' ) {
-        $error_str .= 'wrong path, '
-            if $type eq q{.fdb} and not( -d $path and $base );
+        $error_str .= "wrong path ($path, base $base)"
+            if $type eq q{.fdb} and $path and not( -d $path and $base );
 
         # if no .fdb extension, then it may be an alias
     }
