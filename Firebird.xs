@@ -427,14 +427,15 @@ ib_tx_info(dbh)
                 TX_RESBUF_CASE(lock_timeout)
                 case isc_info_tra_isolation:
                 {
-                    keyname = "isolation";
                     HV* reshv;
+                    short length = isc_vax_integer(++p, 2);
 
-                    /* PerlIO_printf(PerlIO_stderr(), "Got 'isolation' at byte: %d\n", (p - result)); */
-                    ++p;
-                    short length = isc_vax_integer(p, 2);
-                    p += 2;
                     /* PerlIO_printf(PerlIO_stderr(), "Content length: %d\n", length); */
+
+                    keyname = "isolation";
+
+                    /* PerlIO_printf(PerlIO_stderr(), "Got 'isolation' at byte: %d\n", (p - 1 - result)); */
+                    p += 2;
 
                     if (*p == isc_info_tra_consistency) {
                         (void)hv_store(RETVAL, keyname, strlen(keyname), newSVpv("consistency", 0), 0);
@@ -468,10 +469,9 @@ ib_tx_info(dbh)
                     break;
                 }
                 case isc_info_tra_access: {
+                    short length = isc_vax_integer(++p, 2);
                     keyname = "access";
-                    /* PerlIO_printf(PerlIO_stderr(), "Got 'access' at byte: %d\n", (p - result)); */
-                    p++;
-                    short length = isc_vax_integer(p, 2);
+                    /* PerlIO_printf(PerlIO_stderr(), "Got 'access' at byte: %d\n", (p - 1 - result)); */
                     p += 2;
                     if (*p == isc_info_tra_readonly) {
                         (void)hv_store(RETVAL, keyname, strlen(keyname), newSVpvn("readonly", 8), 0);
@@ -1539,7 +1539,7 @@ _gfix(params)
     }
 
     if ( (dpb-dpb_buffer) != buflen ) {
-        fprintf(stderr, "# gfix: DPB length mismatch: %"PRIdPTR" != %d\n", dpb-dpb_buffer, buflen);
+        fprintf(stderr, "# gfix: DPB length mismatch: %ld != %d\n", dpb-dpb_buffer, buflen);
         fflush(stderr);
         abort();
     }

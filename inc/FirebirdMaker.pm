@@ -11,6 +11,7 @@ use File::Basename;
 use Config;
 
 our @EXPORT_OK = qw( WriteMakefile1 setup_for_ms_gcc setup_for_ms_cl
+    setup_for_cygwin
     locate_firebird check_and_set_devlibs alternative_locations
     search_fb_home_dirs search_fb_inc_dirs search_fb_lib_dirs
     locate_firebird_ms registry_lookup read_registry read_data
@@ -109,34 +110,6 @@ LDDLFLAGS =  -L\"$mingw_lib\" $cur_lddlflags
 }
 
 sub setup_for_ms_cl {
-
-    # NOT tested !!!
-
-    # Try to find Microsoft Visual C++ compiler
-    my $vc_dir = registry_lookup_ms_cl();
-
-    my @vc_dirs = ( $vc_dir . "/bin" );
-
-    my $VC_PATH =
-        dir_choice( "Visual C++ directory", [@vc_dirs], [qw(cl.exe)] );
-
-    unless ( -x $VC_PATH ) {
-        carp
-            "I can't find your MS VC++ installation.\nDBD::Firebird cannot build.\n";
-        exit 1;
-    }
-
-    my $vc_inc = $VC_PATH . "/include";
-    my $vc_lib = $VC_PATH . "/lib";
-
-    $INC .= " -I\"$vc_inc\"";
-
-    my $ib_lib = dir_choice(
-        "Firebird lib directory",
-        [ $FB::LIB . "SDK\\lib_ms", $FB::LIB . "lib" ],
-        [qw(gds32_ms.lib fbclient_ms.lib)]
-    );
-
     my $cur_libs      = $Config{libs};
     my $cur_lddlflags = $Config{lddlflags};
 
@@ -150,11 +123,28 @@ sub setup_for_ms_cl {
     sub MY::const_loadlibs {
     '
 LDLOADLIBS = \"$lib\" $cur_libs
-LDDLFLAGS =  -L\"$vc_lib\" $cur_lddlflags
+LDDLFLAGS  = $cur_lddlflags
     '
 } ";
+}
 
-return;
+sub setup_for_cygwin {
+    my $cur_libs      = $Config{libs};
+    my $cur_lddlflags = $Config{lddlflags};
+
+    my $dll;
+    if ( -f "$FB::HOME/bin/fbclient.dll" ) {
+        $dll = "$FB::HOME/bin/fbclient.dll";
+    }
+    else { $dll = "$FB::HOME/bin/gds32.dll"; }
+
+    eval "
+    sub MY::const_loadlibs {
+    '
+LDLOADLIBS = -Wl,--enable-stdcall-fixup \"$dll\" $cur_libs
+LDDLFLAGS =  $cur_lddlflags
+    '
+} ";
 }
 
 #-- Subs used to locate Firebird
@@ -339,18 +329,23 @@ sub registry_lookup {
 sub read_registry {
     my $rec = shift;
 
-    my @path;
+    my (@path, $path);
     eval {
         require Win32::TieRegistry;
 
-        my $path =
+        $path =
           Win32::TieRegistry->new( $rec->{path} )->GetValue( $rec->{key} );
-
-        push @path, $path if $path;
     };
     if ($@) {
-        warn "Error: $@!\n";
+        # TieRegistry fails on this key sometimes for some reason
+        my $out = `reg query "$rec->{path}" /v $rec->{key}`;
+
+        ($path) = $out =~ /REG_\w+\s+(.*)/;
     }
+
+    $path =~ s/[\r\n]+//g;
+
+    push @path, $path if $path;
 
     return wantarray ? @path : \@path;
 }

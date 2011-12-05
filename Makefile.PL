@@ -120,8 +120,23 @@ unless ($EMBEDDED) {
     if ($FB::HOME) {
 
         # 2. Subdirectory of FIREBIRD_HOME
-        $FB::INC = $FB::INC || File::Spec->catdir( $FB::HOME, 'include' );
-        $FB::LIB = $FB::LIB || File::Spec->catdir( $FB::HOME, 'lib' );
+        if ($os eq 'darwin') {
+            $FB::INC ||= (grep -d, (
+                # could be set to Resources/ or not
+                File::Spec->catdir( $FB::HOME, '..', 'Headers' ),
+                File::Spec->catdir( $FB::HOME, 'Headers' ),
+                File::Spec->catdir( $FB::HOME, 'include' ),
+            ))[0];
+            $FB::LIB ||= (grep -d, (
+                File::Spec->catdir( $FB::HOME, '..', 'Libraries' ),
+                File::Spec->catdir( $FB::HOME, 'Libraries' ),
+                File::Spec->catdir( $FB::HOME, 'lib' ),
+            ))[0];
+        }
+        else {
+            $FB::INC ||= File::Spec->catdir( $FB::HOME, 'include' );
+            $FB::LIB ||= File::Spec->catdir( $FB::HOME, 'lib' );
+        }
     }
     else {
         # No FIREBIRD_HOME
@@ -130,8 +145,13 @@ unless ($EMBEDDED) {
         # Anyway their value take precedence in locate_firebird sub.
 
         # Try to locate Firebird in the ususal places
-        if ($os eq 'MSWin32') {
+        if ($os eq 'MSWin32' || $os eq 'cygwin') {
             locate_firebird_ms();
+        }
+        elsif ($os eq 'darwin') {
+            $FB::HOME = '/Library/Frameworks/Firebird.framework/Resources';
+            $FB::INC  = '/Library/Frameworks/Firebird.framework/Headers';
+            $FB::LIB  = '/Library/Frameworks/Firebird.framework/Libraries';
         }
         else {
             locate_firebird();
@@ -173,8 +193,12 @@ do {
     $FB::dbi_arch_dir ||= DBI::DBD::dbd_dbi_arch_dir();
 } unless $EMBEDDED;
 
-my $comp_opts = $Config{q{ccflags}}//'';
-$comp_opts .= " $ENV{CFLAGS}" if $ENV{CFLAGS};
+my $cflags = $Config{q{ccflags}}||'';
+$cflags .= " $ENV{CFLAGS}" if $ENV{CFLAGS};
+
+if ($Config{cc} =~ /gcc/) {
+    $cflags = "-Wall -fno-strict-aliasing $cflags";
+}
 
 my %MakeParams = (
     NAME         => $module_name,
@@ -183,7 +207,7 @@ my %MakeParams = (
         : 'Firebird.pm',    # finds $VERSION
     C            => ['dbdimp.c'],
     H => [ 'dbdimp.h', $EMBEDDED ? 'FirebirdEmbedded.h' : 'Firebird.h' ],
-    CCFLAGS      => "-Wall -fno-strict-aliasing $comp_opts",
+    CCFLAGS      => $cflags,
     ( $EMBEDDED ? ( DEFINE => '-DEMBEDDED' ) : () ),
     INC          => qq(-I"$FB::INC" -I"$FB::dbi_arch_dir"),
     OBJECT => join( ' ',
@@ -222,7 +246,7 @@ SWITCH: {
         if ( $Config{cc} =~ m{gcc} ) {
             setup_for_ms_gcc();
         }
-        elsif ( $Config{cc} eq q{cl} ) {     # not tested
+        elsif ( $Config{cc} eq q{cl} ) {
             setup_for_ms_cl();
         }
         else {
@@ -230,6 +254,10 @@ SWITCH: {
             print "(Try: ppm install MinGW, to install MinGW!)\n";
             exit 1;
         }
+        last SWITCH;
+    };
+    $os eq 'cygwin' && do {
+        setup_for_cygwin();
         last SWITCH;
     };
     $os eq 'solaris' && do {
