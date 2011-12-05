@@ -14,7 +14,10 @@
 
 #include "Firebird.h"
 #include <stdint.h>
+
+#ifndef _MSC_VER
 #include <inttypes.h>
+#endif
 
 DBISTATE_DECLARE;
 
@@ -69,7 +72,7 @@ int create_cursor_name(SV *sth, imp_sth_t *imp_sth)
     ISC_STATUS status[ISC_STATUS_LENGTH];
 
     Newxz(imp_sth->cursor_name, 22, char);
-    sprintf(imp_sth->cursor_name, "perl%16.16"PRIx32, (uint32_t)imp_sth->stmt);
+    sprintf(imp_sth->cursor_name, "perl%16.16X", (uint32_t)imp_sth->stmt);
     isc_dsql_set_cursor_name(status, &(imp_sth->stmt), imp_sth->cursor_name, 0);
     if (ib_error_check(sth, status))
         return FALSE;
@@ -1215,7 +1218,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
          * of rows that the SELECT will return.
          */
 
-        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_fetch: fetch result: %"PRIdPTR"\n", fetch));
+        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_fetch: fetch result: %ld\n", fetch));
 
         if (imp_sth->affected < 0)
             imp_sth->affected = 0;

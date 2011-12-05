@@ -174,7 +174,10 @@ sub check_and_set_cached_configs {
 
     # The database path
     $self->{path} = $self->get_path;
-    my ( $base, $path, $type ) = $self->fileparse( $self->{path}, '\.fdb' );
+
+    my (undef, $path, $file) = File::Spec->splitpath($self->{path});
+
+    my ($base, $type) = $file =~ /^(.*?)(\.fdb)\z/i;
 
     # Check database path only if local
     if ( !$self->{host} or $self->{host} eq 'localhost' ) {
