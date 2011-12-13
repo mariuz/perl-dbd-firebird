@@ -200,6 +200,9 @@ if ($Config{cc} =~ /gcc/) {
     $cflags = "-Wall -fno-strict-aliasing $cflags";
 }
 
+my @inc;
+for ( $FB::INC, $FB::dbi_arch_dir ) { push @inc, qq(-I"$_") if $_ }
+
 my %MakeParams = (
     NAME         => $module_name,
     VERSION_FROM => $EMBEDDED
@@ -209,7 +212,7 @@ my %MakeParams = (
     H => [ 'dbdimp.h', $EMBEDDED ? 'FirebirdEmbedded.h' : 'Firebird.h' ],
     CCFLAGS      => $cflags,
     ( $EMBEDDED ? ( DEFINE => '-DEMBEDDED' ) : () ),
-    INC          => qq(-I"$FB::INC" -I"$FB::dbi_arch_dir"),
+    INC          => join( ' ', @inc ),
     OBJECT => join( ' ',
         $EMBEDDED ? "FirebirdEmbedded.o" : "Firebird.o", "dbdimp.o" ),
     LIBS         => [''],
