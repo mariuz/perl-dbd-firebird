@@ -170,9 +170,9 @@ if ($interactive) {
 }
 else {
     print "\n";
-    print 'FIREBIRD_HOME   : ', $FB::HOME, "\n";
-    print 'FIREBIRD_INCLUDE: ', $FB::INC,  "\n";
-    print 'FIREBIRD_LIB    : ', $FB::LIB,  "\n";
+    print 'FIREBIRD_HOME   : ', $FB::HOME || '(none)', "\n";
+    print 'FIREBIRD_INCLUDE: ', $FB::INC  || '(none)', "\n";
+    print 'FIREBIRD_LIB    : ', $FB::LIB  || '(none)', "\n";
     print 'Client library  : ', $client_lib,"\n";
     print "\n";
 
