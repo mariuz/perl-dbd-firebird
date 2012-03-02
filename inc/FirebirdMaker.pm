@@ -810,5 +810,7 @@ fb:DefaultInstance:HKEY_LOCAL_MACHINE\SOFTWARE\Firebird Project\Firebird Server\
 vc:ProductDir:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C++
 vc:ProductDir:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\7.0\Setup\VC
 vc:ProductDir:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\Setup\VC
+vc:ProductDir:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\10.0\Setup\VC
+vc:ProductDir:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\11.0\Setup\VC
 pv:CurrentVersion:HKEY_LOCAL_MACHINE\SOFTWARE\ActiveState\ActivePerl
 pl::HKEY_LOCAL_MACHINE\SOFTWARE\ActiveState\ActivePerl\1203
