@@ -1,6 +1,6 @@
 DBD::Firebird -- DBI driver for Firebird RDBMS server.
 
-   Copyright (c) 2010, 2011  Popa Adrian Marius <mapopa@gmail.com>
+   Copyright (c) 2010-2012  Popa Adrian Marius <mapopa@gmail.com>
    Copyright (c) 2011  Stefan Suciu <stefbv70@gmail.com>
    Copyright (c) 2011  Damyan Ivanov <dmn@debian.org>
    Copyright (c) 2011  Alexandr Ciornii <alexchorny@gmail.com>
@@ -54,6 +54,9 @@ BUILDING:
     make
 
 TESTING
+  To run tests module Test::Exception is required on Debian/Ubuntu systems:
+     sudo apt-get install libtest-exception-perl
+     
   Please, set at least DBI_PASS (or ISC_PASSWORD), before 'make test'.
   The default for DBI_USER is 'SYSDBA'.(masterkey password is given here as example only)
     ISC_PASSWORD=masterkey make test
