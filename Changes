@@ -1,4 +1,19 @@
 Revision history for Perl extension DBD::Firebird.
+1.00 [2012-04-03]
+[Details: https://github.com/mariuz/perl-dbd-firebird/commits/release1.00]
+ * t/*event*.t: skip if DBD_FIREBIRD_TEST_SKIP_EVENTS is in the environment
+ * preliminary ISQL-like tool using DBD::Firebird
+ * implement the ParamValues statement attribute
+ * avoid unused return value warning when calling DBIh_EVENT2
+ * support Microsoft's compiler and other win32 fixes
+ * add Cygwin support
+ * add default FB location on OSX to Makefile.PL
+ * test for RT#72946 (->do segfault with active sth)
+ * Merge pull request #29 from rkitover/master
+ * check_and_set_cached_config: fix when test database is in ./
+ * Makefile.PL: report '(none)' when some of the firebird directories aren't found
+ * Makefile.PL: avoid adding -I"" to compiler command (closes #31)
+ * #74517: Adding support for Visual Studio 2010 (10.0) and VS 11.0 https://rt.cpan.org/Ticket/Display.html?id=74517
 0.91 [2011-11-03]
 [Details: https://github.com/mariuz/perl-dbd-firebird/commits/release0.91]
  * fix small typo in Firebird.pm POD
