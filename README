@@ -35,10 +35,13 @@ REQUIREMENTS:
 
   - Build, test and install the DBI module (at least DBI 1.41).
     It is very important to TEST it and INSTALL it!
+    On Debian/Ubuntu you can do a simple:
+      sudo apt-get install firebird2.5-dev libdbi-perl
 
-  - Remember to *read* the DBI README file!
+  - Remember to *read* the DBI README file if you installed it from source
 
   - Make sure that Firebird server is running (for testing telnet localhost 3050)
+    
 
 
 BUILDING:
