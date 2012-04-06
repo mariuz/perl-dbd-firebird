@@ -5,7 +5,7 @@ use strict;
 
 =head1 NAME
 
-DBD::Firebird::TableInfo::Basic - A base class for lowest-common denominator Interbase table_info() querying.
+DBD::Firebird::TableInfo::Basic - A base class for lowest-common denominator Firebird table_info() querying.
 
 =head1 SYNOPSIS
 
@@ -84,7 +84,7 @@ This method is called by the default implementation of C<list_types>.
 
 sub new { bless {}, shift; }
 
-my %IbTableTypes = (
+my %FbTableTypes = (
   'SYSTEM TABLE' => '((rdb$system_flag = 1) AND rdb$view_blr IS NULL)',
    'SYSTEM VIEW' => '((rdb$system_flag = 1) AND rdb$view_blr IS NOT NULL)',
          'TABLE' => '((rdb$system_flag = 0 OR rdb$system_flag IS NULL) AND rdb$view_blr IS NULL)',
@@ -92,7 +92,7 @@ my %IbTableTypes = (
 );
 
 sub supported_types {
-    sort keys %IbTableTypes;
+    sort keys %FbTableTypes;
 }
 
 sub sponge {
@@ -156,7 +156,7 @@ sub list_tables {
     }
 
     if (@types) {
-        my %desired = map { $_ => 1 } grep { exists $IbTableTypes{$_} } @types;
+        my %desired = map { $_ => 1 } grep { exists $FbTableTypes{$_} } @types;
         $type_ok = sub { exists $desired{$_[0]} };
     } else {
         $type_ok = sub { 1 };
