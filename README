@@ -14,7 +14,6 @@ DBD::Firebird -- DBI driver for Firebird RDBMS server.
 
    PLEASE READ THE ENTIRE README FILE CAREFULLY !
 
-   WARNING: THIS IS BETA SOFTWARE. Your mileage may vary.
 
 REQUIREMENTS:
   - Perl (5.8.2 and higher)
@@ -23,10 +22,12 @@ REQUIREMENTS:
   - A C compiler
     * UN*X
       GCC 4.x (tested, older may or may not work) or other capable
+      clang
 
     * Windows
       - Strawberry perl (http://strawberryperl.com/) comes with it's own compiler (mingw) 
-      - or Microsoft Express VC++ 9.0 (2008)
+      - or Microsoft Express VC++ 9 (2008) /10 (2010) /11
+      - Cygwin 
 
 
 *BEFORE* BUILDING, TESTING AND INSTALLING this you will need to:
@@ -60,5 +61,7 @@ TESTING
   Please, set at least DBI_PASS (or ISC_PASSWORD), before 'make test'.
   The default for DBI_USER is 'SYSDBA'.(masterkey password is given here as example only)
     ISC_PASSWORD=masterkey make test
+
+INSTALLING:
     make install               (if the tests look okay)
 
