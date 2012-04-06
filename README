@@ -12,9 +12,7 @@ DBD::Firebird -- DBI driver for Firebird RDBMS server.
    License or the Artistic License, as specified in the Perl README file.
    (http://dev.perl.org/licenses/artistic.html)
 
-   PLEASE READ THE ENTIRE README FILE CAREFULLY !
-
-
+   
 REQUIREMENTS:
   - Perl (5.8.2 and higher)
   - Perl DBI (1.41 and higher)
