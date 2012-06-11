@@ -6,6 +6,11 @@
 
 use strict;
 use warnings;
+use utf8;
+BEGIN {
+    binmode(STDERR, ':utf8');
+    binmode(STDOUT, ':utf8');
+};
 
 my $COUNT_CONNECT = 500;    # Number of connect/disconnect iterations
 my $COUNT_PREPARE = 10000;  # Number of prepare/execute/finish iterations
@@ -64,7 +69,7 @@ my $ok;
 $ok = 0;
 my $nok = 0;
 for (my $i = 0;  $i < $COUNT_CONNECT;  $i++) {
-    my ($dbh2, $error_str2) = connect_to_database();
+    my ($dbh2, $error_str2) = $T->connect_to_database();
     if ($error_str2) {
         print "Cannot connect: $error_str2";
         $ok = 0;
@@ -88,7 +93,7 @@ ok($nok == 0, "Memory leak test in connect/disconnect");
 
 # Reconnect, if necessary
 unless ($dbh->ping) {
-    ($dbh, $error_str) = connect_to_database();
+    ($dbh, $error_str) = $T->connect_to_database();
     ok($dbh, 'reConnected to the database');
 }
 
@@ -113,7 +118,7 @@ ok($nok == 0, "Memory leak test in prepare/execute/finish");
 my $row;
 foreach $row (
     [1, 'Jochen Wiedmann'],
-    [2, 'Andreas König'],
+    [2, 'Andreas KÃ¶nig'],
     [3, 'Tim Bunce'],
     [4, 'Alligator Descartes'],
     [5, 'Jonathan Leffler'] )

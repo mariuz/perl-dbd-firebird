@@ -7,6 +7,11 @@
 
 use strict;
 use warnings;
+use utf8;
+BEGIN {
+    binmode(STDERR, ':utf8');
+    binmode(STDOUT, ':utf8');
+};
 
 use Test::More;
 use DBI qw(:sql_types);
@@ -46,7 +51,7 @@ ok($table, qq{Table is '$table'});
 my $def = qq{
 CREATE TABLE $table (
     id   INTEGER NOT NULL,
-    name CHAR(64) CHARACTER SET ISO8859_1
+    name CHAR(64) CHARACTER SET UTF8
 )
 };
 ok($dbh->do($def), "CREATE TABLE '$table'");
@@ -71,7 +76,7 @@ ok($cursor->execute($numericVal, $charVal));
 
 # Now try the explicit type settings
 ok($cursor->bind_param(1, ' 4', SQL_INTEGER()));
-ok($cursor->bind_param(2, 'Andreas König'));
+ok($cursor->bind_param(2, 'Andreas KÃ¶nig'));
 ok($cursor->execute);
 
 # Works undef -> NULL?
@@ -107,7 +112,7 @@ is($name, 'Jochen Wiedmann', 'Check name');
 
 ok($cursor->fetch);
 is($id, 4, 'Check id 4');
-is($name, 'Andreas König', 'Check name');
+is($name, 'Andreas KÃ¶nig', 'Check name');
 
 ok($cursor->fetch);
 is($id, 5, 'Check id 5');

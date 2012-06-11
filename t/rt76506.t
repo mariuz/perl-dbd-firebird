@@ -2,6 +2,11 @@
 
 use strict;
 use warnings;
+use utf8;
+BEGIN {
+    binmode(STDERR, ':utf8');
+    binmode(STDOUT, ':utf8');
+};
 
 use Test::More;
 use lib 't','.';
@@ -55,13 +60,14 @@ ok($cursor->execute('TEST'), "INSERT in $table");
 
 ok( my $cursor2 = $dbh->prepare(
         "SELECT CHAR_TEST FROM $table",
-        { ib_enable_utf8 => 1 }
     ),
     'PREPARE SELECT'
 );
 ok($cursor2->execute, 'SELECT');
 ok(my $hash_ref = $cursor2->fetchrow_hashref, 'FETCHALL hashref');
-is(length $hash_ref->{CHAR_TEST}, 10, 'Match length');
+my $char_test = $hash_ref->{CHAR_TEST};
+is(length $char_test, 10, 'Match length');
+diag(">>$char_test<<");
 ok($cursor2->finish, 'FINISH');
 
 #

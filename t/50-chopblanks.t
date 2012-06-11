@@ -87,7 +87,7 @@ foreach my $ref (@rows) {
     # Right padding name to the length of the field
     my $n_ncb = sprintf("%-*s", $fld_len, $name);
 
-    is($n_ncb, $nochop->[1], 'COMPARE 1');
+    is($nochop->[1], $n_ncb, 'COMPARE 1');
 
     ok($sth2->finish, 'FINISH 1');
 
@@ -101,7 +101,7 @@ foreach my $ref (@rows) {
 
     ok(my $chopping = $sth2->fetchrow_arrayref, 'FETCHrow ARRAYref 2');
 
-    is($n_cb, $chopping->[1], 'COMPARE 2');
+    is($chopping->[1], $n_cb, 'COMPARE 2');
 
     ok($sth2->finish, 'FINISH 2');
 }

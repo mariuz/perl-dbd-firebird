@@ -390,7 +390,7 @@ sub save_test_parameters {
     # Other settings (interactive mode)
     push @record, qq(host:=$db_host);
     push @record, qq(path:=$db_path) if $db_path;
-    push @record, qq(tdsn:=dbi:Firebird:db=$db_path;host=$db_host;ib_dialect=3;ib_charset=ISO8859_1) if $db_path;
+    push @record, qq(tdsn:=dbi:Firebird:db=$db_path;host=$db_host;ib_dialect=3;ib_charset=UTF8) if $db_path;
     push @record, qq(user:=$user) if $user;
     push @record, qq(pass:=$pass) if $pass;
     push @record, qq(use_libfbembed:=1) if $use_libfbembed;
@@ -557,7 +557,7 @@ mode. (ISC_USER and ISC_PASSWORD are recognized also), for DBI_DSN the
 default is:
 
   dbi:Firebird:db=OS_tmp_path/dbd-fb-testdb.fdb;host=localhost;
-      ib_dialect=3;ib_charset=ISO8859_1
+      ib_dialect=3;ib_charset=UTF8
 
 If all else fails, email <mapopa\@gmail.com> for help.
 
