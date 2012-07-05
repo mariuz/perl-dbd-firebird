@@ -1476,7 +1476,7 @@ C<set_tx_param()> is obsoleted by C<ib_set_tx_param()>.
 
 =item FreeBSD
 
-=item SPARC Solaris
+=item Solaris
 
 =item Win32
 
@@ -1488,7 +1488,7 @@ C<set_tx_param()> is obsoleted by C<ib_set_tx_param()>.
 
 =item Firebird 2.5.x SS , SC and Classic for Linux (32 bits and 64)
 
-=item Firebird 2.5.x for Windows, FreeBSD, SPARC Solaris
+=item Firebird 2.5.x for Windows, FreeBSD, Solaris
 
 =back
 
@@ -1515,13 +1515,14 @@ fork. Tested with MSWin32 ActivePerl build 809 (Perl 5.8.3). The whole
 process will block in unpredictable manner.
 
 Under Linux, this module has been tested with several different iThreads
-enabled Perl releases: perl-5.8.0-88 from RedHat 9, perl-5.8.5-9 from Fedora
-Core 3, perl-5.8.6-15 from Fedora Core 4, and Perl 5.8.[78]. 
+enabled Perl releases.
 
 No problem occurred so far.. until you try to share a DBI handle ;-)
 
 But if you plan to use thread, you'd better use the latest stable version of
-Perl, 5.8.8 has fairly stable iThreads.
+Perl
+
+On FreeBSD you need a Perl compiled with thread support. 
 
 Limitations:
 
@@ -1544,9 +1545,9 @@ DBI(3).
 
 =over
 
-=item Copyright (c) 2010, 2011  Popa Adrian Marius <mapopa@gmail.com>
+=item Copyright (c) 2010- 2012  Popa Adrian Marius <mapopa@gmail.com>
 
-=item Copyright (c) 2011  Stefan Suciu <stefbv70@gmail.com>
+=item Copyright (c) 2011- 2012  Stefan Suciu <stefbv70@gmail.com>
 
 =item Copyright (c) 2011  Damyan Ivanov <dmn@debian.org>
 
