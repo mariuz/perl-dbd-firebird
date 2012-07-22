@@ -1776,7 +1776,10 @@ int dbd_st_finish(SV *sth, imp_sth_t *imp_sth)
     DBI_TRACE_imp_xxh(imp_sth, 2, (DBIc_LOGPIO(imp_sth), "dbd_st_finish\n"));
 
     if (!DBIc_ACTIVE(imp_sth)) /* already finished */
+    {
+        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: nothing to do (not active)\n"));
         return TRUE;
+    }
 
     /* Close the cursor, not drop the statement! */
     if (imp_sth->type != isc_info_sql_stmt_exec_procedure)
