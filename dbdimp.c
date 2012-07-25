@@ -2490,10 +2490,6 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                         warn("problem parsing SQL_INT64 type");
                 }
 
-#ifdef __BORLANDC__
-                p = _atoi64(svalue);
-#endif
-
                 /* Round up if r is 5 or greater */
                 if (r >= 5)
                 {
