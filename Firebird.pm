@@ -1346,7 +1346,7 @@ If yours is default to AutoCommit on, you can put the snippet within a block:
 
 =item * Using $dbh->{ib_softcommit} = 1
 
-This driver-specific attribute is available as of version 0.30. You may want
+This is a driver-specific attribute,You may want
 to look at t/40cursoron.t to see it in action.
 
 =back
@@ -1369,7 +1369,7 @@ much alike:
      $dbh->commit;
  }
 
-You may also use $dbh->{ib_softcommit} introduced in version 0.30, please check
+You may also use $dbh->{ib_softcommit}  please check
 t/70nested-sth.t for an example on how to use it.
 
 =head2 Why do placeholders fail to bind, generating unknown datatype error message?
