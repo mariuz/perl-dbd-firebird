@@ -60,7 +60,7 @@ sub save_configs {
 sub get_dsn {
     my $self = shift;
 
-    return "dbi:FirebirdEmbedded:db=dbd-firebird-test.fdb;ib_dialect=3;ib_charset=UTF8";
+    return "dbi:FirebirdEmbedded:db=dbd-firebird-test.fdb;ib_dialect=3;ib_charset=" . $self->get_charset;
 }
 
 sub check_dsn {

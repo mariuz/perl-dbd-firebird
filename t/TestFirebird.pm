@@ -33,7 +33,8 @@ use constant test_mark => 't/tests-setup.tmp.OK';
 use constant dbd => 'DBD::Firebird';
 
 sub new {
-    my $self = bless {}, shift;
+    my $class = shift;
+    my $self = bless {@_}, $class;
 
     $self->read_cached_configs;
 
@@ -214,6 +215,12 @@ sub get_host {
    return q{localhost};
 }
 
+sub get_charset {
+    my $self = shift;
+
+    return $self->{charset} // 'UTF8';
+}
+
 =head2 check_dsn
 
 Parse and check the DSN.
@@ -256,7 +263,8 @@ sub get_dsn {
     $path = File::Spec->catfile( File::Spec->tmpdir(),
         'dbd-fb-testdb.fdb' );
 
-    return "dbi:Firebird:db=$path;host=$host;ib_dialect=3;ib_charset=UTF8";
+    return "dbi:Firebird:db=$path;host=$host;ib_dialect=3;ib_charset="
+        . $self->get_charset;
 }
 
 =head2 get_path
