@@ -2,7 +2,7 @@
 /*
 
    Copyright (c) 2010, 2011  Popa Marius Adrian <mapopa@gmail.com>
-   Copyright (c) 2011  Damyan Ivanov <dmn@debian.org>
+   Copyright (c) 2011, 2012  Damyan Ivanov <dmn@debian.org>
    Copyright (c) 2010  pilcrow <mjp@pilcrow.madison.wi.us>
    Copyright (c) 1999-2008  Edwin Pratomo
    Portions Copyright (c) 2001-2005  Daniel Ritz
@@ -479,6 +479,8 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     if (ib_error_check(dbh, status))
         return FALSE;
 
+    imp_dbh->charset_bytes_per_char = NULL;
+
     DBI_TRACE_imp_xxh(imp_dbh, 3, (DBIc_LOGPIO(imp_dbh), "dbd_db_login6: success attaching.\n"));
 
     /* Tell DBI, that dbh->destroy should be called for this handle */
@@ -547,6 +549,7 @@ int dbd_db_disconnect(SV *dbh, imp_dbh_t *imp_dbh)
     FREE_SETNULL(imp_dbh->dateformat);
     FREE_SETNULL(imp_dbh->timeformat);
     FREE_SETNULL(imp_dbh->timestampformat);
+    FREE_SETNULL(imp_dbh->charset_bytes_per_char);
 
     /* detach database */
     isc_detach_database(status, &(imp_dbh->db));
@@ -1174,6 +1177,7 @@ int dbd_st_execute(SV *sth, imp_sth_t *imp_sth)
     return result;
 }
 
+unsigned get_charset_bytes_per_char(const ISC_SHORT subtype, SV *sth);
 
 /* from out_sqlda to AV */
 AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
@@ -1407,10 +1411,20 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                         char *p = (char*)(var->sqldata);
                         while (len && (p[len-1] == ' ')) len--;
                         sv_setpvn(sv, p, len);
+                        maybe_upgrade_to_utf8(imp_dbh, sv);
                     }
                     else
-                        sv_setpvn(sv, var->sqldata, var->sqllen);
-                    maybe_upgrade_to_utf8(imp_dbh, sv);
+                    {
+                        /* we need to shrink the string for multy-byte character
+                           sets. the padding spaces are too many in this case
+                           */
+                        unsigned bpc = get_charset_bytes_per_char(
+                                var->sqlsubtype, sth);
+                        unsigned len = var->sqllen;
+                        sv_setpvn(sv, var->sqldata, len);
+                        maybe_upgrade_to_utf8(imp_dbh, sv);
+                        SvCUR_set(sv, len/bpc);
+                    }
                     break;
 
                 case SQL_VARYING:
@@ -2923,6 +2937,93 @@ long ib_rows(SV *xxh, isc_stmt_handle *h_stmt, char count_type)
             break;
     }
     return row_count;
+}
+
+/* how many bytes per character in this charset?
+   information is retrieved from RDB$CHARACTER_SETS the first time it is
+   needed and is cached for later
+   */
+unsigned get_charset_bytes_per_char(const ISC_SHORT subtype, SV *sth)
+{
+    unsigned char *p;
+    D_imp_sth(sth);
+    D_imp_dbh_from_sth;
+
+    //warn("Q: How many bytes/char in CS %d?", subtype & 0xff);
+
+    if ( (p = imp_dbh->charset_bytes_per_char) == NULL ) {
+        XSQLDA *out;
+        XSQLVAR *var;
+        isc_stmt_handle stmt = 0;
+        ISC_STATUS status[ISC_STATUS_LENGTH];
+        char sql[] = "SELECT RDB$CHARACTER_SET_ID, RDB$BYTES_PER_CHARACTER FROM RDB$CHARACTER_SETS";
+        int fetch_stat;
+        unsigned i;
+
+        Newxz( imp_dbh->charset_bytes_per_char, 256, unsigned char );
+        p = imp_dbh->charset_bytes_per_char;
+
+        IB_alloc_sqlda(out, 2);
+        if (out == NULL)
+        {
+            do_error(sth, 2, "Failed to allocate out sqlda");
+            goto cleanup;
+        }
+        isc_dsql_alloc_statement2(status, &(imp_dbh->db), &stmt);
+        if (ib_error_check(sth, status))
+            goto cleanup;
+
+        isc_dsql_prepare(status, &(imp_dbh->tr), &stmt, 0, sql,
+                         imp_dbh->sqldialect, out);
+        if (ib_error_check(sth, status))
+            goto cleanup;
+        isc_dsql_describe(status, &stmt, SQLDA_OK_VERSION, out);
+        if (ib_error_check(sth, status))
+            goto cleanup;
+        for (i=0, var = out->sqlvar; i < out->sqld; i++, var++)
+        {
+            unsigned dtype = (var->sqltype & ~1);
+            switch(dtype)
+            {
+                case SQL_SHORT:
+                    Newxc(var->sqldata, 1, ISC_SHORT, void);
+                    break;
+                default:
+                    do_error(sth, 2, "Unexpected datatype");
+                    goto cleanup;
+                    break;
+            }
+            if (var->sqltype & 1)
+            {
+                /* allocate variable to hold NULL status */
+                Newx(var->sqlind, 1, ISC_SHORT);
+            }
+        }
+
+        isc_dsql_execute(status, &(imp_dbh->tr), &stmt, 1, NULL);
+        if (ib_error_check(sth, status))
+            goto cleanup;
+
+        while ((fetch_stat =
+                    isc_dsql_fetch(status, &stmt, 1, out)) == 0)
+        {
+            unsigned char cs_id = (unsigned char) *(ISC_SHORT *)(out->sqlvar[0].sqldata);
+            unsigned char bpc = (unsigned char) *(ISC_SHORT *)(out->sqlvar[1].sqldata);
+            p[cs_id] = bpc;
+            //warn("CS %d has %d bytes/char", cs_id, bpc);
+        }
+cleanup:
+        isc_dsql_free_statement(status, &stmt, DSQL_drop);
+
+        Safefree(out->sqlvar[0].sqldata);
+        Safefree(out->sqlvar[0].sqlind);
+        Safefree(out->sqlvar[1].sqldata);
+        Safefree(out->sqlvar[1].sqlind);
+        Safefree(out);
+    }
+
+    //warn("A: %d", p[subtype & 0xff]);
+    return p[ subtype & 0xff ];
 }
 
 /* end */

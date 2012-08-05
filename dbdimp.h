@@ -254,6 +254,8 @@ struct imp_dbh_st
     char            *dateformat;
     char            *timestampformat;
     char            *timeformat;
+
+    unsigned char   *charset_bytes_per_char;
 };
 
 /* Define sth implementor data structure */
