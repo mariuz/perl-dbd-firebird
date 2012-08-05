@@ -1770,6 +1770,11 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 
 int dbd_st_finish(SV *sth, imp_sth_t *imp_sth)
 {
+    return dbd_st_finish_internal(sth, imp_sth, TRUE);
+}
+
+int dbd_st_finish_internal(SV *sth, imp_sth_t *imp_sth, int honour_auto_commit)
+{
     D_imp_dbh_from_sth;
     ISC_STATUS status[ISC_STATUS_LENGTH];
 
@@ -1798,7 +1803,7 @@ int dbd_st_finish(SV *sth, imp_sth_t *imp_sth)
         hv_clear(imp_sth->param_values);
 
     /* if AutoCommit on */
-    if (DBIc_has(imp_dbh, DBIcf_AutoCommit))
+    if (DBIc_has(imp_dbh, DBIcf_AutoCommit) && honour_auto_commit)
     {
         DBI_TRACE_imp_xxh(imp_sth, 4, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: Trying to call ib_commit_transaction.\n"));
 
@@ -2810,7 +2815,7 @@ int ib_commit_transaction(SV *h, imp_dbh_t *imp_dbh)
             while (imp_dbh->first_sth != NULL)
             {
                 /* finish and destroy sth */
-                dbd_st_finish((SV*)DBIc_MY_H(imp_dbh->first_sth), imp_dbh->first_sth);
+                dbd_st_finish_internal((SV*)DBIc_MY_H(imp_dbh->first_sth), imp_dbh->first_sth, FALSE);
                 dbd_st_destroy(NULL, imp_dbh->first_sth);
             }
 
