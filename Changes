@@ -1,4 +1,12 @@
 Revision history for Perl extension DBD::Firebird.
+1.11 [2012-09-25]
+[Details: https://github.com/mariuz/perl-dbd-firebird/commits/release1.11]
+ * Test::Exception is required add to notes
+ * On freebsd Threaded perl is required you have to re-install perl from ports and you have to select the config option that says 'build a perl with threads'
+ * Test database to use UTF8 charset and enable UTF8 for the connection
+ * Fix CHAR lenght when using multi-byte character set Fixes #32 (RT#76506)
+ * additional debug when finishing already finished statement
+ * avoid double destroying of statement in auto-commit mode with DDL Fixes #30 (RT#72946)
 1.00 [2012-04-03]
 [Details: https://github.com/mariuz/perl-dbd-firebird/commits/release1.00]
  * t/*event*.t: skip if DBD_FIREBIRD_TEST_SKIP_EVENTS is in the environment
