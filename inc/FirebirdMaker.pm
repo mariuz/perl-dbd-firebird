@@ -769,7 +769,7 @@ EOT
             mangle => sub {
                 $_[0] =~ s/DBD::Firebird - DBI driver for.+/DBD::FirebirdEmbedded - embedded Firebird server (and client)/;
                 $_[0] =~ s/dbi:Firebird:.+/dbi:FirebirdEmbedded:db=\$dbname", undef, undef);/g;
-                $_[0] =~ s/DBD::Firebird\b(?!::(?:Get|Type|Table)Info)/DBD::FirebirdEmbedded/g;
+                $_[0] =~ s/(?<!L\<)DBD::Firebird\b(?!::(?:Get|Type|Table)Info)/DBD::FirebirdEmbedded/g;
                 $_[0] =~ s/'Firebird'/'FirebirdEmbedded'/g;
             },
         },
