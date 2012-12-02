@@ -14,7 +14,7 @@ DBD::Firebird -- DBI driver for Firebird RDBMS server.
 
    
 REQUIREMENTS:
-  - Perl (Threaded and version 5.10.1 or higher)
+  - Perl (Threaded and version 5.8.1 or higher)
   - Perl DBI (1.41 or higher)
   - Firebird (2.5.1 or higher)
   - A C compiler
@@ -33,7 +33,7 @@ REQUIREMENTS:
 
 *BEFORE* BUILDING, TESTING AND INSTALLING this you will need to:
 
-  - Build, test and install Perl 5 (at least 5.10.1).
+  - Build, test and install Perl 5 (at least 5.8.1).
     It is very important to TEST it and INSTALL it!
 
   - Build, test and install the DBI module (at least DBI 1.41).

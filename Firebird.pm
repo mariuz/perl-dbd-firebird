@@ -6,7 +6,7 @@
 #   You may distribute under the terms of either the GNU General Public
 #   License or the Artistic License, as specified in the Perl README file
 
-require 5.10.1;
+require 5.008001;
 
 package DBD::Firebird;
 use strict;

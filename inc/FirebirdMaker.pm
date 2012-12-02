@@ -232,7 +232,7 @@ sub check_and_set_devlibs {
     $FB::LIB = $FB::LIB || File::Spec->catdir( $FB::HOME, 'lib' );
     $FB::LIB = alternative_locations('lib') if !-d $FB::LIB;
 
-    for my $dir ( split(/ /, $Config{libpth} ), $FB::LIB//() ) {
+    for my $dir ( split(/ /, $Config{libpth} ), $FB::LIB||() ) {
         if ( -e File::Spec->catfile( $dir, 'libfbembed.so' ) ) {
             $FB::libfbembed_available = 1;
             print "libfbembed.so found in $dir\n";
@@ -672,7 +672,7 @@ sub create_embedded_files {
     copy_mangled(
         'Makefile.PL' => {
             last   => sub { $_[0] =~ /^exit 0/ },
-            mangle => sub { $_[0] =~ s/^our \$EMBEDDED = \K0/1/ },
+            mangle => sub { $_[0] =~ s/(?<=^our \$EMBEDDED = )0/1/ },
         }
     );
 
@@ -690,7 +690,7 @@ sub create_embedded_files {
     copy_mangled(
         'dbdimp.c' => {
             mangle =>
-                sub { $_[0] =~ s/^#include "Firebird\K\.h"/Embedded.h"/ },
+                sub { $_[0] =~ s/(?<=^#include "Firebird)\.h"/Embedded.h"/ },
         },
     );
 
@@ -805,14 +805,14 @@ EOT
             mangle => sub {
                 $_[0] =~ s/Firebird.h/FirebirdEmbedded.h/;
                 $_[0] =~ s/DBD::Firebird/DBD::FirebirdEmbedded/g;
-                $_[0] =~ s/^INCLUDE: Firebird\K.xsi/Embedded.xsi/;
+                $_[0] =~ s/(?<=^INCLUDE: Firebird).xsi/Embedded.xsi/;
             },
         },
     );
 
     for my $f ( glob('t/*.t') ) {
         next if $f =~ 't/embed';
-        ( my $n = $f ) =~ s,t/\K,embed-,;
+        ( my $n = $f ) =~ s,t/,t/embed-,;
         copy_mangled(
             $f => {
                 new_path => $n,

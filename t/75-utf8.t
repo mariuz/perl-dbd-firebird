@@ -25,7 +25,7 @@ plan tests => 37;
 
 # first connect with charset ASCII
 my $dsn = $T->{tdsn};
-$dsn =~ s/ib_charset=\K[^;]+/ASCII/;
+$dsn =~ s/(?<=ib_charset=)[^;]+/ASCII/;
 my $attr
     = { RaiseError => 1, PrintError => 0, AutoCommit => 1, ChopBlanks => 1 };
 my $dbh = DBI->connect( $dsn, $T->{user}, $T->{pass}, $attr );
@@ -39,7 +39,7 @@ dies_ok(
 $dbh->disconnect;
 
 # now connect with UTF8 charset
-$dsn =~ s/ib_charset=\K[^;]+/UTF8/;
+$dsn =~ s/(?<=ib_charset=)[^;]+/UTF8/;
 $dbh = DBI->connect( $dsn, $T->{user}, $T->{pass}, $attr );
 
 # …and try to set ib_enable_utf8 again

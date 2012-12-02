@@ -218,7 +218,7 @@ sub get_host {
 sub get_charset {
     my $self = shift;
 
-    return $self->{charset} // 'UTF8';
+    return $self->{charset} || 'UTF8';
 }
 
 =head2 check_dsn
