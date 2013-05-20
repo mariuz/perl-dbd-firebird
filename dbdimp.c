@@ -2,7 +2,7 @@
 /*
 
    Copyright (c) 2010, 2011  Popa Marius Adrian <mapopa@gmail.com>
-   Copyright (c) 2011, 2012  Damyan Ivanov <dmn@debian.org>
+   Copyright (c) 2011, 2012, 2013  Damyan Ivanov <dmn@debian.org>
    Copyright (c) 2010  pilcrow <mjp@pilcrow.madison.wi.us>
    Copyright (c) 1999-2008  Edwin Pratomo
    Portions Copyright (c) 2001-2005  Daniel Ritz
@@ -2075,8 +2075,6 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
     STRLEN          total_length;
     char            *p, *seg, *string;
     int             is_text_blob, seg_len;
-    bool            is_utf8;
-    U8              *encoded;
 
     DBI_TRACE_imp_xxh(imp_sth, 2, (DBIc_LOGPIO(imp_sth), "ib_blob_write\n"));
 
@@ -2099,11 +2097,6 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
 
     /* get length, pointer to data */
     string = SvPV(value, total_length);
-    if (is_text_blob && imp_dbh->ib_enable_utf8) {
-        is_utf8 = SvUTF8(value);
-        encoded = bytes_from_utf8((U8*)string, &total_length, &is_utf8);
-    }
-    else encoded = (U8*)string;
 
     /* write it segment by segment */
     seg_len = BLOB_SEGMENT;
@@ -2141,8 +2134,6 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
         isc_put_segment(status, &handle, (unsigned short) seg_len, seg);
         if (ib_error_check(sth, status))
         {
-            if (encoded != (U8*)string)
-                Safefree(encoded);
             isc_cancel_blob(status, &handle);
             return FALSE;
         }
@@ -2150,9 +2141,6 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
         DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "ib_blob_write: %d bytes written\n", seg_len));
 
     }
-
-    if (encoded != (U8*)string)
-        Safefree(encoded);
 
     /* close blob, check for error */
     isc_close_blob(status, &handle);
@@ -2265,18 +2253,8 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         {
             char *string;
             STRLEN len;
-            bool is_utf8;
-            U8 *encoded;
 
             string = SvPV(value, len);
-
-            if (imp_dbh->ib_enable_utf8) {
-                is_utf8 = SvUTF8(value);
-                encoded = bytes_from_utf8((U8*)string, &len, &is_utf8);
-                /* either returns string (nothing changed, plain ASCII)
-                   or returns a new pointer to encoded octets */
-            }
-            else encoded = (U8*)string;
 
             if (len > ivar->sqllen) {
                 char err[80];
@@ -2289,9 +2267,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                 Newxz(ivar->sqldata, ivar->sqllen + sizeof(short), char);
 
             *((short *)ivar->sqldata) = len;
-            Copy((char*)encoded, ivar->sqldata + sizeof(short), len, char);
-            if (encoded != (U8*)string)
-                Safefree(encoded);
+            Copy(string, ivar->sqldata + sizeof(short), len, char);
             break;
         }
         /**********************************************************************/
@@ -2300,18 +2276,8 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
         {
             char *string;
             STRLEN len;
-            bool is_utf8;
-            U8 *encoded;
 
             string = SvPV(value, len);
-
-            if (imp_dbh->ib_enable_utf8) {
-                is_utf8 = SvUTF8(value);
-                encoded = bytes_from_utf8((U8*)string, &len, &is_utf8);
-                /* either returns string (nothing changed, plain ASCII)
-                   or returns a new pointer to encoded octets */
-            }
-            else encoded = (U8*)string;
 
             if (len > ivar->sqllen) {
                 char err[80];
@@ -2325,9 +2291,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
             /* Pad the entire field with blanks */
             PoisonWith(ivar->sqldata, ivar->sqllen, char, ' ');
-            Copy((char*)encoded, ivar->sqldata, len, char);
-            if (encoded != (U8*)string)
-                Safefree(encoded);
+            Copy(string, ivar->sqldata, len, char);
             break;
         }
 
