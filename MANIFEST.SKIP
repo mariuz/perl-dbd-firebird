@@ -1,6 +1,7 @@
 ^Makefile$
 ^Makefile.old$
 ^MANIFEST\.SKIP$
+MYMETA.*
 ^Firebird.c$
 ^embed/
 t/embed-*
