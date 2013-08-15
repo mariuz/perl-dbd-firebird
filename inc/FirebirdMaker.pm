@@ -7,6 +7,7 @@ use base 'Exporter';
 use Carp;
 use ExtUtils::MakeMaker;
 use File::Basename;
+use File::Which ();
 
 use Config;
 
@@ -156,6 +157,29 @@ On *nix like systems try different standard paths.
 =cut
 
 sub locate_firebird {
+
+    if ( my $fb_config = File::Which::which('fb_config') ) {
+        my $cflags = `fb_config --cflags`;
+        my @items = split(/\s+/, $cflags);
+        for (@items) {
+            if (s/^-I\s*//) {
+                $FB::INC = $_;
+                last;
+            }
+        }
+
+        my $libflags = `fb_config --libs`;
+        @items = split( /\s+/, $libflags );
+        for (@items) {
+            if ( s/^-L\s*// ) {
+                $FB::LIB = $_;
+                last;
+            }
+        }
+
+        check_and_set_devlibs($FB::LIB);
+        return;
+    }
 
     my @bd = search_fb_home_dirs();
 
