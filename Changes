@@ -1,4 +1,11 @@
 Revision history for Perl extension DBD::Firebird.
+1.12 [2013-08-15]
+ * use fb_config if available for finding firebird directories
+ * drop usage of bytes_from_utf8 when feeding character data to firebird
+ * Produce sensible POD for DBD::FirebirdEmbedded
+ * Make embedded tests actually run when the libs are there (RT#81621)
+ * Do not package MYMETA
+ * Require Test::Exception that does not break caller()
 1.11 [2012-09-25]
 [Details: https://github.com/mariuz/perl-dbd-firebird/commits/release1.11]
  * Test::Exception is required add to notes
