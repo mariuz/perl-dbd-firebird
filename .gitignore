@@ -21,3 +21,4 @@ t/test.conf
 var/*
 embed/
 t/embed-*
+fb_init
