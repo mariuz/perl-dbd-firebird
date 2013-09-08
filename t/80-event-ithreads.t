@@ -124,6 +124,12 @@ SKIP: {
     is($::CNT{'foo_inserted'}, 5);
     is($::CNT{'foo_deleted'}, 5);
 
+SKIP: {
+    skip
+        "automated test of ib_wait_event -- flagile under load",
+        4
+        if $ENV{AUTOMATED_TESTING};
+
     # test ib_wait_event
     %::CNT = ();
     $t = threads->create($worker, $table, $test_dsn, $test_user, $test_password, 0.2);
@@ -137,6 +143,7 @@ SKIP: {
     ok($t->join);
     is($::CNT{'foo_inserted'}, 5);
     is($::CNT{'foo_deleted'}, 5);
+}
 }}
 
 ok($dbh->do(qq(DROP TRIGGER ins_${table}_trig)));
