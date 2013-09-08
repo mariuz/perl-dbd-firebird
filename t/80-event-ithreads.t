@@ -21,6 +21,8 @@ use lib 't','.';
 plan skip_all => 'DBD_FIREBIRD_TEST_SKIP_EVENTS found in the environment'
     if $ENV{DBD_FIREBIRD_TEST_SKIP_EVENTS};
 
+use Time::HiRes qw(sleep);
+
 use TestFirebird;
 my $T = TestFirebird->new;
 
@@ -79,7 +81,10 @@ ok($dbh->func($evh, 'ib_cancel_callback'));
 
 my $worker = sub {
     my $table = shift;
-    my $dbh = DBI->connect(@_, {AutoCommit => 1 }) or return 0;
+    my @dbi_args = ( shift, shift, shift );
+    my $delay = shift;
+    my $dbh = DBI->connect(@dbi_args, {AutoCommit => 1 }) or return 0;
+    sleep($delay) if $delay;
     for (1..5) {
         $dbh->do(qq{INSERT INTO $table VALUES($_, 'bar')});
     }
@@ -121,7 +126,7 @@ SKIP: {
 
     # test ib_wait_event
     %::CNT = ();
-    $t = threads->create($worker, $table, $test_dsn, $test_user, $test_password);
+    $t = threads->create($worker, $table, $test_dsn, $test_user, $test_password, 0.2);
     ok($t, "create thread");
     for (1..6) {
         my $posted_events = $dbh->func($evh, 'ib_wait_event');
