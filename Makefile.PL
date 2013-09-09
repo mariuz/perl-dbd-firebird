@@ -221,7 +221,7 @@ my %MakeParams = (
     dist         => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' },
     clean        => {
         FILES =>
-qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD/Firebird/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old dll.* fb_init fb_trace_* dbd-fb-testdb.fdb)
+qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD/Firebird/*.old lib/Bundle/DBD/*~ lib/Bundle/DBD/*.old dll.* fb_init fb_sem fb_trace_* dbd-fb-testdb.fdb)
     },
     realclean => { FILES => qq($test_conf $test_mark t/*.sql embed t/embed-*.t) },
     AUTHOR => 'Edwin Pratomo (edpratomo@users.sourceforge.net)',
