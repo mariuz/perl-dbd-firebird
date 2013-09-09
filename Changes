@@ -1,4 +1,7 @@
 Revision history for Perl extension DBD::Firebird.
+1.14 [2013-09-09]
+ * skip only fork-based tests, and do that when
+   DBD_FIREBIRD_TEST_SKIP_EVENTS_FORK is present in the environment [dam]
 1.13 [2013-09-09]
  * Bring back 5.8 compatibility [ribasushi]
  * add small delay before triggering events for ib_wait_event
