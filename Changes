@@ -1,4 +1,9 @@
 Revision history for Perl extension DBD::Firebird.
+1.15 [2013-09-09]
+ * Last release for today :)
+ * do not include fb_init/fb_sem in MANIFEST
+ * remove fb_sem on clean
+ * fix casting to ISC_SHORT/ISC_LONG in ib_fill_isqlda
 1.14 [2013-09-09]
  * skip only fork-based tests, and do that when
    DBD_FIREBIRD_TEST_SKIP_EVENTS_FORK is present in the environment [dam]
