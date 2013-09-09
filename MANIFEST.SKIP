@@ -21,3 +21,5 @@ t/embed-*
 ^tmp/*
 ^t/tests-setup.tmp.*
 ^DBD-Firebird-*
+^fb_init$
+^fb_sem$
