@@ -1,4 +1,9 @@
 Revision history for Perl extension DBD::Firebird.
+1.13 [2013-09-09]
+ * Bring back 5.8 compatibility [ribasushi]
+ * add small delay before triggering events for ib_wait_event
+   (80-events-ithreads.t) [dam]
+ * skip ib_wait_event tests under AUTOMATED_TESTING [dam]
 1.12 [2013-08-15]
  * use fb_config if available for finding firebird directories
  * drop usage of bytes_from_utf8 when feeding character data to firebird
