@@ -18,9 +18,6 @@ use Config;
 use Test::More;
 use lib 't','.';
 
-plan skip_all => 'DBD_FIREBIRD_TEST_SKIP_EVENTS found in the environment'
-    if $ENV{DBD_FIREBIRD_TEST_SKIP_EVENTS};
-
 use Time::HiRes qw(sleep);
 
 use TestFirebird;

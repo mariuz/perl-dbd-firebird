@@ -11,8 +11,8 @@ use POSIX qw(:signal_h);
 use Test::More;
 use lib 't','.';
 
-plan skip_all => 'DBD_FIREBIRD_TEST_SKIP_EVENTS found in the environment'
-    if $ENV{DBD_FIREBIRD_TEST_SKIP_EVENTS};
+plan skip_all => 'DBD_FIREBIRD_TEST_SKIP_EVENTS_FORK found in the environment'
+    if $ENV{DBD_FIREBIRD_TEST_SKIP_EVENTS_FORK};
 
 use TestFirebird;
 my $T = TestFirebird->new;
