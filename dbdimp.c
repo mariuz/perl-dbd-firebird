@@ -2387,9 +2387,9 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
             /* result in short or long? */
             if (dtype == SQL_SHORT)
-                *(short *) (ivar->sqldata) = (short) result;
+                *(ISC_SHORT *) (ivar->sqldata) = (ISC_SHORT) result;
             else
-                *(long *) (ivar->sqldata) = result;
+                *(ISC_LONG *) (ivar->sqldata) = (ISC_LONG) result;
 
             break;
         }
