@@ -14,12 +14,13 @@ BEGIN {
 
 my $COUNT_CONNECT = 500;    # Number of connect/disconnect iterations
 my $COUNT_PREPARE = 10000;  # Number of prepare/execute/finish iterations
+my $COUNT_EVENTS = 10000;
 my $TOTALMEM      = 0;
 
 use Test::More;
 use DBI;
 
-plan skip_all => "Long memory leak test (try with MEMORY_TEST on linux)\n"
+plan skip_all => "Long fragile memory leak test (try with MEMORY_TEST on linux)\n"
   unless ( $^O eq 'linux' && $ENV{MEMORY_TEST} );
 
 
@@ -38,7 +39,7 @@ unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 314;
+    plan tests => 314 + ($COUNT_EVENTS / 1000 + 1);
 }
 
 ok($dbh, 'Connected to the database');
@@ -164,6 +165,31 @@ for (my $i = 0;  $i < $COUNT_PREPARE;  $i++) {
     }
 }
 ok($nok == 0, "Memory leak test in fetchrow_hashref");
+
+# Testing memory leaks in ib_event_init
+
+$ok = 0; $nok = 0;
+for (my $i = 0;  $i < $COUNT_EVENTS;  $i++) {
+    {
+        my $evh = $dbh->func('imaginary_event', 'ib_init_event');
+        BAIL_OUT ("ib_init_event failed") unless $evh;
+        BAIL_OUT ("event is not a reference") unless ref($evh);
+        BAIL_OUT ("event is an unknown reference ".ref($evh)) unless ref($evh) eq 'DBD::Firebird::Event';
+        undef($evh);
+    }
+
+    # allow memory grow after first event object is created
+    # there may be a package stash created, as well as buffer space
+    # these aren't returned to the OS when freed
+    check_mem(1) if $i == 0;
+
+    if ($i % 1000  ==  999) {
+        $ok = check_mem();
+        $nok++ unless $ok;
+        ok($ok, "i_e $i");
+    }
+}
+ok($nok == 0, "Memory leak test in init_event/destroy");
 
 #
 #   ... and drop it.
