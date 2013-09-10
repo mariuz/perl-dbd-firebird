@@ -1209,12 +1209,13 @@ ib_drop_database(dbh)
 
 #*******************************************************************************
 
-IB_EVENT *
+SV *
 ib_init_event(dbh, ...)
     SV *dbh
     PREINIT:
     char *CLASS = "DBD::Firebird::Event";
     int i;
+    IB_EVENT ev;
     D_imp_dbh(dbh);
     CODE:
 {
@@ -1228,65 +1229,68 @@ ib_init_event(dbh, ...)
         if (cnt > MAX_EVENTS)
             croak("Max number of events exceeded.");
 
-		Newx(RETVAL, 1, IB_EVENT);
-
         /* init members */
-        RETVAL->dbh           = imp_dbh;
-        RETVAL->event_buffer  = NULL;
-        RETVAL->result_buffer = NULL;
-        RETVAL->id            = 0;
-        RETVAL->num           = cnt;
-        RETVAL->perl_cb       = NULL;
-        RETVAL->state         = INACTIVE;
-        RETVAL->exec_cb       = 0;
+        ev.dbh           = imp_dbh;
+        ev.event_buffer  = NULL;
+        ev.result_buffer = NULL;
+        ev.id            = 0;
+        ev.num           = cnt;
+        ev.perl_cb       = NULL;
+        ev.state         = INACTIVE;
+        ev.exec_cb       = 0;
 
-		Newx(RETVAL->names, MAX_EVENTS, char *);
+		Newx(ev.names, MAX_EVENTS, char *);
 
         for (i = 0; i < MAX_EVENTS; i++)
         {
             if (i < cnt) {
                 /* dangerous!
-                *(RETVAL->names + i) = SvPV_nolen(ST(i + 1));
+                *(ev.names + i) = SvPV_nolen(ST(i + 1));
                 */
-				Newx(RETVAL->names[i], SvCUR(ST(i + 1)) + 1, char);
-                strcpy(RETVAL->names[i], SvPV_nolen(ST(i + 1)));
+				Newx(ev.names[i], SvCUR(ST(i + 1)) + 1, char);
+                strcpy(ev.names[i], SvPV_nolen(ST(i + 1)));
             }
             else
-                *(RETVAL->names + i) = NULL;
+                *(ev.names + i) = NULL;
         }
 
-        RETVAL->epb_length = (short) isc_event_block(
-            &(RETVAL->event_buffer),
-            &(RETVAL->result_buffer),
+        ev.epb_length = (short) isc_event_block(
+            &(ev.event_buffer),
+            &(ev.result_buffer),
             cnt,
-            *(RETVAL->names +  0),
-            *(RETVAL->names +  1),
-            *(RETVAL->names +  2),
-            *(RETVAL->names +  3),
-            *(RETVAL->names +  4),
-            *(RETVAL->names +  5),
-            *(RETVAL->names +  6),
-            *(RETVAL->names +  7),
-            *(RETVAL->names +  8),
-            *(RETVAL->names +  9),
-            *(RETVAL->names + 10),
-            *(RETVAL->names + 11),
-            *(RETVAL->names + 12),
-            *(RETVAL->names + 13),
-            *(RETVAL->names + 14));
+            *(ev.names +  0),
+            *(ev.names +  1),
+            *(ev.names +  2),
+            *(ev.names +  3),
+            *(ev.names +  4),
+            *(ev.names +  5),
+            *(ev.names +  6),
+            *(ev.names +  7),
+            *(ev.names +  8),
+            *(ev.names +  9),
+            *(ev.names + 10),
+            *(ev.names + 11),
+            *(ev.names + 12),
+            *(ev.names + 13),
+            *(ev.names + 14));
     }
     else
         croak("Names of the events in interest are not specified");
     {
         ISC_STATUS status[ISC_STATUS_LENGTH];
 		ISC_ULONG ecount[15];
-        isc_wait_for_event(status, &(imp_dbh->db), RETVAL->epb_length, RETVAL->event_buffer,
-                       RETVAL->result_buffer);
+        isc_wait_for_event(status, &(imp_dbh->db), ev.epb_length, ev.event_buffer,
+                       ev.result_buffer);
         if (ib_error_check(dbh, status))
             XSRETURN_UNDEF; //croak("error in isc_wait_for_event()");
-        isc_event_counts(ecount, RETVAL->epb_length, RETVAL->event_buffer,
-                       RETVAL->result_buffer);
+        isc_event_counts(ecount, ev.epb_length, ev.event_buffer,
+                       ev.result_buffer);
     }
+
+    RETVAL = sv_bless(
+        newRV_noinc(newSVpvn((char *)&ev, sizeof(ev))),
+        gv_stashpvn(CLASS, strlen(CLASS), GV_ADD));
+
     DBI_TRACE_imp_xxh(imp_dbh, 2, (DBIc_LOGPIO(imp_dbh), "Leaving init_event()\n"));
 }
     OUTPUT:
@@ -1294,11 +1298,12 @@ ib_init_event(dbh, ...)
 
 
 int
-ib_register_callback(dbh, ev, perl_cb)
+ib_register_callback(dbh, ev_rv, perl_cb)
     SV *dbh
-    IB_EVENT *ev
+    SV *ev_rv
     SV *perl_cb
     PREINIT:
+    IB_EVENT *ev = (IB_EVENT *)SvPV_nolen(SvRV(ev_rv));
     ISC_STATUS status[ISC_STATUS_LENGTH];
     D_imp_dbh(dbh);
     CODE:
@@ -1334,10 +1339,11 @@ ib_register_callback(dbh, ev, perl_cb)
 
 
 int
-ib_cancel_callback(dbh, ev)
+ib_cancel_callback(dbh, ev_rv)
     SV *dbh
-    IB_EVENT *ev
+    SV *ev_rv
     PREINIT:
+    IB_EVENT *ev = (IB_EVENT *) SvPV_nolen(SvRV(ev_rv));
     CODE:
     RETVAL = _cancel_callback(dbh, ev);
     OUTPUT:
@@ -1345,14 +1351,15 @@ ib_cancel_callback(dbh, ev)
 
 
 HV*
-ib_wait_event(dbh, ev)
+ib_wait_event(dbh, ev_rv)
     SV *dbh
-    IB_EVENT *ev
+    SV *ev_rv
     PREINIT:
     int i;
     SV **svp;
     ISC_STATUS status[ISC_STATUS_LENGTH];
     D_imp_dbh(dbh);
+    IB_EVENT *ev = (IB_EVENT *)SvPV_nolen(SvRV(ev_rv));
     CODE:
 {
     isc_wait_for_event(status, &(imp_dbh->db), ev->epb_length, ev->event_buffer,
@@ -1570,9 +1577,10 @@ MODULE = DBD::Firebird     PACKAGE = DBD::Firebird::Event
 PROTOTYPES: DISABLE
 
 void
-DESTROY(evh)
-    IB_EVENT *evh
+DESTROY(ev_rv)
+    SV *ev_rv
     PREINIT:
+    IB_EVENT *evh = (IB_EVENT *)SvPV_nolen(SvRV(ev_rv));
     int i;
     ISC_STATUS status[ISC_STATUS_LENGTH];
     CODE:
