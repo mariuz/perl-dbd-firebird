@@ -108,8 +108,7 @@ $FB::libfbembed_available = 0;
 
 # We set FIREBIRD_HOME from the first found of:
 # 1. Environment variable
-# 2. Subdirectory of FIREBIRD_HOME
-# 3. Helper subs (search Firebird in the known locations)
+# 2. Helper subs (search Firebird in the known locations)
 
 unless ($EMBEDDED) {
     # 1. Environment variables
