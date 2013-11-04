@@ -3,17 +3,20 @@ DBD::Firebird version 1.15
 
 DBI driver for the Firebird RDBMS server.
 
-   Copyright © 2010-2013  Popa Adrian Marius <mapopa@gmail.com>
-   Copyright © 2011-2013  Stefan Suciu <stefbv70@gmail.com>
-   Copyright © 2011-2013  Damyan Ivanov <dmn@debian.org>
-   Copyright © 2011  Alexandr Ciornii <alexchorny@gmail.com>
-   Copyright © 2010-2011  pilcrow <mjp@pilcrow.madison.wi.us>
-   Copyright © 1999-2005  Edwin Pratomo
-   Portions Copyright © 2001-2005  Daniel Ritz
+- Copyright © 2010-2013  Popa Adrian Marius <mapopa@gmail.com>
+- Copyright © 2011-2013  Stefan Suciu <stefbv70@gmail.com>
+- Copyright © 2011-2013  Damyan Ivanov <dmn@debian.org>
+- Copyright © 2011  Alexandr Ciornii <alexchorny@gmail.com>
+- Copyright © 2010-2011  pilcrow <mjp@pilcrow.madison.wi.us>
+- Copyright © 1999-2005  Edwin Pratomo
+- Portions Copyright © 2001-2005  Daniel Ritz
 
-   You may distribute under the terms of either the GNU General Public
-   License or the Artistic License, as specified in the Perl README file.
-   (http://dev.perl.org/licenses/artistic.html)
+License
+-------
+
+You may distribute under the terms of either the GNU General Public
+License or the Artistic License, as specified in the Perl README file.
+(http://dev.perl.org/licenses/artistic.html)
 
 
 Installation
