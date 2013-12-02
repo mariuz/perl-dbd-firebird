@@ -8,6 +8,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Exception;
 use lib 't','.';
 
 use TestFirebird;
@@ -49,15 +50,13 @@ SKIP: {
         ok($dbh1->do($def));
     }
 
-    ok(
-        !defined(
-            $dbh2->func(
-                -lock_resolution => { 'no_wait' => 2 },
-                'ib_set_tx_param'
-            )
-        ),
-        "try invalid lock resolution. " . $dbh2->errstr
-    );
+    throws_ok {
+        $dbh2->func(
+            -lock_resolution => { 'no_wait' => 2 },
+            'ib_set_tx_param'
+        );
+    }
+    qr/The only valid key is 'wait'/, "try invalid lock resolution";
 
     is($dbh1->{AutoCommit}, 1, "1st tx AutoCommit == 1");
 
