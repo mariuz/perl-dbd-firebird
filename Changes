@@ -1,4 +1,13 @@
 Revision history for Perl extension DBD::Firebird.
+1.16 [2013-12-02]
+ * Implement event objects as blessed scalar refs
+ * include event creation/destruction in 60-leaks.t
+ * Fix for the reference test for softcommit
+ * Update README
+ * Fix comment about setting firebird home
+ * Add markdown version of the README file
+ * Update Makefile.PL removing old platforms
+ * test invalid lock resolution with 'throws_ok'
 1.15 [2013-09-09]
  * Last release for today :)
  * do not include fb_init/fb_sem in MANIFEST
