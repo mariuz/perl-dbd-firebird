@@ -110,14 +110,14 @@ SKIP: {
             1;
         },
         'ib_register_callback'
-    ));
+    ), 'callback registered');
 
     my $t = threads->create($worker, $table, $test_dsn, $test_user, $test_password);
-    ok($t);
-    ok($t->join);
+    ok($t, 'thread created');
+    ok($t->join, 'thread joined');
 
     while (not exists $::CNT{'foo_deleted'}) {}
-    ok($dbh->func($evh, 'ib_cancel_callback'));
+    ok($dbh->func($evh, 'ib_cancel_callback'), 'callback unregistered');
     is($::CNT{'foo_inserted'}, 5);
     is($::CNT{'foo_deleted'}, 5);
 
