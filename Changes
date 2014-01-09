@@ -1,4 +1,7 @@
 Revision history for Perl extension DBD::Firebird.
+1.17 [2014-01-09]
+ * a bit more verbose ok() calls in 90-event-ithreads.t
+ * disable threaded event tests under AUTOMATED_TESTING
 1.16 [2013-12-02]
  * Implement event objects as blessed scalar refs
  * include event creation/destruction in 60-leaks.t
