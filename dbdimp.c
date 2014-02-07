@@ -1928,16 +1928,19 @@ SV* dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv)
 
     i = DBIc_NUM_FIELDS(imp_sth);
 
+    if (!imp_sth)
+	return Nullsv;
+
     /**************************************************************************/
     if (kl==4 && strEQ(key, "TYPE"))
     {
         AV *av;
 
-        if (!imp_sth || !imp_sth->in_sqlda || !imp_sth->out_sqlda)
+        if (!imp_sth->in_sqlda || !imp_sth->out_sqlda)
             return Nullsv;
 
         av = newAV();
-        result = newRV(sv_2mortal((SV*)av));
+        result = newRV_inc(sv_2mortal((SV*)av));
         while(--i >= 0)
             av_store(av, i,
                      newSViv(ib2sql_type(imp_sth->out_sqlda->sqlvar[i].sqltype)));
@@ -1947,11 +1950,11 @@ SV* dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv)
     {
         AV *av;
 
-        if (!imp_sth || !imp_sth->in_sqlda || !imp_sth->out_sqlda)
+        if (!imp_sth->in_sqlda || !imp_sth->out_sqlda)
             return Nullsv;
 
         av = newAV();
-        result = newRV(sv_2mortal((SV*)av));
+        result = newRV_inc(sv_2mortal((SV*)av));
         while(--i >= 0)
             av_store(av, i, newSViv(imp_sth->out_sqlda->sqlvar[i].sqlscale));
 
@@ -1961,11 +1964,11 @@ SV* dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv)
     {
         AV *av;
 
-        if (!imp_sth || !imp_sth->in_sqlda || !imp_sth->out_sqlda)
+        if (!imp_sth->in_sqlda || !imp_sth->out_sqlda)
             return Nullsv;
 
         av = newAV();
-        result = newRV(sv_2mortal((SV*)av));
+        result = newRV_inc(sv_2mortal((SV*)av));
         while(--i >= 0)
             av_store(av, i, newSViv(imp_sth->out_sqlda->sqlvar[i].sqllen));
     }
@@ -1974,11 +1977,11 @@ SV* dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv)
     {
         AV *av;
 
-        if (!imp_sth || !imp_sth->in_sqlda || !imp_sth->out_sqlda)
+        if (!imp_sth->in_sqlda || !imp_sth->out_sqlda)
             return Nullsv;
 
         av = newAV();
-        result = newRV(sv_2mortal((SV*)av));
+        result = newRV_inc(sv_2mortal((SV*)av));
         while(--i >= 0)
         {
             if (imp_sth->out_sqlda->sqlvar[i].aliasname_length > 0)
@@ -2000,11 +2003,11 @@ SV* dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv)
     {
         AV *av;
 
-        if (!imp_sth || !imp_sth->in_sqlda || !imp_sth->out_sqlda)
+        if (!imp_sth->in_sqlda || !imp_sth->out_sqlda)
             return Nullsv;
 
         av = newAV();
-        result = newRV(sv_2mortal((SV*)av));
+        result = newRV_inc(sv_2mortal((SV*)av));
         while(--i >= 0)
             av_store(av, i, boolSV((imp_sth->out_sqlda->sqlvar[i].sqltype & 1) != 0));
     }
@@ -2013,16 +2016,14 @@ SV* dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv)
     {
         if (imp_sth->cursor_name == NULL)
             return Nullsv;
-        else
-            result = newSVpv(imp_sth->cursor_name, strlen(imp_sth->cursor_name));
+	result = newSVpv(imp_sth->cursor_name, strlen(imp_sth->cursor_name));
     }
     /**************************************************************************/
     else if (kl==11 && strEQ(key, "ParamValues"))
     {
         if (imp_sth->param_values == NULL)
             return Nullsv;
-        else
-            result = newRV_inc((SV*)imp_sth->param_values);
+	result = newRV_inc((SV*)imp_sth->param_values);
     }
     else
         return Nullsv;
