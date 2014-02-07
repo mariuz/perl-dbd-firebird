@@ -183,6 +183,7 @@ sub check_and_set_cached_configs {
     my (undef, $path, $file) = File::Spec->splitpath($self->{path});
 
     my ($base, $type) = $file =~ /^(.*?)(\.fdb)\z/i;
+    defined $type or $type = ""; # type might be undef when using FIREBIRD_DATABASE
 
     # Check database path only if local
     if ( !$self->{host} or $self->{host} eq 'localhost' ) {
@@ -255,17 +256,16 @@ default.
 sub get_dsn {
     my $self = shift;
 
-    my $path;
     my $host = $self->{host};
 
     # $path
     #     = 'localhost:'
     #     . File::Spec->catfile( File::Spec->tmpdir(),
     #     'dbd-fb-testdb.fdb' );
-    $path = File::Spec->catfile( File::Spec->tmpdir(),
+    my $db = $ENV{FIREBIRD_DATABASE} || File::Spec->catfile( File::Spec->tmpdir(),
         'dbd-fb-testdb.fdb' );
 
-    return "dbi:Firebird:db=$path;host=$host;ib_dialect=3;ib_charset="
+    return "dbi:Firebird:db=$db;host=$host;ib_dialect=3;ib_charset="
         . $self->get_charset;
 }
 
