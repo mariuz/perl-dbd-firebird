@@ -46,9 +46,9 @@ sub new {
 sub check_credentials {
     my $self = shift;
 
-    unless ( $self->{pass}
-        or $ENV{DBI_PASS}
-        or $ENV{ISC_PASSWORD} )
+    unless ( defined $self->{pass}
+        or defined $ENV{DBI_PASS}
+        or defined $ENV{ISC_PASSWORD} )
     {
         plan skip_all =>
             "Neither DBI_PASS nor ISC_PASSWORD present in the environment";
@@ -163,8 +163,8 @@ sub check_and_set_cached_configs {
     my $error_str = q{};
 
     # Check user and pass, try the get from ENV if missing
-    $self->{user} ||= $self->get_user;
-    $self->{pass} ||= $self->get_pass;
+    defined $self->{user} or $self->{user} = $self->get_user;
+    defined $self->{pass} or $self->{pass} = $self->get_pass;
 
     # Check host
     $self->{host} ||= $self->get_host;
@@ -206,7 +206,9 @@ sub get_user {
 sub get_pass {
    my $self = shift;
 
-   return $ENV{DBI_PASS} || $ENV{ISC_PASSWORD} || q{masterkey};
+   return defined $ENV{DBI_PASS}     ? $ENV{DBI_PASS}
+        : defined $ENV{ISC_PASSWORD} ? $ENV{ICS_PASSWORD}
+        : "masterkey";
 }
 
 sub get_host {
