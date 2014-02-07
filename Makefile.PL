@@ -310,7 +310,7 @@ WriteMakefile1(%MakeParams);
 closing_msg()
     if !$EMBEDDED
         and !$interactive
-        and ( !$ENV{DBI_PASS} and !$ENV{ISC_PASSWORD} );
+        and ( !defined $ENV{DBI_PASS} and !defined $ENV{ISC_PASSWORD} );
 
 
 exit 0;

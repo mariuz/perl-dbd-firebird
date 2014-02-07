@@ -28,7 +28,7 @@ unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 24;
+    plan tests => 17;
 }
 
 ok($dbh, 'Connected to the database');
@@ -36,23 +36,60 @@ ok($dbh, 'Connected to the database');
 # ------- TESTS ------------------------------------------------------------- #
 
 my %expected = (
-    0  => 30000,
-    1  => 1000,
-    2  => 'Edwin        ',
-    3  => 'Edwin Pratomo       ',
-    4  => 'A string',
-    5  => 5000,
-    6  => '1.20000004768372',
-    7  => 1.44,
-    8  => '2011-01-23 17:14',
-    9  => '2011-01-23',
-    10 => '17:14',
-    11 => 32.71,
-    12 => -32.71,
-    13 => 123456.79,
-    14 => -123456.79,
-    15 => '86753090000.868',
+    VALUES	=> [
+	30000,
+	1000,
+	'Edwin        ',
+	'Edwin Pratomo       ',
+	'A string',
+	5000,
+	1.125,
+	1.25,
+	'2011-01-23 17:14',
+	'2011-01-23',
+	'17:14',
+	32.71,
+	-32.71,
+	123456.79,
+	-123456.79,
+	'86753090000.868',
+    ],
+    TYPE	=> [
+	4,5,1,1,12,4,6,8,11,9,10,5,5,4,4,-9581,
+    ],
+    SCALE	=> [
+	0,0,0,0,0,0,0,0,0,0,0,-3,-3,-3,-3,-3,
+    ],
+    PRECISION	=> [
+	4,2,52,80,52,4,4,8,8,4,4,2,2,4,4,8,
+    ]
 );
+
+my $def = <<"DEF";
+    INTEGER_             INTEGER,
+    SMALLINT_            SMALLINT,
+    CHAR13_              CHAR(13),
+    CHAR20_              CHAR(20),
+    VARCHAR13_           VARCHAR(13),
+    DECIMAL_             DECIMAL,
+    FLOAT_               FLOAT,
+    DOUBLE_              DOUBLE PRECISION,
+    A_TIMESTAMP          TIMESTAMP,
+    A_DATE               DATE,
+    A_TIME               TIME,
+    NUMERIC_AS_SMALLINT  NUMERIC(4,3),
+    NUMERIC_AS_SMALLINT2 NUMERIC(4,3),
+    NUMERIC_AS_INTEGER   NUMERIC(9,3),
+    NUMERIC_AS_INTEGER2  NUMERIC(9,3),
+    A_SIXTYFOUR          NUMERIC(18,3)
+DEF
+for (split m/[\r\n]+/ => $def) {
+    my ($f, $d) = m/^\s*(\S+)\s+(\S[^,]+)/;
+    push @{$expected{NAME}},    $f;
+    push @{$expected{NAME_lc}}, lc $f;
+    push @{$expected{NAME_uc}}, uc $f;
+    push @{$expected{DEF}},     $d;
+}
 
 #
 #   Find a possible new table name
@@ -63,89 +100,30 @@ ok($table, qq{Table is '$table'});
 #
 #   Create a new table
 #
-my $def =<<"DEF";
-CREATE TABLE $table (
-    INTEGER_    INTEGER,
-    SMALLINT_   SMALLINT,
-    CHAR13_     CHAR(13),
-    CHAR20_     CHAR(20),
-    VARCHAR13_  VARCHAR(13),
-    DECIMAL_    DECIMAL,
-    FLOAT_      FLOAT,
-    DOUBLE_     DOUBLE PRECISION,
-    A_TIMESTAMP  TIMESTAMP,
-    A_DATE       DATE,
-    A_TIME       TIME,
-    NUMERIC_AS_SMALLINT  NUMERIC(4,3),
-    NUMERIC_AS_SMALLINT2 NUMERIC(4,3),
-    NUMERIC_AS_INTEGER   NUMERIC(9,3),
-    NUMERIC_AS_INTEGER2  NUMERIC(9,3),
-    A_SIXTYFOUR  NUMERIC(18,3)
-)
-DEF
+ok($dbh->do("CREATE TABLE $table (\n$def)"), "CREATE TABLE $table");
 
-ok($dbh->do($def));
-
-#
 # Prepare insert
 #
 
-my $stmt =<<"END_OF_QUERY";
-INSERT INTO $table (
-    INTEGER_,
-    SMALLINT_,
-    CHAR13_,
-    CHAR20_,
-    VARCHAR13_,
-    DECIMAL_,
-    FLOAT_,
-    DOUBLE_,
-    A_TIMESTAMP,
-    A_DATE,
-    A_TIME,
-    NUMERIC_AS_SMALLINT,
-    NUMERIC_AS_SMALLINT2,
-    NUMERIC_AS_INTEGER,
-    NUMERIC_AS_INTEGER2,
-    A_SIXTYFOUR
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-END_OF_QUERY
+my $NAMES  = join "," => @{$expected{NAME}};
+my $cursor = $dbh->prepare(
+    "INSERT INTO $table ($NAMES) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
-my $cursor = $dbh->prepare($stmt);
+ok($cursor->execute(@{$expected{VALUES}}), "INSERT in $table");
 
-ok($cursor->execute(
-    30000,
-    1000,
-    'Edwin',
-    'Edwin Pratomo',
-    'A string',
-    5000,
-    1.2,
-    1.44,
-    '2011-01-23 17:14',
-    '2011-01-23',
-    '17:14',
-    32.71,
-    -32.71,
-    123456.7895,
-    -123456.7895,
-    86753090000.8675309
-), "INSERT in $table");
-
-my $cursor2 = $dbh->prepare("SELECT * FROM $table", {
+ok(my $cursor2 = $dbh->prepare("SELECT * FROM $table", {
     ib_timestampformat => '%Y-%m-%d %H:%M',
     ib_dateformat => '%Y-%m-%d',
     ib_timeformat => '%H:%M',
-});
+}), "PREPARE");
 
-ok($cursor2->execute);
+ok($cursor2->execute, "EXECUTE");
 
 ok(my $res = $cursor2->fetchall_arrayref, 'FETCHALL arrayref');
 
-my ($types, $names, $fields) = @{$cursor2}{qw(TYPE NAME NUM_OF_FIELDS)};
-for (my $i = 0; $i < $fields; $i++) {
-    is($res->[0][$i], $expected{$i}, "TEST No $i");
-}
+is($cursor2->{NUM_OF_FIELDS}, 16, "Field count");
+is_deeply($res->[0],$expected{VALUES}, "Content");
+is_deeply($cursor2->{$_}, $expected{$_}, "attribute $_") for qw( NAME NAME_lc NAME_uc TYPE PRECISION SCALE );
 
 #
 #  Drop the test table
@@ -155,4 +133,4 @@ ok($dbh->do("DROP TABLE $table"), "DROP TABLE '$table'");
 #
 #   Finally disconnect.
 #
-ok($dbh->disconnect());
+ok($dbh->disconnect(), "Disconnect");

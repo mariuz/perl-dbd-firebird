@@ -227,7 +227,7 @@ sub check_and_set_devlibs {
     $FB::HOME = File::Spec->canonpath($fb_dir);
 
     $FB::INC = $FB::INC || File::Spec->catdir( $FB::HOME, 'include' );
-    $FB::INC = alternative_locations('inc') if !-d $FB::INC;
+    $FB::INC = alternative_locations('inc') if !-d $FB::INC || !-f File::Spec->catfile($FB::INC, "ibase.h");
 
     $FB::LIB = $FB::LIB || File::Spec->catdir( $FB::HOME, 'lib' );
     $FB::LIB = alternative_locations('lib') if !-d $FB::LIB;
