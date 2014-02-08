@@ -2925,7 +2925,7 @@ unsigned get_charset_bytes_per_char(const ISC_SHORT subtype, SV *sth)
     //warn("Q: How many bytes/char in CS %d?", subtype & 0xff);
 
     if ( (p = imp_dbh->charset_bytes_per_char) == NULL ) {
-        XSQLDA *out;
+        XSQLDA *out = NULL;
         XSQLVAR *var;
         isc_stmt_handle stmt = 0;
         ISC_STATUS status[ISC_STATUS_LENGTH];
