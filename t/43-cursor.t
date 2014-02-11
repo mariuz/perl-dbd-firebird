@@ -28,7 +28,7 @@ unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 17;
+    plan tests => 27;
 }
 
 ok($dbh, 'Connected to the database');
@@ -58,6 +58,13 @@ ok(my $cursor = $dbh->prepare($sql_insert), 'PREPARE INSERT');
 ok($cursor->execute($_, $values{$_}), "INSERT id $_") for (keys %values);
 
 $dbh->{AutoCommit} = 0;
+
+ok (my $sth = $dbh->prepare("select comment from $table where user_id = ?"),"STH");
+foreach my $id (sort keys %values) {
+    ok($sth->execute($id),"Excute for $id");
+    ok(my($c)=$sth->fetchrow_array(),"Fetch for $id");
+    is($c,$values{$id},"Comment for $id");
+}
 
 my $sql_sele = qq{SELECT * FROM $table WHERE user_id < 5 FOR UPDATE OF comment};
 ok(my $cursor2 = $dbh->prepare($sql_sele), 'PREPARE SELECT');
