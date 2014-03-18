@@ -1,7 +1,16 @@
 Revision history for Perl extension DBD::Firebird.
-1.17 [2014-01-09]
+1.17 [2014-03-18]
  * a bit more verbose ok() calls in 90-event-ithreads.t
  * disable threaded event tests under AUTOMATED_TESTING
+ * Makefile.PL: check for 'ibase.h' presense in potential include dir [Tux]
+ * allow empty (but still defined) DBI_PASS/ISC_PASSWORD for tests [Tux]
+ * add support for FIREBIRD_DATABASE in tests' environment [Tux]
+ * adjust double tests to not fail with -Duselongdouble perl builds [Tux]
+ * fix statement attr returns and rework 40-alltypes.t [Tux]
+ * update installation notes wrt threaded perl and OpenSUSE [Tux]
+ * add missing pointer initialization (RT#92821, Vadim Belov)
+ * dbd_st_finish: ignore "cursor already closed" error when closing the cursor
+ * dbd_st_execute: finish the statement if still active (RT#92810, HMBRAND)
 1.16 [2013-12-02]
  * Implement event objects as blessed scalar refs
  * include event creation/destruction in 60-leaks.t
