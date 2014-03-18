@@ -1050,6 +1050,9 @@ int dbd_st_execute(SV *sth, imp_sth_t *imp_sth)
     int        result = -2;
     int        row_count = 0;
 
+    if (DBIc_ACTIVE(imp_sth))
+        dbd_st_finish_internal( sth, imp_sth, TRUE);
+
     DBI_TRACE_imp_xxh(imp_sth, 2, (DBIc_LOGPIO(imp_sth), "dbd_st_execute\n"));
 
     /* if not already done: start new transaction */
