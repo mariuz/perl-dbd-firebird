@@ -1790,8 +1790,25 @@ int dbd_st_finish_internal(SV *sth, imp_sth_t *imp_sth, int honour_auto_commit)
     if (imp_sth->type != isc_info_sql_stmt_exec_procedure)
         isc_dsql_free_statement(status, (isc_stmt_handle *)&(imp_sth->stmt), DSQL_close);
 
-    if (ib_error_check(sth, status))
-        return FALSE;
+    /* Ignore errors when closing already closed cursor (sqlcode -501).
+       May happen when closing "select * from sample" statement, which was
+       closed by the server because of a "drop table sample" statement.
+       There is no point to error-out here, since nothing bad has happened --
+       the statement is closed, just without we knowing. There is no resource
+       leak and the user can't and needs not do anything.
+     */
+    if ((status[0] == 1) && (status[1] > 0)) {
+        long sqlcode = isc_sqlcode(status);
+
+        if (sqlcode != -501) {
+            if (ib_error_check(sth, status))
+                return FALSE;
+        }
+        else
+        {
+            DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: ignoring error -501 from isc_dsql_free_statement.\n"));
+        }
+    }
 
     DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: isc_dsql_free_statement passed.\n"));
 
