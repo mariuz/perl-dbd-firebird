@@ -1,5 +1,5 @@
 Revision history for Perl extension DBD::Firebird.
-1.17 [2014-03-18]
+1.18 [2014-03-19]
  * a bit more verbose ok() calls in 90-event-ithreads.t
  * disable threaded event tests under AUTOMATED_TESTING
  * Makefile.PL: check for 'ibase.h' presense in potential include dir [Tux]
