@@ -9,6 +9,9 @@
 
 package DBD::Firebird::TypeInfo;
 
+use strict;
+use warnings;
+
 {
     require Exporter;
     require DynaLoader;

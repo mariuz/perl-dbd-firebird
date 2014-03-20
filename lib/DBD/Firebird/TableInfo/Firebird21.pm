@@ -1,6 +1,7 @@
-use strict;
-
 package DBD::Firebird::TableInfo::Firebird21;
+
+use strict;
+use warnings;
 
 use DBD::Firebird::TableInfo::Basic;
 use vars qw(@ISA);

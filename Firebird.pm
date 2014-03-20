@@ -10,6 +10,7 @@ require 5.008001;
 
 package DBD::Firebird;
 use strict;
+use warnings;
 use Carp;
 
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD);

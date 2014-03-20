@@ -10,6 +10,7 @@
 package DBD::Firebird::GetInfo;
 
 use strict;
+use warnings;
 use DBD::Firebird;
 
 # Beware: not officially documented interfaces...

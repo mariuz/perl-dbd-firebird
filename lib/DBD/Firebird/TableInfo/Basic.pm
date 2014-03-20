@@ -1,5 +1,6 @@
 package DBD::Firebird::TableInfo::Basic;
 use strict;
+use warnings;
 
 =pod
 

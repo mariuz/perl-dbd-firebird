@@ -1,6 +1,7 @@
-use strict;
-
 package DBD::Firebird::TableInfo;
+
+use strict;
+use warnings;
 
 sub factory {
     my (undef, $dbh) = @_;
