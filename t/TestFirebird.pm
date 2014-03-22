@@ -208,7 +208,7 @@ sub get_pass {
    my $self = shift;
 
    return defined $ENV{DBI_PASS}     ? $ENV{DBI_PASS}
-        : defined $ENV{ISC_PASSWORD} ? $ENV{ICS_PASSWORD}
+        : defined $ENV{ISC_PASSWORD} ? $ENV{ISC_PASSWORD}
         : "masterkey";
 }
 
