@@ -76,8 +76,7 @@ int create_cursor_name(SV *sth, imp_sth_t *imp_sth)
     isc_dsql_set_cursor_name(status, &(imp_sth->stmt), imp_sth->cursor_name, 0);
     if (ib_error_check(sth, status))
         return FALSE;
-    else
-        return TRUE;
+    return TRUE;
 }
 
 void maybe_upgrade_to_utf8(imp_dbh_t *imp_dbh, SV *sv) {
@@ -148,45 +147,44 @@ void do_error(SV *h, int rc, char *what)
    Returns NULL if there is no error
  */
 char* ib_error_decode(const ISC_STATUS *status) {
-    if (status[0] == 1 && status[1] > 0)
-    {
-        SV *sv = NULL;
-        long sqlcode;
+    SV *sv = NULL;
+    long sqlcode;
 #if !defined(FB_API_VER) || FB_API_VER < 20
-        ISC_STATUS *pvector = status;
+    ISC_STATUS *pvector = status;
 #else
-        const ISC_STATUS *pvector = status;
+    const ISC_STATUS *pvector = status;
 #endif
 #if defined (INCLUDE_TYPES_PUB_H) 
-        ISC_SCHAR msg[1024];
+    ISC_SCHAR msg[1024];
 #else
-        char msg[1024];
+    char msg[1024];
 #endif
 
-        if ((sqlcode = isc_sqlcode(status)) != 0)
-        {
-            isc_sql_interprete((short) sqlcode, msg, sizeof(msg));
-            sv = sv_2mortal(newSVpv(msg, 0));
-        }
+    if (status[0] != 1 || status[1] <= 0)
+	return NULL;
+
+    if ((sqlcode = isc_sqlcode(status)) != 0)
+    {
+	isc_sql_interprete((short) sqlcode, msg, sizeof(msg));
+	sv = sv_2mortal(newSVpv(msg, 0));
+    }
 
 #if !defined(FB_API_VER) || FB_API_VER < 20
-        while (isc_interprete(msg, &pvector))
+    while (isc_interprete(msg, &pvector))
 #else
-        while (fb_interpret(msg, sizeof(msg), &pvector))
+    while (fb_interpret(msg, sizeof(msg), &pvector))
 #endif
-        {
-            if ( sv != NULL ) {
-                sv_catpvn(sv, "\n-", 2);
-                sv_catpv(sv, msg);
-            }
-            else sv = sv_2mortal(newSVpv(msg,0));
-        }
-
-        sv_catpvn(sv, "\0", 1);  // NUL-terminate
-
-        return SvPV_nolen(sv);
+    {
+	if ( sv != NULL ) {
+	    sv_catpvn(sv, "\n-", 2);
+	    sv_catpv(sv, msg);
+	}
+	else sv = sv_2mortal(newSVpv(msg,0));
     }
-    else return NULL;
+
+    sv_catpvn(sv, "\0", 1);  // NUL-terminate
+
+    return SvPV_nolen(sv);
 }
 
 /* higher level error handling, check and decode status */
@@ -194,12 +192,11 @@ int ib_error_check(SV *h, ISC_STATUS *status)
 {
     char *msg = ib_error_decode(status);
 
-    if (msg != NULL)
-    {
-        do_error(h, isc_sqlcode(status), msg);
-        return FAILURE;
-    }
-    else return SUCCESS;
+    if (msg == NULL)
+	return SUCCESS;
+
+    do_error(h, isc_sqlcode(status), msg);
+    return FAILURE;
 }
 
 
@@ -1054,6 +1051,9 @@ int dbd_st_execute(SV *sth, imp_sth_t *imp_sth)
         dbd_st_finish_internal( sth, imp_sth, TRUE);
 
     DBI_TRACE_imp_xxh(imp_sth, 2, (DBIc_LOGPIO(imp_sth), "dbd_st_execute\n"));
+
+    if (DBIc_ACTIVE(imp_sth))
+	dbd_st_finish_internal(sth, imp_sth, TRUE);
 
     /* if not already done: start new transaction */
     if (!imp_dbh->tr)
