@@ -1553,7 +1553,7 @@ DBI(3).
 
 =item Copyright (c) 2011  Alexandr Ciornii <alexchorny@gmail.com>
 
-=item Copyright (c) 2010, 2011  pilcrow <mjp@pilcrow.madison.wi.us>
+=item Copyright (c) 2010, 2011  Mike Pomraning <mjp@pilcrow.madison.wi.us>
 
 =item Copyright (c) 1999-2008  Edwin Pratomo
 
