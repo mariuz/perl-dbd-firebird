@@ -149,8 +149,11 @@ sub connect
                                 'ib_charset', 'ib_dialect', 'ib_cache', 'ib_lc_time']);
     $private_attr_hash->{database} ||= $ENV{ISC_DATABASE}; #"employee.fdb"
 
-    # second attr args will be retrieved using DBIc_IMP_DATA
-    my $dbh = DBI::_new_dbh($drh, {}, $private_attr_hash);
+    my ($dbh_name) = ($dsn =~ /(db=[^;]+)/);
+    $dbh_name ||= "db=$private_attr_hash->{database}";
+    my $dbh = DBI::_new_dbh($drh,
+                            { Name => $dbh_name },
+                            $private_attr_hash);
 
     DBD::Firebird::db::_login($dbh, $dsn, $dbuser, $dbpasswd, $attr) 
         or return undef;
