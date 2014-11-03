@@ -1,4 +1,4 @@
-DBD::Firebird version 1.15
+DBD::Firebird version 1.18
 ==========================
 
 DBI driver for the Firebird RDBMS server.
