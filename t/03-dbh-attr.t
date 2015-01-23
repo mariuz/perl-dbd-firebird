@@ -4,13 +4,15 @@ use warnings;
 # Smattering of dbh attribute tests.
 # FIXME:  add generic handle attribute tests, FB-specific attribute tests
 
-use Test::More tests => 9;
+use Test::More;
 
 use lib 't','.';
 
 use TestFirebird;
 
 my $T = TestFirebird->new;
+
+plan tests => 9;
 
 my( $dbh, $error ) = $T->connect_to_database;
 ok(!$error, "Connected to database") or diag($error);
