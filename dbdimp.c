@@ -21,6 +21,8 @@
 
 DBISTATE_DECLARE;
 
+#define ERRBUFSIZE  255
+
 #define IB_SQLtimeformat(xxh, format, sv)                             \
 do {                                                                  \
     STRLEN len;                                                       \
@@ -2237,8 +2239,8 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             /*
             * User passed an undef to a field that is not nullable.
             */
-            char err[80];
-            sprintf(err, "You have not provided a value for non-nullable parameter #%d.", i);
+            char err[ERRBUFSIZE];
+            snprintf(err, sizeof(err), "You have not provided a value for non-nullable parameter #%d.", i);
             do_error(sth, 1, err);
             retval = FALSE;
             return retval;
@@ -2278,8 +2280,8 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             string = SvPV(value, len);
 
             if (len > ivar->sqllen) {
-                char err[80];
-                sprintf(err, "String truncation (SQL_VARYING): attempted to bind %lu octets to column sized %lu",
+                char err[ERRBUFSIZE];
+                snprintf(err, sizeof(err), "String truncation (SQL_VARYING): attempted to bind %lu octets to column sized %lu",
                         (long unsigned)len, (long unsigned)(sizeof(char) * (ivar->sqllen)));
                 break;
             }
@@ -2301,8 +2303,8 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             string = SvPV(value, len);
 
             if (len > ivar->sqllen) {
-                char err[80];
-                sprintf(err, "String truncation (SQL_TEXT): attempted to bind %lu octets to column sized %lu",
+                char err[ERRBUFSIZE];
+                snprintf(err, sizeof(err), "String truncation (SQL_TEXT): attempted to bind %lu octets to column sized %lu",
                         (long unsigned)len, (long unsigned)(sizeof(char) * (ivar->sqllen)));
                 break;
             }
