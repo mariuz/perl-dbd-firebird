@@ -1646,7 +1646,7 @@ ib_plan(sth)
     if (plan_buffer[0] == isc_info_sql_get_plan) {
         short l = (short) isc_vax_integer((char *)plan_buffer + 1, 2);
 		Newx(RETVAL, l + 2, char);
-        sprintf(RETVAL, "%.*s%s", l, plan_buffer + 3, "\n");
+        snprintf(RETVAL, l+2, "%.*s%s", l, plan_buffer + 3, "\n");
         //PerlIO_printf(PerlIO_stderr(), "Len: %d, orig len: %d\n", strlen(imp_sth->plan), l);
     }
 }

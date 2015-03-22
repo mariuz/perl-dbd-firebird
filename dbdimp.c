@@ -72,9 +72,10 @@ bool is_ascii_string(const U8 *s, STRLEN len) {
 int create_cursor_name(SV *sth, imp_sth_t *imp_sth)
 {
     ISC_STATUS status[ISC_STATUS_LENGTH];
+#define CURSOR_NAME_LEN 22
 
-    Newxz(imp_sth->cursor_name, 22, char);
-    sprintf(imp_sth->cursor_name, "perl%16.16X", (uint32_t)imp_sth->stmt);
+    Newxz(imp_sth->cursor_name, CURSOR_NAME_LEN, char);
+    snprintf(imp_sth->cursor_name, CURSOR_NAME_LEN, "perl%16.16X", (uint32_t)imp_sth->stmt);
     isc_dsql_set_cursor_name(status, &(imp_sth->stmt), imp_sth->cursor_name, 0);
     if (ib_error_check(sth, status))
         return FALSE;
@@ -1494,7 +1495,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                         switch (dtype)
                         {
                             case SQL_TIMESTAMP:
-                                sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d.%04ld",
+                                snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d.%04ld",
                                         times.tm_year + 1900,
                                         times.tm_mon  + 1,
                                         times.tm_mday,
@@ -1504,14 +1505,14 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                                         fpsec);
                                 break;
                             case SQL_TYPE_DATE:
-                                sprintf(buf, "%04d-%02d-%02d",
+                                snprintf(buf, sizeof(buf), "%04d-%02d-%02d",
                                         times.tm_year + 1900,
                                         times.tm_mon  + 1,
                                         times.tm_mday);
                                 break;
 
                             case SQL_TYPE_TIME:
-                                sprintf(buf, "%02d:%02d:%02d.%04ld",
+                                snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%04ld",
                                         times.tm_hour,
                                         times.tm_min,
                                         times.tm_sec,
@@ -1762,7 +1763,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
             else
             {
                 char s[20];
-                sprintf(s, "COLUMN%d", i);
+                snprintf(s, sizeof(s), "COLUMN%d", i);
                 sv_setpvn(sv, s, strlen(s));
             }
 */
@@ -2015,7 +2016,7 @@ SV* dbd_st_FETCH_attrib(SV *sth, imp_sth_t *imp_sth, SV *keysv)
             else
             {
                 char s[20];
-                sprintf(s, "COLUMN%d", i);
+                snprintf(s, sizeof(s), "COLUMN%d", i);
                 av_store(av, i, newSVpvn(s, strlen(s)));
             }
         }
@@ -2350,7 +2351,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                 char *tmp;
                 char *neg;
 
-                sprintf(format, "%%ld.%%%dld%%1ld", -ivar->sqlscale);
+                snprintf(format, sizeof(format), "%%ld.%%%dld%%1ld", -ivar->sqlscale);
 
                 /* negative -0.x hack */
                 neg = strchr(svalue, '-');
@@ -2363,7 +2364,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                 if (!sscanf(svalue, format, &p, &q, &r))
                 {
                     /* here we handle values such as .78 passed as string */
-                    sprintf(format, ".%%%dld%%1ld", -ivar->sqlscale);
+                    snprintf(format, sizeof(format), ".%%%dld%%1ld", -ivar->sqlscale);
                     if (!sscanf(svalue, format, &q, &r) && DBIc_WARN(imp_sth))
                         warn("problem parsing SQL_LONG type");
                 }
@@ -2389,11 +2390,11 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             {
                 /* numeric(?,0): scan for one decimal and do rounding*/
 
-                sprintf(format, "%%ld.%%1ld");
+                snprintf(format, sizeof(format), "%%ld.%%1ld");
 
                 if (!sscanf(svalue, format, &p, &r))
                 {
-                    sprintf(format, ".%%1ld");
+                    snprintf(format, sizeof(format), ".%%1ld");
                     if (!sscanf(svalue, format, &r) && DBIc_WARN(imp_sth))
                         warn("problem parsing SQL_LONG type");
                 }
@@ -2481,7 +2482,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                 char *tmp;
                 char *neg;
 
-                sprintf(format, S_INT64_FULL, -ivar->sqlscale);
+                snprintf(format, sizeof(format), S_INT64_FULL, -ivar->sqlscale);
 
                 /* negative -0.x hack */
                 neg = strchr(svalue, '-');
@@ -2494,7 +2495,7 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                 if (!sscanf(svalue, format, &p, &q, &r))
                 {
                     /* here we handle values such as .78 passed as string */
-                    sprintf(format, S_INT64_DEC_FULL, -ivar->sqlscale);
+                    snprintf(format, sizeof(format), S_INT64_DEC_FULL, -ivar->sqlscale);
                     if (!sscanf(svalue, format, &q, &r) && DBIc_WARN(imp_sth))
                         warn("problem parsing SQL_INT64 type");
                 }
@@ -2520,11 +2521,11 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
             {
                 /* numeric(?,0): scan for one decimal and do rounding*/
 
-                sprintf(format, S_INT64_NOSCALE);
+                snprintf(format, sizeof(format), S_INT64_NOSCALE);
 
                 if (!sscanf(svalue, format, &p, &r))
                 {
-                    sprintf(format, S_INT64_DEC_NOSCALE);
+                    snprintf(format, sizeof(format), S_INT64_DEC_NOSCALE);
                     if (!sscanf(svalue, format, &r) && DBIc_WARN(imp_sth))
                         warn("problem parsing SQL_INT64 type");
                 }
