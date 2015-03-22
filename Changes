@@ -1,4 +1,19 @@
 Revision history for Perl extension DBD::Firebird.
+1.19 [2015-03-22]
+ * Fix $VERSION in Firebird.pm [mapopa]
+ * Fix typo in ISC_PASSWORD spelling [stefbv70]
+ * Positive logic and early return [Tux]
+ * Allow re-executing/fetch on prepared sth [RT#92810, Tux]
+ * Add rests for $dbh->{Name} and others [mjp]
+ * Implement $dbh->{Name} [mjp]
+ * Fix attributions to Mike Pomraning [mjp]
+ * use strict and warnings in all modules [dmn]
+ * add a test for inserting/fetching float and double numbers as an attempt to
+   reproduce RT#101650 [dmn]
+ * fix File::Which configure prerequisite declaration [RT#101672, dmn]
+ * 03-dbh-attr.t: plan tests after creating the TestFirebird object [dmn]
+ * Buffer Overflow in dbdimp.c [stefan.roas]
+ * use snprintf instead of sprintf everywhere [dmn]
 1.18 [2014-03-19]
  * a bit more verbose ok() calls in 90-event-ithreads.t
  * disable threaded event tests under AUTOMATED_TESTING

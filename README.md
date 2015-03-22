@@ -1,13 +1,15 @@
-DBD::Firebird version 1.18
+DBD::Firebird version 1.19
 ==========================
 
 DBI driver for the Firebird RDBMS server.
 
-- Copyright © 2010-2013  Popa Adrian Marius
+- Copyright © 2015  Stefan Roas
+- Copyright © 2014  H.Merijn Brand - Tux
+- Copyright © 2010-2014  Popa Adrian Marius
 - Copyright © 2011-2013  Stefan Suciu
-- Copyright © 2011-2013  Damyan Ivanov
+- Copyright © 2011-2015  Damyan Ivanov
 - Copyright © 2011  Alexandr Ciornii
-- Copyright © 2010-2011  Mike Pomraning
+- Copyright © 2010-2014  Mike Pomraning
 - Copyright © 1999-2005  Edwin Pratomo
 - Portions Copyright © 2001-2005  Daniel Ritz
 
