@@ -13,13 +13,9 @@ use strict;
 use warnings;
 
 {
-    require Exporter;
-    require DynaLoader;
-    @ISA = qw(Exporter DynaLoader);
-    @EXPORT = qw(type_info_all);
     use DBI qw(:sql_types);
 
-    $type_info_all = [
+    our $type_info_all = [
         {
             TYPE_NAME          =>  0,
             DATA_TYPE          =>  1,

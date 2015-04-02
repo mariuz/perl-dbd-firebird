@@ -11,10 +11,15 @@ BEGIN {
     $^W = 1;
 }
 
-use Test::More tests => 2;
+use Test::More tests => 7;
 
 use_ok('DBI');
 
 use_ok('DBD::Firebird');
+use_ok('DBD::Firebird::GetInfo');
+use_ok('DBD::Firebird::TableInfo');
+use_ok('DBD::Firebird::TableInfo::Basic');
+use_ok('DBD::Firebird::TableInfo::Firebird21');
+use_ok('DBD::Firebird::TypeInfo');
 
 # diag("\$DBI::VERSION=$DBI::VERSION");

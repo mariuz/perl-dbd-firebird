@@ -817,7 +817,7 @@ EOT
             $f => {
                 new_path => $n,
                 mangle => sub {
-                    $_[0] =~ s/DBD::Firebird\b/DBD::FirebirdEmbedded/g;
+                    $_[0] =~ s/DBD::Firebird\b(?!::(?:Get|Type|Table)Info)/DBD::FirebirdEmbedded/g;
                     $_[0] =~ s/TestFirebird\b/TestFirebirdEmbedded/g;
                 },
             }
