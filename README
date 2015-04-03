@@ -42,6 +42,8 @@ REQUIREMENTS:
       sudo apt-get install firebird2.5-dev libdbi-perl
     On OpenSUSE:
       sudo zypper in firebird firebird-devel perl-DBI
+    On Fedora, Red Hat Enterprise Linux, CentOS and derivates:
+      sudo yum install firebird firebird-devel perl-DBI
 
   - Remember to *read* the DBI README file if you installed it from source
 
