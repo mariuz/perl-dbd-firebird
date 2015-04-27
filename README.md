@@ -36,7 +36,7 @@ Requirements:
 
   * Windows
     - Strawberry perl (http://strawberryperl.com/) comes with it's own compiler (mingw)
-    - or Microsoft Express VC++ 9 (2008) /10 (2010) /11
+    - or Visual Studio C++ > 9 (2008) 
     - Cygwin
   * Freebsd
     - Threaded Perl is required (You have to re-install Perl from
