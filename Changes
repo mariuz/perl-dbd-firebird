@@ -1,4 +1,7 @@
 Revision history for Perl extension DBD::Firebird.
+1.20 [2015-04-27]
+ * Fix loading DBD::Firebird::TypeInfo with strict/warnings [ilmari]
+ * Added installation hint for Fedora, RHEL, CentOS and derivates [robert-scheck]
 1.19 [2015-03-22]
  * Fix $VERSION in Firebird.pm [mapopa]
  * Fix typo in ISC_PASSWORD spelling [stefbv70]
