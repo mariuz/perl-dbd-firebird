@@ -36,7 +36,7 @@ Requirements:
 
   * Windows
     - Strawberry perl (http://strawberryperl.com/) comes with it's own compiler (mingw)
-    - or Visual Studio C++ > 9 (2008) 
+    - Visual Studio C++ (http://visualstudio.com) 
     - Cygwin
   * Freebsd
     - Threaded Perl is required (You have to re-install Perl from
@@ -79,4 +79,4 @@ TESTING
     ISC_PASSWORD=masterkey make test
 
 INSTALLING:
-    make install               (if the tests look okay)
+    make install
