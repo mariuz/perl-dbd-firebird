@@ -47,10 +47,9 @@ Requirements:
 *BEFORE* BUILDING, TESTING AND INSTALLING this you will need to:
 
 - Build, test and install Perl 5 (at least 5.8.1).
-  It is very important to TEST it and INSTALL it!
 
 - Build, test and install the DBI module (at least DBI 1.41).
-  It is very important to TEST it and INSTALL it!
+
   On Debian/Ubuntu you can do a simple:
     sudo apt-get install firebird2.5-dev libdbi-perl
 
