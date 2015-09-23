@@ -942,6 +942,7 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs)
         case isc_info_sql_stmt_ddl:
 	case isc_info_sql_stmt_set_generator:
         case isc_info_sql_stmt_exec_procedure:
+        case isc_info_sql_stmt_savepoint:
             /* no count_item to gather */
             break;
 
