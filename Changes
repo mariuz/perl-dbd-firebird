@@ -1,4 +1,8 @@
 Revision history for Perl extension DBD::Firebird.
+1.21 [2015-09-24]
+ * Update README[.md] [mapopa]
+ * Silence 'Missing argument in sprintf' warning on perl 5.22 [ilmari]
+ * Add support for the SAVEPOINT statement [Bram Stappers] (RT#107142)
 1.20 [2015-04-27]
  * Fix loading DBD::Firebird::TypeInfo with strict/warnings [ilmari]
  * Added installation hint for Fedora, RHEL, CentOS and derivates [robert-scheck]
