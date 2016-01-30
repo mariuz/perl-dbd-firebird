@@ -1,4 +1,9 @@
 Revision history for Perl extension DBD::Firebird.
+1.22 [2016-01-30]
+ * require Math::BigFloat 1.55 for the 'try' import keyword [dam] (RT#110977)
+ * add test for RT#110979 [dam]
+ * 40-alltypes.t: replace non-integer numeric comparison with an approximate
+   one [dam] (RT#104699)
 1.21 [2015-09-24]
  * Update README[.md] [mapopa]
  * Silence 'Missing argument in sprintf' warning on perl 5.22 [ilmari]
