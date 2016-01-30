@@ -28,7 +28,7 @@ unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 17;
+    plan tests => 32;
 }
 
 ok($dbh, 'Connected to the database');
@@ -83,8 +83,8 @@ my $def = <<"DEF";
     NUMERIC_AS_INTEGER2  NUMERIC(9,3),
     A_SIXTYFOUR          NUMERIC(18,3)
 DEF
-for (split m/[\r\n]+/ => $def) {
-    my ($f, $d) = m/^\s*(\S+)\s+(\S[^,]+)/;
+for (split m/,[\r\n]+/ => $def) {
+    my ($f, $d) = m/^\s*(\S+)\s+(\S+)/;
     push @{$expected{NAME}},    $f;
     push @{$expected{NAME_lc}}, lc $f;
     push @{$expected{NAME_uc}}, uc $f;
@@ -122,7 +122,20 @@ ok($cursor2->execute, "EXECUTE");
 ok(my $res = $cursor2->fetchall_arrayref, 'FETCHALL arrayref');
 
 is($cursor2->{NUM_OF_FIELDS}, 16, "Field count");
-is_deeply($res->[0],$expected{VALUES}, "Content");
+do {
+    my $i = 0;
+    for my $t ( @{ $expected{DEF} } ) {
+        my $e = $expected{VALUES}[$i];
+        if ( $t =~ /^FLOAT|DOUBLE(?: PRECISION)?|NUMERIC\(\d+,\d+\)$/ ) {
+            ok( abs( $res->[0][$i] - $e ) < 1e-10, "$t ~= $e" );
+        }
+        else {
+            is( $res->[0][$i], $e, "$t == $e" );
+        }
+
+        $i++;
+    }
+};
 is_deeply($cursor2->{$_}, $expected{$_}, "attribute $_") for qw( NAME NAME_lc NAME_uc TYPE PRECISION SCALE );
 
 #
