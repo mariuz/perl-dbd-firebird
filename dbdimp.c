@@ -1043,6 +1043,73 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs)
     return TRUE;
 }
 
+int dbd_st_finish_internal(SV *sth, imp_sth_t *imp_sth, int honour_auto_commit)
+{
+    D_imp_dbh_from_sth;
+    ISC_STATUS status[ISC_STATUS_LENGTH];
+
+    DBI_TRACE_imp_xxh(imp_sth, 2, (DBIc_LOGPIO(imp_sth), "dbd_st_finish\n"));
+
+    if (!DBIc_ACTIVE(imp_sth)) /* already finished */
+    {
+        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: nothing to do (not active)\n"));
+        return TRUE;
+    }
+
+    /* Close the cursor, not drop the statement! */
+    if (imp_sth->type != isc_info_sql_stmt_exec_procedure)
+        isc_dsql_free_statement(status, (isc_stmt_handle *)&(imp_sth->stmt), DSQL_close);
+
+    /* Ignore errors when closing already closed cursor (sqlcode -501).
+       May happen when closing "select * from sample" statement, which was
+       closed by the server because of a "drop table sample" statement.
+       There is no point to error-out here, since nothing bad has happened --
+       the statement is closed, just without we knowing. There is no resource
+       leak and the user can't and needs not do anything.
+     */
+    if ((status[0] == 1) && (status[1] > 0)) {
+        long sqlcode = isc_sqlcode(status);
+
+        if (sqlcode != -501) {
+            if (ib_error_check(sth, status))
+                return FALSE;
+        }
+        else
+        {
+            DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: ignoring error -501 from isc_dsql_free_statement.\n"));
+        }
+    }
+
+    DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: isc_dsql_free_statement passed.\n"));
+
+    /* set statement to inactive - must be before ib_commit_transaction 'cos
+       commit can call dbd_st_finish function again */
+    DBIc_ACTIVE_off(imp_sth);
+
+    if ( imp_sth->param_values != NULL )
+        hv_clear(imp_sth->param_values);
+
+    /* if AutoCommit on */
+    if (DBIc_has(imp_dbh, DBIcf_AutoCommit) && honour_auto_commit)
+    {
+        DBI_TRACE_imp_xxh(imp_sth, 4, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: Trying to call ib_commit_transaction.\n"));
+
+        if (!ib_commit_transaction(sth, imp_dbh))
+        {
+            DBI_TRACE_imp_xxh(imp_sth, 4, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: Call ib_commit_transaction finished returned FALSE.\n"));
+            return FALSE;
+        }
+        DBI_TRACE_imp_xxh(imp_sth, 4, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: Call ib_commit_transaction succeded.\n"));
+    }
+
+    return TRUE;
+}
+
+int dbd_st_finish(SV *sth, imp_sth_t *imp_sth)
+{
+    return dbd_st_finish_internal(sth, imp_sth, TRUE);
+}
+
 
 int dbd_st_execute(SV *sth, imp_sth_t *imp_sth)
 {
@@ -1774,73 +1841,6 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
     return av;
 }
 
-
-int dbd_st_finish(SV *sth, imp_sth_t *imp_sth)
-{
-    return dbd_st_finish_internal(sth, imp_sth, TRUE);
-}
-
-int dbd_st_finish_internal(SV *sth, imp_sth_t *imp_sth, int honour_auto_commit)
-{
-    D_imp_dbh_from_sth;
-    ISC_STATUS status[ISC_STATUS_LENGTH];
-
-    DBI_TRACE_imp_xxh(imp_sth, 2, (DBIc_LOGPIO(imp_sth), "dbd_st_finish\n"));
-
-    if (!DBIc_ACTIVE(imp_sth)) /* already finished */
-    {
-        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: nothing to do (not active)\n"));
-        return TRUE;
-    }
-
-    /* Close the cursor, not drop the statement! */
-    if (imp_sth->type != isc_info_sql_stmt_exec_procedure)
-        isc_dsql_free_statement(status, (isc_stmt_handle *)&(imp_sth->stmt), DSQL_close);
-
-    /* Ignore errors when closing already closed cursor (sqlcode -501).
-       May happen when closing "select * from sample" statement, which was
-       closed by the server because of a "drop table sample" statement.
-       There is no point to error-out here, since nothing bad has happened --
-       the statement is closed, just without we knowing. There is no resource
-       leak and the user can't and needs not do anything.
-     */
-    if ((status[0] == 1) && (status[1] > 0)) {
-        long sqlcode = isc_sqlcode(status);
-
-        if (sqlcode != -501) {
-            if (ib_error_check(sth, status))
-                return FALSE;
-        }
-        else
-        {
-            DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: ignoring error -501 from isc_dsql_free_statement.\n"));
-        }
-    }
-
-    DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: isc_dsql_free_statement passed.\n"));
-
-    /* set statement to inactive - must be before ib_commit_transaction 'cos
-       commit can call dbd_st_finish function again */
-    DBIc_ACTIVE_off(imp_sth);
-
-    if ( imp_sth->param_values != NULL )
-        hv_clear(imp_sth->param_values);
-
-    /* if AutoCommit on */
-    if (DBIc_has(imp_dbh, DBIcf_AutoCommit) && honour_auto_commit)
-    {
-        DBI_TRACE_imp_xxh(imp_sth, 4, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: Trying to call ib_commit_transaction.\n"));
-
-        if (!ib_commit_transaction(sth, imp_dbh))
-        {
-            DBI_TRACE_imp_xxh(imp_sth, 4, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: Call ib_commit_transaction finished returned FALSE.\n"));
-            return FALSE;
-        }
-        DBI_TRACE_imp_xxh(imp_sth, 4, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: Call ib_commit_transaction succeded.\n"));
-    }
-
-    return TRUE;
-}
 
 
 void dbd_st_destroy(SV *sth, imp_sth_t *imp_sth)
