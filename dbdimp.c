@@ -2180,7 +2180,6 @@ int ib_blob_write(SV *sth, imp_sth_t *imp_sth, XSQLVAR *var, SV *value)
 static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                           IV sql_type)
 {
-    D_imp_dbh_from_sth;
     STRLEN     len;
     XSQLVAR    *ivar;
     int        retval;
