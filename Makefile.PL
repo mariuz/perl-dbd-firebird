@@ -236,6 +236,7 @@ qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD
         'Test::More' => 0.4,
         'Test::Exception' => 0.31,
         'Time::HiRes' => 0,
+        'Math::BigFloat' => 1.55,
     },
     LICENSE            => 'perl',
     MIN_PERL_VERSION   => '5.008001',
