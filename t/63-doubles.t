@@ -40,7 +40,8 @@ my $def =<<"DEF";
 CREATE TABLE $table (
     id integer,
     flt float,
-    dbl double precision
+    dbl double precision,
+    deci decimal (18,5)
 )
 DEF
 ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
@@ -51,24 +52,24 @@ ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
 
 my $stmt =<<"END_OF_QUERY";
 INSERT INTO $table (
-    id, flt, dbl
-) VALUES (?, ?, ?)
+    id, flt, dbl, deci
+) VALUES (?, ?, ?, ?)
 END_OF_QUERY
 
 ok(my $insert = $dbh->prepare($stmt), 'PREPARE INSERT');
 
 # Insert positive numbers
 my $id = 1;
-ok($insert->execute( $id++, $_, $_ ), "Inserting $_" ) for @doubles;
+ok($insert->execute( $id++, $_, $_, $_ ), "Inserting $_" ) for @doubles;
 
 # Insert positive numbers
-ok($insert->execute( $id++, -$_, -$_ ), "Inserting -$_" ) for @doubles;
+ok($insert->execute( $id++, -$_, -$_, -$_ ), "Inserting -$_" ) for @doubles;
 
 
 #
 #   Select the values
 #
-ok( my $cursor = $dbh->prepare( qq{SELECT id, flt, dbl FROM $table WHERE id=?} ),
+ok( my $cursor = $dbh->prepare( qq{SELECT id, flt, dbl, deci FROM $table WHERE id=?} ),
     'PREPARE SELECT' );
 
 $id = 0;
@@ -76,14 +77,14 @@ for my $n (@doubles) {
     $id++;
     ok($cursor->execute($id), "EXECUTE SELECT $id ($n)");
     ok((my $res = $cursor->fetchrow_arrayref), "FETCHALL arrayref $id ($n)");
-    cmp_deeply($res, [ $id, num($n, 1e-6), num($n, 1e-6) ], "row $id ($n)");
+    cmp_deeply($res, [ $id, num($n, 1e-6), num($n, 1e-6),num($n, 1e-6) ], "row $id ($n)");
 }
 
 for my $n (@doubles) {
     $id++;
     ok($cursor->execute($id), "EXECUTE SELECT $id (-$n)");
     ok((my $res = $cursor->fetchrow_arrayref), "FETCHALL arrayref $id (-$n)");
-    cmp_deeply($res, [ $id, num(-$n, 1e-6), num(-$n, 1e-6) ], "row $id (-$n)");
+    cmp_deeply($res, [ $id, num(-$n, 1e-6), num(-$n, 1e-6),num(-$n, 1e-6) ], "row $id (-$n)");
 }
 
 
