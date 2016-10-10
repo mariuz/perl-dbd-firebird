@@ -251,7 +251,8 @@ sub check_and_set_devlibs {
 
     die "libfbembed.so not found\n"
         if $ENV{DBD_FIREBIRD_REQUIRE_EMBEDDED}
-            and not $FB::libfbembed_available;
+        and not $FB::libfbembed_available
+        and $FB::API_VER < 30;
 
     return;
 }
