@@ -67,6 +67,7 @@ is_deeply([@$key_info[0..4]], [ undef, undef, $table, 'X', '3' ]);
 ok($key_info->[5] =~ /\S/, "PK_NAME is set");
 
 $sth->finish;
+undef($sth);
 
 is_deeply([ $dbh->primary_key(undef, undef, $table) ], [qw|Z Y X|],
           "Check primary_key results");
