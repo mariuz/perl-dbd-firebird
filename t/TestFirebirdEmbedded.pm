@@ -38,7 +38,8 @@ sub read_cached_configs {
     $self->SUPER::read_cached_configs;
 
     # this is embedded, no server involved
-    $ENV{FIREBIRD} = $ENV{FIREBIRD_LOCK} = '.';
+    $ENV{FIREBIRD} = $ENV{FIREBIRD_LOCK} = '.'
+        unless DBD::FirebirdEmbedded->fb_api_ver => 30;
     # no authentication either
     delete $ENV{ISC_USER};
     delete $ENV{ISC_PASSWORD};
