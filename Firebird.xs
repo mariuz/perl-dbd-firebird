@@ -573,7 +573,7 @@ ib_set_tx_param(dbh, ...)
         if (i >= items - 1)
         {
             Safefree(tmp_tpb);
-            croak("You must specify parameter => value pairs, but theres no value for %s", tx_key);
+            croak("You must specify parameter => value pairs, but there's no value for %s", tx_key);
         }
 
         /**********************************************************************/

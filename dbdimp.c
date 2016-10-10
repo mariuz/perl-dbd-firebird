@@ -1099,7 +1099,7 @@ int dbd_st_finish_internal(SV *sth, imp_sth_t *imp_sth, int honour_auto_commit)
             DBI_TRACE_imp_xxh(imp_sth, 4, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: Call ib_commit_transaction finished returned FALSE.\n"));
             return FALSE;
         }
-        DBI_TRACE_imp_xxh(imp_sth, 4, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: Call ib_commit_transaction succeded.\n"));
+        DBI_TRACE_imp_xxh(imp_sth, 4, (DBIc_LOGPIO(imp_sth), "dbd_st_finish: Call ib_commit_transaction succeeded.\n"));
     }
 
     return TRUE;
