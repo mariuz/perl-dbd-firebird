@@ -29,6 +29,7 @@ $err = 0;
 $errstr = "";
 $drh = undef;
 
+use constant fb_api_ver => 0;
 
 sub CLONE
 {

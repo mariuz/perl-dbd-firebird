@@ -27,6 +27,8 @@ sub import {
 use constant is_embedded => 1;
 use constant dbd => 'DBD::FirebirdEmbedded';
 
+use DBD::FirebirdEmbedded;
+
 sub check_credentials {
     # this is embedded, nothing to check, we don't need credentials
 }
@@ -47,6 +49,10 @@ sub read_cached_configs {
     delete $self->{pass};
     delete $self->{host};
 
+    if (DBD::FirebirdEmbedded->fb_api_ver >= 30) {
+        $self->{user} = 'SYSDBA';
+        $self->{pass} = 'any';
+    }
     $self->{tdsn} = $self->get_dsn;
     $self->{path} = $self->get_path;
 }

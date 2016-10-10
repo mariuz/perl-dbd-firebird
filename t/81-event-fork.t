@@ -17,6 +17,13 @@ plan skip_all => 'DBD_FIREBIRD_TEST_SKIP_EVENTS_FORK found in the environment'
 use TestFirebird;
 my $T = TestFirebird->new;
 
+if ( eval{$T->is_embedded} ) {
+    use DBD::FirebirdEmbedded;
+    plan skip_all =>
+        'Only one process can access the database in embedded mode'
+        if DBD::FirebirdEmbedded->fb_api_ver >= 30;
+}
+
 my ($dbh, $error_str) = $T->connect_to_database();
 
 if ($error_str) {

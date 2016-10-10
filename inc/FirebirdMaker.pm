@@ -28,6 +28,8 @@ our ( $use_libfbembed );
 our $test_conf = 't/tests-setup.tmp.conf';
 our $test_mark = 't/tests-setup.tmp.OK';
 
+$FB::API_VER = 0;
+
 # Written by Alexandr Ciornii, version 0.23. Added by eumm-upgrade.
 sub WriteMakefile1 {
     my %params       = @_;
@@ -164,6 +166,13 @@ sub locate_firebird {
         for (@items) {
             if (s/^-I\s*//) {
                 $FB::INC = $_;
+
+                open( my $fh, '<', File::Spec->catfile( $_, 'ibase.h' ) )
+                    or die "open($_/ibase.h): $!";
+                while (<$fh>) {
+                    $FB::API_VER = $1, last if /^#define FB_API_VER (\w+)/;
+                }
+                close($fh);
                 last;
             }
         }
@@ -795,6 +804,7 @@ EOT
                 $_[0] =~ s/dbi:Firebird:.+/dbi:FirebirdEmbedded:db=\$dbname", undef, undef);/g;
                 $_[0] =~ s/(?<!L\<)DBD::Firebird\b(?!::(?:Get|Type|Table)Info)/DBD::FirebirdEmbedded/g;
                 $_[0] =~ s/'Firebird'/'FirebirdEmbedded'/g;
+                $_[0] =~ s/use constant fb_api_ver => .+;/use constant fb_api_ver => $FB::API_VER;/;
             },
         },
     );

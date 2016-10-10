@@ -158,7 +158,7 @@ unless ($EMBEDDED) {
     }
 }
 
-my $client_lib = $EMBEDDED ? 'fbembed' : 'fbclient';
+my $client_lib = ( $EMBEDDED and $FB::API_VER < 30 ) ? 'fbembed' : 'fbclient';
 
 if ($interactive) {
 
@@ -294,7 +294,7 @@ SWITCH: {
 }
 
 unless ($EMBEDDED) {
-    if ($FB::libfbembed_available) {
+    if ($FB::libfbembed_available or $FB::API_VER >= 30) {
         print "Found libfbembed, will build DBD::FirebirdEmbed too.\n";
         create_embedded_files();
     }
