@@ -1,4 +1,11 @@
 Revision history for Perl extension DBD::Firebird.
+1.23 [2016-10-10]
+ * Avoid compiler warning about implicit declaration of dbd_st_finish_internal
+   [dam]
+ * Add support for building/testing with Firebird 3 [dam]
+ * Fix a couple of typos, thanks to Nick Morrott of Debian Perl Group [dam]
+ * Explicitly undef the statement handle in dbi-primary-key-info.t, avoiding
+   an error during global destruction [dam]
 1.22 [2016-01-30]
  * require Math::BigFloat 1.55 for the 'try' import keyword [dam] (RT#110977)
  * add test for RT#110979 [dam]
