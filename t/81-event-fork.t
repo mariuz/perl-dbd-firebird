@@ -18,7 +18,7 @@ use TestFirebird;
 my $T = TestFirebird->new;
 
 if ( eval{$T->is_embedded} ) {
-    use DBD::FirebirdEmbedded;
+    require DBD::FirebirdEmbedded;
     plan skip_all =>
         'Only one process can access the database in embedded mode'
         if DBD::FirebirdEmbedded->fb_api_ver >= 30;
