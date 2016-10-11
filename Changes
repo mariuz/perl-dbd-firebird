@@ -1,4 +1,6 @@
 Revision history for Perl extension DBD::Firebird.
+1.24 [2016-10-11]
+ * Fix 81-event-fork.t to not fail when FirebirdEmbedded is not available [dam]
 1.23 [2016-10-10]
  * Avoid compiler warning about implicit declaration of dbd_st_finish_internal
    [dam]
