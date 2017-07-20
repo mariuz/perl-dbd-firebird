@@ -14,6 +14,8 @@
 
 #include "Firebird.h"
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 #ifndef _MSC_VER
 #include <inttypes.h>
@@ -1393,30 +1395,10 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                  * nobody has a problem with it.
                  */
                 {
-                    static ISC_INT64 const scales[] = { 1LL,
-                                                        10LL,
-                                                        100LL,
-                                                        1000LL,
-                                                        10000LL,
-                                                        100000LL,
-                                                        1000000LL,
-                                                        10000000LL,
-                                                        100000000LL,
-                                                        1000000000LL,
-                                                        10000000000LL,
-                                                        100000000000LL,
-                                                        1000000000000LL,
-                                                        10000000000000LL,
-                                                        100000000000000LL,
-                                                        1000000000000000LL,
-                                                        10000000000000000LL,
-                                                        100000000000000000LL };
                     ISC_INT64 i; /* significand */
-                    char buf[22]; /* NUMERIC(18,2) = -92233720368547758.08 + '\0' */
-                    int abs_val;
+                    char buf[22] = {0}; /* NUMERIC(18,2) = -92233720368547758.08 + '\0' */
 
                     i = *((ISC_INT64 *) (var->sqldata));
-                    abs_val = i < 0 ? -i : i;
 
                     /* We use the system snprintf(3) and system-specific
                      * format codes. :(  On my perl, I was unable to
@@ -1431,24 +1413,35 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 #else                        /* others: linux, various unices */
 #  define DBD_IB_INT64f "lld"
 #endif
-                    if (var->sqlscale == 0) {
-                        snprintf(buf, sizeof(buf), "%"DBD_IB_INT64f, i);
-                    } else {
-                        ISC_INT64 divisor, remainder;
-                        const char *sgn_str = i < 0 ? "-" : "";
+                    snprintf(buf, sizeof(buf), "%"DBD_IB_INT64f, i);
 
-                        divisor   = scales[-var->sqlscale];
-                        remainder = abs_val % divisor;
+                    /* put '.' if needed */
+                    if (i != 0 && var->sqlscale != 0) {
+                        char *d = buf;
+                        size_t len;
 
-                        snprintf(buf, sizeof(buf),
-                                "%s%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,
-                                sgn_str,
-                                abs_val / divisor, -var->sqlscale,
-                                remainder);
-                        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%s%"DBD_IB_INT64f".%0*"DBD_IB_INT64f, sgn_str, abs_val / divisor, -var->sqlscale, remainder));
+                        if (*d == '-') {
+                            ++d;
+                        }
+                        len = strlen(d);
 
+                        /* is 0 < |number| < 1? */
+                        if (len < -var->sqlscale) {
+                            /* add 2 to accomodate "0." */
+                            snprintf(buf, sizeof(buf),
+                                     "%0*"DBD_IB_INT64f,
+                                     2 - var->sqlscale, i);
+                            d = buf + 1;
+                        } else {
+                            /* |number| >= 1 */
+                            d += len + var->sqlscale;
+
+                            /* give space for decimal point */
+                            memmove(d + 1, d, -var->sqlscale);
+                        }
+                        *d = '.';
+                        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%s", buf));
                     }
-
                     sv_setpvn(sv, buf, strlen(buf));
                 }
                 break;
