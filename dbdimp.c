@@ -1413,8 +1413,10 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                                                         100000000000000000LL };
                     ISC_INT64 i; /* significand */
                     char buf[22]; /* NUMERIC(18,2) = -92233720368547758.08 + '\0' */
+                    int abs_val;
 
                     i = *((ISC_INT64 *) (var->sqldata));
+                    abs_val = i < 0 ? -i : i;
 
                     /* We use the system snprintf(3) and system-specific
                      * format codes. :(  On my perl, I was unable to
@@ -1433,14 +1435,17 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                         snprintf(buf, sizeof(buf), "%"DBD_IB_INT64f, i);
                     } else {
                         ISC_INT64 divisor, remainder;
+                        const char *sgn_str = i < 0 ? "-" : "";
+
                         divisor   = scales[-var->sqlscale];
-                        remainder = (i%divisor);
-                        if (remainder < 0) remainder = -remainder;
+                        remainder = abs_val % divisor;
 
                         snprintf(buf, sizeof(buf),
-                                "%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,
-                                i/divisor, -var->sqlscale, remainder);
-			DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,i/divisor, -var->sqlscale, remainder ));
+                                "%s%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,
+                                sgn_str,
+                                abs_val / divisor, -var->sqlscale,
+                                remainder);
+                        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%s%"DBD_IB_INT64f".%0*"DBD_IB_INT64f, sgn_str, abs_val / divisor, -var->sqlscale, remainder));
 
                     }
 
