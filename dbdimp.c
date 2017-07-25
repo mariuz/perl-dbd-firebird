@@ -141,7 +141,7 @@ void do_error(SV *h, int rc, char *what)
     sv_setpv(errstr, what);
 
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%s error %d recorded: %s\n", 
+        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%s error %d recorded: %s\n",
             what, rc, SvPV(errstr,PL_na));
 }
 
@@ -159,7 +159,7 @@ char* ib_error_decode(const ISC_STATUS *status) {
 #else
     const ISC_STATUS *pvector = status;
 #endif
-#if defined (INCLUDE_TYPES_PUB_H) 
+#if defined (INCLUDE_TYPES_PUB_H)
     ISC_SCHAR msg[1024];
 #else
     char msg[1024];
@@ -1426,12 +1426,18 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                         len = strlen(d);
 
                         /* is 0 < |number| < 1? */
-                        if (len < -var->sqlscale) {
+                        if (len <= -var->sqlscale) {
                             /* add 2 to accomodate "0." */
-                            snprintf(buf, sizeof(buf),
-                                     "%0*"DBD_IB_INT64f,
-                                     2 - var->sqlscale, i);
+                            int pad_len = 2 - var->sqlscale;
+
                             d = buf + 1;
+                            /* if negative, add one more */
+                            if (*buf == '-') {
+                                ++pad_len;
+                                ++d;
+                            }
+                            snprintf(buf, sizeof(buf),
+                                     "%0*"DBD_IB_INT64f, pad_len, i);
                         } else {
                             /* |number| >= 1 */
                             d += len + var->sqlscale;
@@ -1658,7 +1664,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 #if defined(INCLUDE_FB_TYPES_H) || defined(INCLUDE_TYPES_PUB_H)
                                    (ISC_USHORT) 0,
                                    (ISC_UCHAR) 0);
-#else                                   
+#else
                                    (short) 0,       /* no Blob filter */
                                    (char *) NULL);  /* no Blob filter */
 #endif
@@ -2765,13 +2771,13 @@ int ib_commit_transaction(SV *h, imp_dbh_t *imp_dbh)
 {
     ISC_STATUS status[ISC_STATUS_LENGTH];
 
-    DBI_TRACE_imp_xxh(imp_dbh, 4, (DBIc_LOGPIO(imp_dbh), 
+    DBI_TRACE_imp_xxh(imp_dbh, 4, (DBIc_LOGPIO(imp_dbh),
         "ib_commit_transaction: DBIcf_AutoCommit = %lu, imp_dbh->sth_ddl = %u\n",
         (long unsigned)DBIc_has(imp_dbh, DBIcf_AutoCommit), imp_dbh->sth_ddl));
 
     if (!imp_dbh->tr)
     {
-        DBI_TRACE_imp_xxh(imp_dbh, 3, (DBIc_LOGPIO(imp_dbh), 
+        DBI_TRACE_imp_xxh(imp_dbh, 3, (DBIc_LOGPIO(imp_dbh),
             "ib_commit_transaction: transaction already NULL.\n"));
         /* In case we switched to use different TPB before we actually use */
         /* This transaction handle                                         */
