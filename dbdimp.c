@@ -1397,6 +1397,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                 {
                     ISC_INT64 i; /* significand */
                     char buf[22] = {0}; /* NUMERIC(18,2) = -92233720368547758.08 + '\0' */
+                    size_t buf_len;
 
                     i = *((ISC_INT64 *) (var->sqldata));
 
@@ -1413,42 +1414,55 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 #else                        /* others: linux, various unices */
 #  define DBD_IB_INT64f "lld"
 #endif
-                    snprintf(buf, sizeof(buf), "%"DBD_IB_INT64f, i);
-
-                    /* put '.' if needed */
-                    if (i != 0 && var->sqlscale != 0) {
-                        char *d = buf;
-                        size_t len;
-
-                        if (*d == '-') {
-                            ++d;
-                        }
-                        len = strlen(d);
-
-                        /* is 0 < |number| < 1? */
-                        if (len <= -var->sqlscale) {
-                            /* add 2 to accomodate "0." */
-                            int pad_len = 2 - var->sqlscale;
-
-                            d = buf + 1;
-                            /* if negative, add one more */
-                            if (*buf == '-') {
-                                ++pad_len;
-                                ++d;
-                            }
-                            snprintf(buf, sizeof(buf),
-                                     "%0*"DBD_IB_INT64f, pad_len, i);
-                        } else {
-                            /* |number| >= 1 */
-                            d += len + var->sqlscale;
-
-                            /* give space for decimal point */
-                            memmove(d + 1, d, -var->sqlscale);
-                        }
-                        *d = '.';
-                        DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%s", buf));
+                    if (i != 0 || var->sqlscale == 0) {
+                        buf_len = snprintf(buf, sizeof(buf),
+                                           "%"DBD_IB_INT64f, i);
                     }
-                    sv_setpvn(sv, buf, strlen(buf));
+
+                    /* put '.' if scale is not 0 */
+                    if (var->sqlscale != 0) {
+                        if (i == 0) {
+                            /* 0.0... */
+                            buf_len = snprintf(buf, sizeof(buf), "0.%0*d",
+                                               -var->sqlscale, 0);
+                        } else {
+                            /* put '.' if needed */
+                            char *d = buf;
+                            size_t abs_len = buf_len;
+
+                            if (*d == '-') {
+                                ++d;
+                                --abs_len;
+                            }
+
+                            /* is 0 < |number| < 1? */
+                            if (abs_len <= -var->sqlscale) {
+                                /* add 2 to accomodate "0." */
+                                int pad_len = 2 - var->sqlscale;
+
+                                d = buf + 1;
+                                /* if negative, add one more */
+                                if (*buf == '-') {
+                                    ++pad_len;
+                                    ++d;
+                                }
+                                buf_len = snprintf(buf, sizeof(buf),
+                                                   "%0*"DBD_IB_INT64f,
+                                                   pad_len, i);
+                            } else {
+                                /* |number| >= 1 */
+                                d += abs_len + var->sqlscale;
+
+                                /* give space for decimal point */
+                                memmove(d + 1, d, -var->sqlscale);
+                                ++buf_len;
+                            }
+                            *d = '.';
+                            DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%s", buf));
+                        }
+                    }
+
+                    sv_setpvn(sv, buf, buf_len);
                 }
                 break;
 #endif
