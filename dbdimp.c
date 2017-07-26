@@ -14,6 +14,8 @@
 
 #include "Firebird.h"
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 #ifndef _MSC_VER
 #include <inttypes.h>
@@ -139,7 +141,7 @@ void do_error(SV *h, int rc, char *what)
     sv_setpv(errstr, what);
 
     if (DBIc_TRACE_LEVEL(imp_xxh) >= 2)
-        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%s error %d recorded: %s\n", 
+        PerlIO_printf(DBIc_LOGPIO(imp_xxh), "%s error %d recorded: %s\n",
             what, rc, SvPV(errstr,PL_na));
 }
 
@@ -157,7 +159,7 @@ char* ib_error_decode(const ISC_STATUS *status) {
 #else
     const ISC_STATUS *pvector = status;
 #endif
-#if defined (INCLUDE_TYPES_PUB_H) 
+#if defined (INCLUDE_TYPES_PUB_H)
     ISC_SCHAR msg[1024];
 #else
     char msg[1024];
@@ -1393,26 +1395,9 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                  * nobody has a problem with it.
                  */
                 {
-                    static ISC_INT64 const scales[] = { 1LL,
-                                                        10LL,
-                                                        100LL,
-                                                        1000LL,
-                                                        10000LL,
-                                                        100000LL,
-                                                        1000000LL,
-                                                        10000000LL,
-                                                        100000000LL,
-                                                        1000000000LL,
-                                                        10000000000LL,
-                                                        100000000000LL,
-                                                        1000000000000LL,
-                                                        10000000000000LL,
-                                                        100000000000000LL,
-                                                        1000000000000000LL,
-                                                        10000000000000000LL,
-                                                        100000000000000000LL };
                     ISC_INT64 i; /* significand */
-                    char buf[22]; /* NUMERIC(18,2) = -92233720368547758.08 + '\0' */
+                    char buf[22] = {0}; /* NUMERIC(18,2) = -92233720368547758.08 + '\0' */
+                    size_t buf_len;
 
                     i = *((ISC_INT64 *) (var->sqldata));
 
@@ -1429,22 +1414,55 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 #else                        /* others: linux, various unices */
 #  define DBD_IB_INT64f "lld"
 #endif
-                    if (var->sqlscale == 0) {
-                        snprintf(buf, sizeof(buf), "%"DBD_IB_INT64f, i);
-                    } else {
-                        ISC_INT64 divisor, remainder;
-                        divisor   = scales[-var->sqlscale];
-                        remainder = (i%divisor);
-                        if (remainder < 0) remainder = -remainder;
-
-                        snprintf(buf, sizeof(buf),
-                                "%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,
-                                i/divisor, -var->sqlscale, remainder);
-			DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,i/divisor, -var->sqlscale, remainder ));
-
+                    if (i != 0 || var->sqlscale == 0) {
+                        buf_len = snprintf(buf, sizeof(buf),
+                                           "%"DBD_IB_INT64f, i);
                     }
 
-                    sv_setpvn(sv, buf, strlen(buf));
+                    /* put '.' if scale is not 0 */
+                    if (var->sqlscale != 0) {
+                        if (i == 0) {
+                            /* 0.0... */
+                            buf_len = snprintf(buf, sizeof(buf), "0.%0*d",
+                                               -var->sqlscale, 0);
+                        } else {
+                            /* put '.' if needed */
+                            char *d = buf;
+                            size_t abs_len = buf_len;
+
+                            if (*d == '-') {
+                                ++d;
+                                --abs_len;
+                            }
+
+                            /* is 0 < |number| < 1? */
+                            if (abs_len <= -var->sqlscale) {
+                                /* add 2 to accomodate "0." */
+                                int pad_len = 2 - var->sqlscale;
+
+                                d = buf + 1;
+                                /* if negative, add one more */
+                                if (*buf == '-') {
+                                    ++pad_len;
+                                    ++d;
+                                }
+                                buf_len = snprintf(buf, sizeof(buf),
+                                                   "%0*"DBD_IB_INT64f,
+                                                   pad_len, i);
+                            } else {
+                                /* |number| >= 1 */
+                                d += abs_len + var->sqlscale;
+
+                                /* give space for decimal point */
+                                memmove(d + 1, d, -var->sqlscale);
+                                ++buf_len;
+                            }
+                            *d = '.';
+                            DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%s", buf));
+                        }
+                    }
+
+                    sv_setpvn(sv, buf, buf_len);
                 }
                 break;
 #endif
@@ -1660,7 +1678,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 #if defined(INCLUDE_FB_TYPES_H) || defined(INCLUDE_TYPES_PUB_H)
                                    (ISC_USHORT) 0,
                                    (ISC_UCHAR) 0);
-#else                                   
+#else
                                    (short) 0,       /* no Blob filter */
                                    (char *) NULL);  /* no Blob filter */
 #endif
@@ -2767,13 +2785,13 @@ int ib_commit_transaction(SV *h, imp_dbh_t *imp_dbh)
 {
     ISC_STATUS status[ISC_STATUS_LENGTH];
 
-    DBI_TRACE_imp_xxh(imp_dbh, 4, (DBIc_LOGPIO(imp_dbh), 
+    DBI_TRACE_imp_xxh(imp_dbh, 4, (DBIc_LOGPIO(imp_dbh),
         "ib_commit_transaction: DBIcf_AutoCommit = %lu, imp_dbh->sth_ddl = %u\n",
         (long unsigned)DBIc_has(imp_dbh, DBIcf_AutoCommit), imp_dbh->sth_ddl));
 
     if (!imp_dbh->tr)
     {
-        DBI_TRACE_imp_xxh(imp_dbh, 3, (DBIc_LOGPIO(imp_dbh), 
+        DBI_TRACE_imp_xxh(imp_dbh, 3, (DBIc_LOGPIO(imp_dbh),
             "ib_commit_transaction: transaction already NULL.\n"));
         /* In case we switched to use different TPB before we actually use */
         /* This transaction handle                                         */
