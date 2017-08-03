@@ -31,7 +31,7 @@ unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 12;
+    plan tests => 21;
 }
 
 ok($dbh, 'Connected to the database');
@@ -51,23 +51,23 @@ CREATE TABLE $table (
 DEF
 ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
 
+# Expected fetched values
+my @correct = (
+    [ '-922337203685477.5808', '922337203685477.5807' ],
+    [ '-0.3', '0.3' ],
+    [ '-0.6', '0.6' ],
+    [ '-0.5', '0.5' ],
+);
+
 # Insert some values
 my $stmt =<<"END_OF_QUERY";
-INSERT INTO $table (
-    DEC_MIN,
-    DEC_MAX
-) VALUES (?, ?)
+INSERT INTO $table ( DEC_MIN, DEC_MAX)
+VALUES (?, ?)
 END_OF_QUERY
 
 ok(my $insert = $dbh->prepare($stmt), 'PREPARE INSERT');
 
-ok( $insert->execute( '-922337203685477.5808', '922337203685477.5807' ),
-    'INSERT MIN | MAX DECIMALS' );
-
-# Expected fetched values
-my @correct = (
-    [ '-922337203685477.5808', '922337203685477.5807' ],
-);
+ok( $insert->execute(@$_), "INSERT '$_->[0]', '$_->[1]'" ) for @correct;
 
 # Select the values
 ok( my $cursor = $dbh->prepare( qq{SELECT * FROM $table} ), 'PREPARE SELECT' );

@@ -30,7 +30,7 @@ unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 9;
+    plan tests => 15;
 }
 
 ok($dbh, 'dbh OK');
@@ -48,13 +48,23 @@ CREATE TABLE $table (
 )
 DEF
 $dbh->do(<<DEF);
-INSERT INTO $table (
-    DEC_MIN,
-    DEC_MAX
-) VALUES (
-    -922337203685477.5808,
-    922337203685477.5807
-)
+INSERT INTO $table ( DEC_MIN, DEC_MAX )
+VALUES ( -922337203685477.5808, 922337203685477.5807 );
+DEF
+
+$dbh->do(<<DEF);
+INSERT INTO $table ( DEC_MIN, DEC_MAX )
+VALUES ( -0.3, 0.3 );
+DEF
+
+$dbh->do(<<DEF);
+INSERT INTO $table ( DEC_MIN, DEC_MAX )
+VALUES ( -0.6, 0.6 );
+DEF
+
+$dbh->do(<<DEF);
+INSERT INTO $table ( DEC_MIN, DEC_MAX )
+VALUES ( -0.5, 0.5 );
 DEF
 
 # DBI->trace(4, "trace.txt");
@@ -62,6 +72,9 @@ DEF
 # Expected fetched values
 my @correct = (
     [ '-922337203685477.5808', '922337203685477.5807' ],
+    [ '-0.3', '0.3' ],
+    [ '-0.6', '0.6' ],
+    [ '-0.5', '0.5' ],
 );
 
 # Select the values
@@ -81,7 +94,7 @@ for (my $i = 0; $i < @$res; $i++) {
         my $corect  = $correct[$i][$j];
         my $mcorect = Math::BigFloat->new($corect);
 
-        is($mresult, $mcorect, "Field: $names->[$j]");
+        is($mresult, $mcorect, "Field: $names->[$j] is $corect");
         #diag "got: $mresult";
         #diag "exp: $mcorect";
     }
