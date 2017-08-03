@@ -1431,20 +1431,28 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 #endif
                     if (var->sqlscale == 0) {
                         snprintf(buf, sizeof(buf), "%"DBD_IB_INT64f, i);
+                        sv_setpvn(sv, buf, strlen(buf));
                     } else {
+                        bool sign = ( i < 0 );
                         ISC_INT64 divisor, remainder;
                         divisor   = scales[-var->sqlscale];
+                        if (sign) divisor = -divisor;
                         remainder = (i%divisor);
                         if (remainder < 0) remainder = -remainder;
 
-                        snprintf(buf, sizeof(buf),
+                        snprintf(buf+1, sizeof(buf)-1,
                                 "%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,
                                 i/divisor, -var->sqlscale, remainder);
 			DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth), "-------------->SQLINT64=%"DBD_IB_INT64f".%0*"DBD_IB_INT64f,i/divisor, -var->sqlscale, remainder ));
 
+                        if (sign) {
+                            *buf = '-';
+                            sv_setpvn(sv, buf, strlen(buf));
+                        }
+                        else {
+                            sv_setpvn(sv, buf+1, strlen(buf+1));
+                        }
                     }
-
-                    sv_setpvn(sv, buf, strlen(buf));
                 }
                 break;
 #endif
