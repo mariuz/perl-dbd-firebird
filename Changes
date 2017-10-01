@@ -1,4 +1,8 @@
 Revision history for Perl extension DBD::Firebird.
+1.25 [2017-10-01]
+ * Add tests for values between 0 and ±1 to bigdecimal[_read].t
+ * dbd_st_fetch: fix conversion of numerics between -1 and 0
+ * add a variant of t/92_bigdecimal_read.t using numeric(18,10)
 1.24 [2016-10-11]
  * Fix 81-event-fork.t to not fail when FirebirdEmbedded is not available [dam]
 1.23 [2016-10-10]
