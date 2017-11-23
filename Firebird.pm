@@ -373,7 +373,8 @@ uses all possible parameters:
  ib_dialect=$dialect;
  ib_role=$role;
  ib_charset=$charset;
- ib_cache=$cache
+ ib_cache=$cache;
+ timeout=$timeout
  DSN
 
  $dbh =  DBI->connect($dsn, $username, $password);
@@ -391,6 +392,7 @@ respective meanings:
     hostname        hostname / IP address                   optional
     host            hostname / IP address
     port            port number                             optional
+    timeout         connect timeout in seconds              optional
     ib_dialect      the SQL dialect to be used              optional
     ib_role         the role of the user                    optional
     ib_charset      character set to be used                optional

@@ -294,6 +294,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     unsigned short ib_dialect, ib_cache;
     char *ib_role;
     char ISC_FAR *dpb_buffer, *dpb;
+    int connect_timeout = 0;
 
     char ISC_FAR *database;
 
@@ -409,6 +410,15 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
             DPB_PREP_INTEGER(buflen);
     }
 
+    if ((svp = hv_fetch(hv, "timeout", 7, FALSE)))
+    {
+        int val = SvIV(*svp);
+        if (val <= 0) croak("Positive timeout required");
+
+        connect_timeout = val;
+        DPB_PREP_INTEGER(buflen);
+    }
+
     /* add length of other parameters to needed buflen */
     buflen += 1; /* dbpversion */
 
@@ -453,6 +463,11 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     if (ib_role)
     {
         DPB_FILL_STRING(dpb, isc_dpb_sql_role_name, ib_role);
+    }
+
+    if (connect_timeout)
+    {
+        DPB_FILL_INTEGER(dpb, isc_dpb_connect_timeout, connect_timeout);
     }
 
     dpb_length = dpb - dpb_buffer;
