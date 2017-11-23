@@ -1564,7 +1564,7 @@ DBI(3).
 
 =item Copyright (c) 2011- 2012  Stefan Suciu <stefbv70@gmail.com>
 
-=item Copyright (c) 2011  Damyan Ivanov <dmn@debian.org>
+=item Copyright (c) 2011, 2017  Damyan Ivanov <dmn@debian.org>
 
 =item Copyright (c) 2011  Alexandr Ciornii <alexchorny@gmail.com>
 
