@@ -18,7 +18,7 @@ our @EXPORT_OK = qw( WriteMakefile1 setup_for_ms_gcc setup_for_ms_cl
     locate_firebird_ms registry_lookup read_registry read_data
     save_test_parameters read_test_parameters prompt_for_settings
     prompt_for check_str check_path check_exe check_file help_message
-    welcome_msg closing_msg create_embedded_files
+    welcome_msg closing_msg create_embedded_files detect_firebird_api_version
     $test_conf $test_mark $use_libfbembed );
 
 our @EXPORT = @EXPORT_OK;
@@ -152,6 +152,26 @@ LDDLFLAGS =  $cur_lddlflags
 
 #-- Subs used to locate Firebird
 
+=head2 detect_firebird_api_version
+
+Reads F<ibase.h> (in the directory stored in C<$FB::INC>) and tries to extract
+the firebird API version value from the C<FB_API_VER> define.
+
+=cut
+
+sub detect_firebird_api_version {
+    return if $FB::API_VER;
+
+    open( my $fh, '<', File::Spec->catfile( $FB::INC, 'ibase.h' ) )
+        or die "open($FB::INC/ibase.h): $!";
+    while (<$fh>) {
+        $FB::API_VER = $1, last if /^#define FB_API_VER (\w+)/;
+    }
+    close($fh);
+
+    warn "Detected Firebird API version $FB::API_VER\n" if $FB::API_VER;
+}
+
 =head2 locate_firebird
 
 On *nix like systems try different standard paths.
@@ -161,18 +181,12 @@ On *nix like systems try different standard paths.
 sub locate_firebird {
 
     if ( my $fb_config = File::Which::which('fb_config') ) {
+        warn "Using $fb_config as data source\n";
         my $cflags = `fb_config --cflags`;
         my @items = split(/\s+/, $cflags);
         for (@items) {
             if (s/^-I\s*//) {
                 $FB::INC = $_;
-
-                open( my $fh, '<', File::Spec->catfile( $_, 'ibase.h' ) )
-                    or die "open($_/ibase.h): $!";
-                while (<$fh>) {
-                    $FB::API_VER = $1, last if /^#define FB_API_VER (\w+)/;
-                }
-                close($fh);
                 last;
             }
         }
@@ -240,6 +254,8 @@ sub check_and_set_devlibs {
 
     $FB::LIB = $FB::LIB || File::Spec->catdir( $FB::HOME, 'lib' );
     $FB::LIB = alternative_locations('lib') if !-d $FB::LIB;
+
+    detect_firebird_api_version();
 
     for my $dir ( split(/ /, $Config{libpth} ), $FB::LIB||() ) {
         if ( -e File::Spec->catfile( $dir, 'libfbembed.so' ) ) {
