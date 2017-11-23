@@ -354,7 +354,7 @@ sub save_configs {
 
     my $test_time = scalar localtime();
     my @record = (
-        q(# Test section: -- (created by tests-setup.pl) #),
+        '# Test section: -- (created by ' . __PACKAGE__ . ') #',
         q(# Time: ) . $test_time,
         qq(tdsn:=$self->{tdsn}),
         qq(path:=$self->{path}),
