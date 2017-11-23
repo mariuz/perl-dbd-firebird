@@ -767,7 +767,7 @@ possible (but read L</Firebird lock directory> above).
 
 =item No network latency
 
-Working directly with the database file elliminates possible network delays
+Working directly with the database file eliminates possible network delays
 (even if the server is on the local host).
 
 =back
