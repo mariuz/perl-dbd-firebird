@@ -415,8 +415,8 @@ the end of host name, separated by a slash. Example:
  $dsn = 'dbi:Firebird:db=/data/test.gdb;host=localhost/3060';
 
 Firebird 1.0 introduces B<SQL dialect> to provide backward compatibility with
-databases created by older versions of Firebird (pre 1.0). In short, SQL dialect
-controls how Firebird interprets:
+databases created by older versions of Firebird (pre 1.0). In short, SQL
+dialect controls how Firebird interprets:
 
  - double quotes
  - the DATE datatype
@@ -424,7 +424,10 @@ controls how Firebird interprets:
  - new 1.0 reserved keywords
 
 Valid values for B<ib_dialect> are 1 and 3 .The driver's default value is
-3 (Currently it is possible to create databases in Dialect 1 and 3 only, however it is recommended that you use Dialect 3 exclusively, since Dialect 1 will eventually be deprecated. Dialect 2 cannot be used to create a database since it only serves to convert Dialect 1 to Dialect 3).
+3 (Currently it is possible to create databases in Dialect 1 and 3 only,
+however it is recommended that you use Dialect 3 exclusively, since Dialect 1
+will eventually be deprecated. Dialect 2 cannot be used to create a database
+since it only serves to convert Dialect 1 to Dialect 3).
 
 http://www.firebirdsql.org/file/documentation/reference_manuals/user_manuals/html/isql-dialects.html 
 
@@ -434,9 +437,9 @@ with lots of users. A detailed reading can be found at:
 
  http://www.ibphoenix.com/resources/documents/general/doc_59
 
-If B<ib_cache> is not specified, the default database's cache size value will be 
-used. The Firebird Operation Guide discusses in full length the importance of 
-this parameter to gain the best performance.
+If B<ib_cache> is not specified, the default database's cache size value will
+be used. The Firebird Operation Guide discusses in full length the importance
+of this parameter to gain the best performance.
 
 =item B<available_drivers>
 
@@ -495,8 +498,8 @@ Implemented by DBI, no driver-specific impact.
 
 =item B<func>
 
-See B<Transactions> section for information about invoking C<ib_set_tx_param()>
-from func() method.
+See B<Transactions> section for information about invoking
+C<ib_set_tx_param()> from func() method.
 
 =back
 
@@ -745,18 +748,19 @@ to FALSE). Soft commit retains the internal transaction handle when
 committing a transaction, while the default commit behavior always closes
 and invalidates the transaction handle.
 
-Since the transaction handle is still open, there is no need to start a new transaction 
-upon every commit, so applications can gain performance improvement. Using soft commit is also 
-desirable when dealing with nested statement handles under AutoCommit on. 
+Since the transaction handle is still open, there is no need to start a new
+transaction upon every commit, so applications can gain performance
+improvement. Using soft commit is also desirable when dealing with nested
+statement handles under AutoCommit on.
 
-Switching the attribute's value from TRUE to FALSE will force hard commit thus 
+Switching the attribute's value from TRUE to FALSE will force hard commit thus
 closing the current transaction. 
 
 =item B<ib_enable_utf8>  (driver-specific, boolean)
 
 Setting this attribute to TRUE will cause any Perl Unicode strings supplied as
-statement parameters to be downgraded to octet sequences before passing them to
-Firebird.
+statement parameters to be downgraded to octet sequences before passing them
+to Firebird.
 
 Also, any character data retrieved from the database (CHAR, VARCHAR, BLOB
 sub_type TEXT) will be upgraded to Perl Unicode strings.
@@ -981,7 +985,7 @@ Table reservation is supported since C<DBD::Firebird 0.30>. Names of the
 tables to reserve as well as their reservation params/values are specified
 inside a hashref, which is then passed as the value of C<-reserving>.
 
-The following example reserves C<foo_table> with C<read> lock and C<bar_table> 
+The following example reserves C<foo_table> with C<read> lock and C<bar_table>
 with C<read> lock and C<protected> access:
 
  $dbh->func(
@@ -1047,7 +1051,8 @@ This replaces the default values. Example:
 
 =item * At $sth level
 
-This overrides the default values only for the currently prepared statement. Example:
+This overrides the default values only for the currently prepared statement.
+Example:
 
  $attr = {
     ib_timestampformat => '%m-%d-%Y %H:%M',
@@ -1059,12 +1064,12 @@ This overrides the default values only for the currently prepared statement. Exa
 
 =back
 
-Since locale settings affect the result of strftime(), if your application
-is designed to be portable across different locales, you may consider using these
+Since locale settings affect the result of strftime(), if your application is
+designed to be portable across different locales, you may consider using these
 two special formats: 'TM' and 'ISO'. C<TM> returns a 9-element list, much like
 Perl's localtime(). The C<ISO> format applies sprintf()'s pattern
-"%04d-%02d-%02d %02d:%02d:%02d.%04d" for TIMESTAMP, "%04d-%02d-%02d" for
-DATE, and "%02d:%02d:%02d.%04d" for TIME. 
+"%04d-%02d-%02d %02d:%02d:%02d.%04d" for TIMESTAMP, "%04d-%02d-%02d" for DATE,
+and "%02d:%02d:%02d.%04d" for TIME.
 
 C<$dbh-E<gt>{ib_time_all}> can be used to specify all of the three formats at
 once. Example:
@@ -1094,8 +1099,8 @@ Creates an event handle from a list of event names.
  $dbh->func($evh, 'ib_wait_event');
 
 Wait synchronously for particular events registered via event handle $evh.
-Returns a hashref containing pair(s) of posted event's name and its corresponding count,
-or undef on failure.
+Returns a hashref containing pair(s) of posted event's name and its
+corresponding count, or undef on failure.
 
 =item C<ib_register_callback>
 
@@ -1113,24 +1118,27 @@ or undef on failure.
  );
 
 Associates an event handle with an asynchronous callback. A callback will be
-passed a hashref as its argument, this hashref contains pair(s) of posted event's name
-and its corresponding count. 
+passed a hashref as its argument, this hashref contains pair(s) of posted
+event's name and its corresponding count.
 
-It is safe to call C<ib_register_callback> multiple times for the same event handle. In this 
-case, the previously registered callback will be automatically cancelled.
+It is safe to call C<ib_register_callback> multiple times for the same event
+handle. In this case, the previously registered callback will be automatically
+cancelled.
 
-If the callback returns FALSE, the registered callback will be no longer invoked, but internally
-it is still there until the event handle goes out of scope (or undef-ed), or you call 
-C<ib_cancel_callback> to actually disassociate it from the event handle.
+If the callback returns FALSE, the registered callback will be no longer
+invoked, but internally it is still there until the event handle goes out of
+scope (or undef-ed), or you call C<ib_cancel_callback> to actually
+disassociate it from the event handle.
 
 =item C<ib_cancel_callback>
 
  $dbh->func($evh, 'ib_cancel_callback');
 
 Unregister a callback from an event handle. This function has a limitation,
-however, that it can't be called from inside a callback. In many cases, you won't
-need this function, since when an event handle goes out of scope, its associated callback(s)
-will be automatically cancelled before it is cleaned up. 
+however, that it can't be called from inside a callback. In many cases, you
+won't need this function, since when an event handle goes out of scope, its
+associated callback(s) will be automatically cancelled before it is cleaned
+up.
 
 
 =back
@@ -1330,12 +1338,12 @@ gets committed right after the statement is executed. The transaction handle
 is stored within the database handle. The driver is smart enough not to
 override an active transaction handle with a new one. So, if you notice the
 snippet above, after the first fetchrow_array(), the do() is still using the
-same transaction context, but as soon as it has finished executing the statement, it
-B<commits> the transaction, whereas the next fetchrow_array() still needs
-the transaction context!
+same transaction context, but as soon as it has finished executing the
+statement, it B<commits> the transaction, whereas the next fetchrow_array()
+still needs the transaction context!
 
-So the secret to make this work is B<to keep the transaction open>. This can be
-done in two ways:
+So the secret to make this work is B<to keep the transaction open>. This can
+be done in two ways:
 
 =over 4
 
