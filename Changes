@@ -1,4 +1,9 @@
 Revision history for Perl extension DBD::Firebird.
+1.26 [2017-11-12]
+ * TestFirebirdEmbedded: use a temporary directory for firebird locks and
+   database storage (RT#123623)
+ * fix typo in FirebirdEmbedded
+ * detect Firebird API version even when patch are supplied via environment
 1.25 [2017-10-01]
  * Add tests for values between 0 and ±1 to bigdecimal[_read].t
  * dbd_st_fetch: fix conversion of numerics between -1 and 0
