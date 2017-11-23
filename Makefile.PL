@@ -232,6 +232,8 @@ qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD
         'File::Which'  => 0,
     },
     BUILD_REQUIRES     => {
+        'File::Path'     => 0,
+        'File::Temp'     => 0,
         'Test::Deep' => 0,
         'Test::More' => 0.4,
         'Test::Exception' => 0.31,

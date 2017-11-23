@@ -10,7 +10,8 @@ use Carp;
 use DBI 1.43;                   # minimum version for 'parse_dsn'
 use File::Spec;
 use File::Basename;
-use File::Temp;
+use File::Path qw(remove_tree);
+use File::Temp qw(tempdir);
 
 use Test::More;
 
@@ -37,9 +38,20 @@ sub read_cached_configs {
     my $self = shift;
     $self->SUPER::read_cached_configs;
 
+    unless ($self->{firebird_lock_dir}) {
+        my $dir = tempdir( 'dbd-fb.XXXXXXXX', CLEANUP => 0, TMPDIR => 1 );
+        note "created $dir\n";
+        open( my $fh, '>>', $self->test_conf )
+            or die "Unable to open " . $self->test_conf . " for appending: $!";
+        print $fh qq(firebird_lock_dir:=$dir\n);
+        close($fh) or die "Error closing " . $self->test_conf . ": $!\n";
+
+        $self->{firebird_lock_dir} = $dir;
+    }
+
     # this is embedded, no server involved
-    $ENV{FIREBIRD} = $ENV{FIREBIRD_LOCK} = '.'
-        unless DBD::FirebirdEmbedded->fb_api_ver => 30;
+    $ENV{FIREBIRD_LOCK} = $self->{firebird_lock_dir};
+
     # no authentication either
     delete $ENV{ISC_USER};
     delete $ENV{ISC_PASSWORD};
@@ -67,14 +79,22 @@ sub save_configs {
 sub get_dsn {
     my $self = shift;
 
-    return "dbi:FirebirdEmbedded:db=dbd-firebird-test.fdb;ib_dialect=3;ib_charset=" . $self->get_charset;
+    return join( ';',
+        "dbi:FirebirdEmbedded:db=" . $self->get_path,
+        "ib_dialect=3",
+        'ib_charset=' . $self->get_charset );
 }
 
 sub check_dsn {
     return shift->get_dsn;
 }
 
-sub get_path { 'dbd-firebird-test.fdb' }
+sub get_path {
+    my $self = shift;
+
+    return File::Spec->catfile( $self->{firebird_lock_dir},
+        'dbd-firebird-test.fdb' );
+}
 
 # no authentication for embedded
 sub get_user { undef }
@@ -88,6 +108,12 @@ sub check_mark {
     -f $self->get_path;
 }
 
+sub cleanup {
+    my $self = shift;
 
+    remove_tree( $self->{firebird_lock_dir}, { verbose => 1, safe => 1 } );
+
+    return $self->SUPER::cleanup;
+}
 
 1;
