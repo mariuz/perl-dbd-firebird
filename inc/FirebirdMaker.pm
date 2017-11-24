@@ -821,7 +821,6 @@ EOT
                 $_[0] =~ s/dbi:Firebird:.+/dbi:FirebirdEmbedded:db=\$dbname", undef, undef);/g;
                 $_[0] =~ s/(?<!L\<)DBD::Firebird\b(?!::(?:Get|Type|Table)Info)/DBD::FirebirdEmbedded/g;
                 $_[0] =~ s/'Firebird'/'FirebirdEmbedded'/g;
-                $_[0] =~ s/use constant fb_api_ver => .+;/use constant fb_api_ver => $FB::API_VER;/;
             },
         },
     );

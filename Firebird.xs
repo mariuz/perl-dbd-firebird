@@ -148,6 +148,14 @@ MODULE = DBD::Firebird     PACKAGE = DBD::Firebird
 
 INCLUDE: Firebird.xsi
 
+#ifndef FB_API_VER
+#define FB_API_VER 0
+#endif
+
+BOOT:
+    HV *stash = gv_stashpv( "DBD::Firebird", TRUE );
+    newCONSTSUB( stash, "fb_api_ver", newSViv(FB_API_VER) );
+
 MODULE = DBD::Firebird     PACKAGE = DBD::Firebird::db
 
 void
