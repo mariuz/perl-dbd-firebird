@@ -1,4 +1,8 @@
 Revision history for Perl extension DBD::Firebird.
+1.28 [2017-12-01]
+ * Update MANIFEST to include newly added tests
+ * add missing items in 1.27 changes
+ * correctly check for Test::CheckDeps presense
 1.27 [2017-12-01]
  * finish: do not check uninitialised status vector
    If statement type is isc_info_sql_stmt_exec_procedure,
