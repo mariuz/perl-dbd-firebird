@@ -234,16 +234,16 @@ qq(*.xsi *.old t/*.old *~ t/*~ trace.txt t/trace.txt lib/DBD/Firebird/*~ lib/DBD
         'File::Which'  => 0,
     },
     BUILD_REQUIRES     => {
+    },
+    TEST_REQUIRES => {
         'File::Path'     => 0,
         'File::Temp'     => 0,
         'Math::BigFloat' => 1.55,
+        'Test::CheckDeps'   => 0.007,
         'Test::Deep' => 0,
         'Test::Exception' => 0.31,
         'Test::More' => 0.4,
         'Time::HiRes' => 0,
-    },
-    TEST_REQUIRES => {
-        'Test::CheckDeps'   => 0.007,
     },
     LICENSE            => 'perl',
     MIN_PERL_VERSION   => '5.008001',
