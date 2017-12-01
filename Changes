@@ -10,6 +10,13 @@ Revision history for Perl extension DBD::Firebird.
    RT#110979
  * add 000-check-dependencies.t
  * Makefile.PL: move test dependencies in TEST_REQUIRES
+ * fix typo in 1.26 Changes
+ * POD: wrap some overly long lines
+ * add support for a 'timeout=$secs' parameter [RT#119764]
+ * bump years of copyright
+ * put fb_api_ver in XS and make it available to both embedded and regular
+   driver
+ * more constants for client version (major/minor/full version string)
 1.26 [2017-11-12]
  * TestFirebirdEmbedded: use a temporary directory for firebird locks and
    database storage (RT#123623)
