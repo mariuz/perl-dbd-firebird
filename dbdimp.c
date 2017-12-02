@@ -1676,7 +1676,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                     };
                     long max_segment = -1L, total_length = -1L, t;
                     unsigned short seg_length;
-                    unsigned short blob_type = -1;
+                    short blob_type = -1;
 
                     /* Open the Blob according to the Blob id. */
                     isc_open_blob2(status, &(imp_dbh->db), &(imp_dbh->tr),
