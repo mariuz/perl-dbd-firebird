@@ -307,6 +307,7 @@ sub search_fb_home_dirs {
         qw{
           /opt/firebird
           /usr/local/firebird
+          /usr/local
           /usr/lib/firebird
           /usr
           },
