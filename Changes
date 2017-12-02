@@ -1,4 +1,9 @@
 Revision history for Perl extension DBD::Firebird.
+1.29 [2017-12-02]
+ * add /usr/local to the list of possible firebird homes [RT#123723]
+ * blob_type needs to be signed to be assigned/compared to -1
+ * bpb parameter to isc_open_blob2 is a pointer
+ * drop unused column character set definition
 1.28 [2017-12-01]
  * Update MANIFEST to include newly added tests
  * add missing items in 1.27 changes
