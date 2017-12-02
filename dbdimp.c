@@ -1683,8 +1683,8 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                                    &blob_handle, (ISC_QUAD *) var->sqldata,
 #if defined(INCLUDE_FB_TYPES_H) || defined(INCLUDE_TYPES_PUB_H)
                                    (ISC_USHORT) 0,
-                                   (ISC_UCHAR) 0);
-#else                                   
+                                   (ISC_UCHAR *) NULL);
+#else
                                    (short) 0,       /* no Blob filter */
                                    (char *) NULL);  /* no Blob filter */
 #endif
