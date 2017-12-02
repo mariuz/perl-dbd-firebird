@@ -45,7 +45,7 @@ ok($table, qq{Table is '$table'});
 my $def =<<"DEF";
 CREATE TABLE $table (
     id     INTEGER NOT NULL PRIMARY KEY,
-    name CHAR(64) CHARACTER SET ISO8859_1
+    name CHAR(64)
 )
 DEF
 ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
