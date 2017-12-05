@@ -1,4 +1,7 @@
 Revision history for Perl extension DBD::Firebird.
+1.30 [2017-12-05]
+ * remove artificial hard-coded limit of 1_000_000 bytes when fetching BLOB
+   data
 1.29 [2017-12-02]
  * add /usr/local to the list of possible firebird homes [RT#123723]
  * blob_type needs to be signed to be assigned/compared to -1
