@@ -193,8 +193,6 @@ do { \
  * If you want to fetch Blobs that are bigger, write your own Perl
  */
 
-#define MAX_SAFE_BLOB_LENGTH (1000000)
-
 #define MAX_EVENTS          15
 
 typedef enum { ACTIVE, INACTIVE } IB_EVENT_STATE;

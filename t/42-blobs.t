@@ -12,6 +12,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Exception;
 use DBI qw(:sql_types);
 
 use lib 't','.';
@@ -29,9 +30,6 @@ if ($error_str) {
 unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
-else {
-    plan tests => 262;
-}
 
 ok($dbh, 'Connected to the database');
 
@@ -44,18 +42,19 @@ my $table = find_new_table($dbh);
 #diag $table;
 ok($table);
 
+my $def = qq{
+CREATE TABLE $table (
+id   INTEGER NOT NULL PRIMARY KEY,
+name BLOB
+)
+};
+
 # Repeat test?
 foreach my $size ( 1 .. 5 ) {
 
     #
     #   Create a new table
     #
-    my $def = qq{
-CREATE TABLE $table (
-    id   INTEGER NOT NULL PRIMARY KEY,
-    name BLOB
-)
-};
     ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
 
     $dbh->{AutoCommit} = 0;
@@ -69,9 +68,8 @@ CREATE TABLE $table (
     for ( my $j = 0 ; $j < 256 ; $j++ ) {
         $b .= chr($j);
     }
-    for ( my $i = 0 ; $i < $size ; $i++ ) {
-        $blob .= $b;
-    }
+
+    $blob = $b x $size;
 
     #
     #   Insert a row into the test table.......
@@ -126,4 +124,16 @@ CREATE TABLE $table (
 
 }                                            # repeat test
 
+ok( $dbh->do($def), qq{CREATE TABLE '$table'} );
+my $random_bin = '';
+$random_bin .= chr(int(rand(256))) for 1..600_000;
+
+ok( $dbh->do( "INSERT into $table values(?, ?)", undef, 42, $random_bin ),
+    "insert blog larger than LongReadLen" );
+
+throws_ok { $dbh->selectall_arrayref("select * from $table WHERE id = 42") }
+qr/Not enough LongReadLen buffer/,
+    "Fetching a BLOB larger than LongReadLen throws";
+
 #- end test
+done_testing();

@@ -1759,19 +1759,6 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                         break;
                     }
 
-                    if (total_length >= MAX_SAFE_BLOB_LENGTH)
-                    {
-                        do_error(sth, 1, "Blob exceeds maximum length.");
-
-                        sv_setpvn(sv, "** Blob exceeds maximum safe length **", 38);
-
-                        /* I deliberately don't set FAILURE based on this. */
-                        isc_close_blob(status, &blob_handle);
-                        if (ib_error_check(sth, status))
-                            return FALSE;
-                        break;
-                    }
-
                     /* Create a zero-length string. */
                     sv_setpv(sv, "");
 
@@ -1799,12 +1786,6 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
     /*
      * As long as the fetch was successful, concatenate the segment we fetched
      * into the growing Perl scalar.
-     */
-    /*
-     * This is dangerous if the Blob is enormous.  But Perl is supposed
-     * to be able to grow scalars indefinitely as far as resources allow,
-     * so what the heck.  Besides, I limited the max length of a Blob earlier
-     * to MAX_SAFE_BLOB_LENGTH.
      */
 
                         sv_catpvn(sv, blob_segment_buffer, seg_length);
