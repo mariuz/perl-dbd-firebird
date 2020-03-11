@@ -955,9 +955,12 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs)
             break;
 
         case isc_info_sql_stmt_ddl:
-	case isc_info_sql_stmt_set_generator:
+        case isc_info_sql_stmt_set_generator:
         case isc_info_sql_stmt_exec_procedure:
         case isc_info_sql_stmt_savepoint:
+        case isc_info_sql_stmt_start_trans:
+        case isc_info_sql_stmt_commit:
+        case isc_info_sql_stmt_rollback:
             /* no count_item to gather */
             break;
 
@@ -966,9 +969,6 @@ int dbd_st_prepare(SV *sth, imp_sth_t *imp_sth, char *statement, SV *attribs)
          */
         case isc_info_sql_stmt_get_segment:
         case isc_info_sql_stmt_put_segment:
-        case isc_info_sql_stmt_start_trans:
-        case isc_info_sql_stmt_commit:
-        case isc_info_sql_stmt_rollback:
         default:
             do_error(sth, 10, "Statement type is not implemented in this version of DBD::Firebird");
             return FALSE;
