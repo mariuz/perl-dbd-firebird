@@ -18,7 +18,7 @@ License
 
 You may distribute under the terms of either the GNU General Public
 License or the Artistic License, as specified in the Perl README file.
-(http://dev.perl.org/licenses/artistic.html)
+(https://dev.perl.org/licenses/artistic.html)
 
 
 Installation
@@ -35,8 +35,8 @@ Requirements:
     clang
 
   * Windows
-    - Strawberry perl (http://strawberryperl.com/) comes with it's own compiler (mingw)
-    - Visual Studio C++ (http://visualstudio.com) 
+    - Strawberry perl (https://strawberryperl.com/) comes with it's own compiler (mingw)
+    - Visual Studio C++ (https://visualstudio.com) 
     - Cygwin
   * Freebsd
     - Threaded Perl is required (You have to re-install Perl from
