@@ -31,8 +31,8 @@ Requirements:
 - Firebird (2.5.1 or higher)
 - A C compiler
   * UN*X
-    GCC 4.x (tested, older may or may not work) or other capable
-    clang
+    GCC or Clang
+    
 
   * Windows
     - Strawberry perl (https://strawberryperl.com/) comes with it's own compiler (mingw)
