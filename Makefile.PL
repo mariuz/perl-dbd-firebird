@@ -292,7 +292,17 @@ SWITCH: {
         last SWITCH;
     };
     $os eq 'darwin' && do {
-        $MakeParams{LDDLFLAGS} = $Config{lddlflags} . " -framework Firebird ";
+        my $framework_dir = dirname $FB::HOME; #"/Library/Frameworks/Firebird.framework";
+        my $framework_name = File::Spec->catfile( $framework_dir, "Firebird");
+        # For some reason, the framework file can be a broken symlink, see issue #??
+        #  We can use -e to check if the symlink is broken:
+        if ( -e $framework_name ) {
+            $MakeParams{LDDLFLAGS} = $Config{lddlflags} . " -framework Firebird ";
+        }
+        else {
+            $MakeParams{LDDLFLAGS} = $Config{lddlflags};
+            $MakeParams{LIBS} = "-L$FB::LIB -l$client_lib ";
+        }
         last SWITCH;
     };
 
