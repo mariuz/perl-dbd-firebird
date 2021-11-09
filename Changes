@@ -1,4 +1,7 @@
 Revision history for Perl extension DBD::Firebird.
+1.33 [2021-11-9]
+ * Do not link with Firebird framework if it does not exist on macOS.
+This should fix issue #51.
 1.32 [2020-03-11]
  * Add support for COMMIT and ROLLBACK statements #48
 1.31 [2017-12-05]
