@@ -1,4 +1,7 @@
 Revision history for Perl extension DBD::Firebird.
+1.34 [2021-12-05]
+ * Fix Firebird paths detection on systems with fb_config available (e.g.
+   Debian/Ubuntu). Fixes RT#140139. Thanks to Slaven Rezić.
 1.33 [2021-11-9]
  * Do not link with Firebird framework if it does not exist on macOS.
 This should fix issue #51.
