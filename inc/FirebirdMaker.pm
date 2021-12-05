@@ -202,7 +202,10 @@ sub locate_firebird {
             }
         }
 
-        check_and_set_devlibs($FB::LIB);
+        my $fb_conf = `fb_config --confdir`;
+        chomp $fb_conf;
+
+        check_and_set_devlibs($fb_conf);
         return;
     }
 
