@@ -183,6 +183,7 @@ sub locate_firebird {
     if ( my $fb_config = File::Which::which('fb_config') ) {
         warn "Using $fb_config as data source\n";
         my $cflags = `fb_config --cflags`;
+        chomp $cflags;
         my @items = split(/\s+/, $cflags);
         for (@items) {
             if (s/^-I\s*//) {
@@ -192,6 +193,7 @@ sub locate_firebird {
         }
 
         my $libflags = `fb_config --libs`;
+        chomp $libflags;
         @items = split( /\s+/, $libflags );
         for (@items) {
             if ( s/^-L\s*// ) {
