@@ -1,4 +1,9 @@
 Revision history for Perl extension DBD::Firebird.
+1.35 [2024-05-15]
+ * ib2sql_type: ignore nullability bit
+ * map Firebird's 64-bit integer type to SQL_BIGINT
+ * add support for Firebird's BOOLEAN data type
+ * fix a couple of compiler warnings
 1.34 [2021-12-05]
  * Fix Firebird paths detection on systems with fb_config available (e.g.
    Debian/Ubuntu). Fixes RT#140139. Thanks to Slaven Rezić.
