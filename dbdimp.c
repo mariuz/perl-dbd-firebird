@@ -206,42 +206,33 @@ int ib_error_check(SV *h, ISC_STATUS *status)
 static int ib2sql_type(int ibtype)
 {
     /* Firebird Internal (not external) types */
-    switch(ibtype)
+    switch(ibtype & ~1)
     {
         case SQL_TEXT:
-        case 453:
             return DBI_SQL_CHAR;
 
         case SQL_LONG:
-        case 497:
             return DBI_SQL_INTEGER;  /* integer */
 
         case SQL_SHORT:
-        case 501:
             return DBI_SQL_SMALLINT; /* smallint */
 
         case SQL_FLOAT:
-        case 483:
             return DBI_SQL_FLOAT;
 
         case SQL_DOUBLE:
-        case 481:
             return DBI_SQL_DOUBLE;
 
         case SQL_TIMESTAMP:
-        case 511:
             return DBI_SQL_TIMESTAMP;
 
         case SQL_TYPE_DATE:
-        case 571:
             return DBI_SQL_DATE;
 
         case SQL_TYPE_TIME:
-        case 561:
             return DBI_SQL_TIME;
 
         case SQL_VARYING:
-        case 449:
             return DBI_SQL_VARCHAR;
     }
     /* else map type into DBI reserved standard range */
