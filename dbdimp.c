@@ -234,6 +234,11 @@ static int ib2sql_type(int ibtype)
 
         case SQL_VARYING:
             return DBI_SQL_VARCHAR;
+
+#ifdef SQL_INT64
+        case SQL_INT64:
+            return DBI_SQL_BIGINT;
+#endif
     }
     /* else map type into DBI reserved standard range */
     return -9000 - ibtype;
