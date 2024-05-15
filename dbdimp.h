@@ -44,6 +44,7 @@ static const int DBI_SQL_TYPE_TIME  = SQL_TYPE_TIME;
 static const int DBI_SQL_TYPE_DATE  = SQL_TYPE_DATE;
 static const int DBI_SQL_ARRAY      = SQL_ARRAY;
 static const int DBI_SQL_BLOB       = SQL_BLOB;
+static const int DBI_SQL_BOOLEAN    = SQL_BOOLEAN;
 
 /* conflicts */
 

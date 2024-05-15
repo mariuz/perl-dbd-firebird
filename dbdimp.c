@@ -239,6 +239,11 @@ static int ib2sql_type(int ibtype)
         case SQL_INT64:
             return DBI_SQL_BIGINT;
 #endif
+
+#ifdef SQL_BOOLEAN
+        case SQL_BOOLEAN:
+            return DBI_SQL_BOOLEAN;
+#endif
     }
     /* else map type into DBI reserved standard range */
     return -9000 - ibtype;
@@ -1369,6 +1374,13 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
              */
             switch (dtype)
             {
+#ifdef SQL_BOOLEAN
+                case SQL_BOOLEAN:
+                    FB_BOOLEAN b = (*((FB_BOOLEAN *) (var->sqldata)));
+                    sv_set_bool(sv, b == FB_TRUE);
+                    break;
+#endif
+
                 case SQL_SHORT:
                     if (var->sqlscale) /* handle NUMERICs */
                     {
@@ -2418,6 +2430,22 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
 
             break;
         }
+
+        /**********************************************************************/
+#ifdef SQL_BOOLEAN
+        case SQL_BOOLEAN:
+            DBI_TRACE_imp_xxh(imp_sth, 1, (DBIc_LOGPIO(imp_sth), "ib_fill_isqlda: SQL_BOOLEAN\n"));
+
+        {
+            if (!(ivar->sqldata))
+                Newxc(ivar->sqldata, 1, FB_BOOLEAN, ISC_SCHAR);
+
+            bool v = SvTRUE_NN(value);
+            *(FB_BOOLEAN *) (ivar->sqldata) = (v ? FB_TRUE : FB_FALSE);
+
+            break;
+        }
+#endif
 
         /**********************************************************************/
 #ifdef SQL_INT64

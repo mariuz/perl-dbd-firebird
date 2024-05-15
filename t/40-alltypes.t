@@ -28,7 +28,7 @@ unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 32;
+    plan tests => 33;
 }
 
 ok($dbh, 'Connected to the database');
@@ -39,6 +39,7 @@ my %expected = (
     VALUES	=> [
 	30000,
 	1000,
+	1,
 	'Edwin        ',
 	'Edwin Pratomo       ',
 	'A string',
@@ -55,19 +56,20 @@ my %expected = (
 	'86753090000.868',
     ],
     TYPE	=> [
-	4,5,1,1,12,4,6,8,11,9,10,5,5,4,4,-5,
+	4,5,16,1,1,12,4,6,8,11,9,10,5,5,4,4,-5,
     ],
     SCALE	=> [
-	0,0,0,0,0,0,0,0,0,0,0,-3,-3,-3,-3,-3,
+	0,0,0,0,0,0,0,0,0,0,0,0,-3,-3,-3,-3,-3,
     ],
     PRECISION	=> [
-	4,2,52,80,52,4,4,8,8,4,4,2,2,4,4,8,
+	4,2,1,52,80,52,4,4,8,8,4,4,2,2,4,4,8,
     ]
 );
 
 my $def = <<"DEF";
     INTEGER_             INTEGER,
     SMALLINT_            SMALLINT,
+    A_BOOLEAN            BOOLEAN,
     CHAR13_              CHAR(13),
     CHAR20_              CHAR(20),
     VARCHAR13_           VARCHAR(13),
@@ -107,7 +109,7 @@ ok($dbh->do("CREATE TABLE $table (\n$def)"), "CREATE TABLE $table");
 
 my $NAMES  = join "," => @{$expected{NAME}};
 my $cursor = $dbh->prepare(
-    "INSERT INTO $table ($NAMES) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+    "INSERT INTO $table ($NAMES) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
 ok($cursor->execute(@{$expected{VALUES}}), "INSERT in $table");
 
@@ -121,7 +123,7 @@ ok($cursor2->execute, "EXECUTE");
 
 ok(my $res = $cursor2->fetchall_arrayref, 'FETCHALL arrayref');
 
-is($cursor2->{NUM_OF_FIELDS}, 16, "Field count");
+is($cursor2->{NUM_OF_FIELDS}, 17, "Field count");
 do {
     my $i = 0;
     for my $t ( @{ $expected{DEF} } ) {
