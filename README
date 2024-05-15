@@ -2,7 +2,7 @@ DBD::Firebird -- DBI driver for Firebird RDBMS server.
 
    Copyright (c) 2010-2015  Popa Adrian Marius <mapopa@gmail.com>
    Copyright (c) 2011-2013  Stefan Suciu <stefbv70@gmail.com>
-   Copyright (c) 2011-2015  Damyan Ivanov <dmn@debian.org>
+   Copyright (c) 2011-2015, 2024  Damyan Ivanov <dmn@debian.org>
    Copyright (c) 2011  Alexandr Ciornii <alexchorny@gmail.com>
    Copyright (c) 2010-2011  Mike Pomraning <mjp@pilcrow.madison.wi.us>
    Copyright (c) 1999-2005  Edwin Pratomo

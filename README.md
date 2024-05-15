@@ -7,7 +7,7 @@ DBI driver for the Firebird RDBMS server.
 - Copyright © 2014  H.Merijn Brand - Tux
 - Copyright © 2010-2020  Popa Adrian Marius
 - Copyright © 2011-2013  Stefan Suciu
-- Copyright © 2011-2015  Damyan Ivanov
+- Copyright © 2011-2015, 2024  Damyan Ivanov
 - Copyright © 2011  Alexandr Ciornii
 - Copyright © 2010-2014  Mike Pomraning
 - Copyright © 1999-2005  Edwin Pratomo
