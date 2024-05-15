@@ -650,7 +650,7 @@ int dbd_db_STORE_attrib(SV *dbh, imp_dbh_t *imp_dbh, SV *keysv, SV *valuesv)
                 if (!ib_commit_transaction(dbh, imp_dbh))
                     return FALSE;
 
-                    DBI_TRACE_imp_xxh(imp_dbh, 3, (DBIc_LOGPIO(imp_dbh), "dbd_db_STORE: commit open transaction\n"));
+                DBI_TRACE_imp_xxh(imp_dbh, 3, (DBIc_LOGPIO(imp_dbh), "dbd_db_STORE: commit open transaction\n"));
             }
         }
 
