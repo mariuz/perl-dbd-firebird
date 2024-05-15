@@ -134,7 +134,7 @@ do {                                            \
 #define DPB_FILL_STRING_LEN(dpb, code, string, len) \
 do {                                                \
     if ( len > 255 )                                \
-        croak("DPB string too long (%d)", len);     \
+        croak("DPB string too long (%ld)", (size_t) len);     \
     *dpb++ = code;                                  \
     *dpb++ = len;                                   \
     strncpy(dpb, string, (size_t) len);             \
