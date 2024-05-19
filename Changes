@@ -1,4 +1,7 @@
 Revision history for Perl extension DBD::Firebird.
+1.36 [2024-05-19]
+ * fix problems with Perl befpre 5.36 and Firebird before 3.0
+   (gh#56 and gh#57)
 1.35 [2024-05-15]
  * ib2sql_type: ignore nullability bit
  * map Firebird's 64-bit integer type to SQL_BIGINT
