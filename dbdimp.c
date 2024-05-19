@@ -1377,7 +1377,11 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 #ifdef SQL_BOOLEAN
                 case SQL_BOOLEAN:
                     FB_BOOLEAN b = (*((FB_BOOLEAN *) (var->sqldata)));
+#ifdef sv_set_bool
                     sv_set_bool(sv, b == FB_TRUE);
+#else
+                    sv_setbool(sv, b == FB_TRUE);
+#endif
                     break;
 #endif
 
