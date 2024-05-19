@@ -24,14 +24,29 @@ if ($error_str) {
     BAIL_OUT("Unknown: $error_str!");
 }
 
+my $boolean_support = 0;
+
 unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 33;
+    my $orig_ver = $dbh->func(version => 'ib_database_info')->{version};
+    (my $ver = $orig_ver) =~ s/.*\bFirebird\s*//;
+
+    if ($ver =~ /^(\d+)\.(\d+)$/) {
+        $boolean_support =
+            ($1 >= 3 and DBD::Firebird->client_major_version >= 3);
+    }
+    else {
+        diag "Unable to determine Firebird version from '$orig_ver'";
+        diag "Assuming no BOOLEAN data type support";
+    }
+
+    plan tests => 32 + $boolean_support;
 }
 
 ok($dbh, 'Connected to the database');
+
 
 # ------- TESTS ------------------------------------------------------------- #
 
@@ -39,7 +54,6 @@ my %expected = (
     VALUES	=> [
 	30000,
 	1000,
-	1,
 	'Edwin        ',
 	'Edwin Pratomo       ',
 	'A string',
@@ -56,20 +70,19 @@ my %expected = (
 	'86753090000.868',
     ],
     TYPE	=> [
-	4,5,16,1,1,12,4,6,8,11,9,10,5,5,4,4,-5,
+	4,5,1,1,12,4,6,8,11,9,10,5,5,4,4,-5,
     ],
     SCALE	=> [
-	0,0,0,0,0,0,0,0,0,0,0,0,-3,-3,-3,-3,-3,
+	0,0,0,0,0,0,0,0,0,0,0,-3,-3,-3,-3,-3,
     ],
     PRECISION	=> [
-	4,2,1,52,80,52,4,4,8,8,4,4,2,2,4,4,8,
+	4,2,52,80,52,4,4,8,8,4,4,2,2,4,4,8,
     ]
 );
 
 my $def = <<"DEF";
     INTEGER_             INTEGER,
     SMALLINT_            SMALLINT,
-    A_BOOLEAN            BOOLEAN,
     CHAR13_              CHAR(13),
     CHAR20_              CHAR(20),
     VARCHAR13_           VARCHAR(13),
@@ -85,6 +98,19 @@ my $def = <<"DEF";
     NUMERIC_AS_INTEGER2  NUMERIC(9,3),
     A_SIXTYFOUR          NUMERIC(18,3)
 DEF
+
+if ($boolean_support) {
+    push @{$expected{VALUES}},    1;
+    push @{$expected{TYPE}},      16;
+    push @{$expected{SCALE}},     0;
+    push @{$expected{PRECISION}}, 1;
+
+    $def =~ s/[\r\n]+$/,\n/;
+    $def .= <<DEF;
+    A_BOOLEAN            BOOLEAN
+DEF
+}
+
 for (split m/,[\r\n]+/ => $def) {
     my ($f, $d) = m/^\s*(\S+)\s+(\S+)/;
     push @{$expected{NAME}},    $f;
@@ -108,8 +134,9 @@ ok($dbh->do("CREATE TABLE $table (\n$def)"), "CREATE TABLE $table");
 #
 
 my $NAMES  = join "," => @{$expected{NAME}};
-my $cursor = $dbh->prepare(
-    "INSERT INTO $table ($NAMES) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+my $sql = "INSERT INTO $table ($NAMES) VALUES ("
+    . join(',', ('?') x scalar @{$expected{VALUES}}) . ")";
+my $cursor = $dbh->prepare($sql);
 
 ok($cursor->execute(@{$expected{VALUES}}), "INSERT in $table");
 
@@ -123,7 +150,7 @@ ok($cursor2->execute, "EXECUTE");
 
 ok(my $res = $cursor2->fetchall_arrayref, 'FETCHALL arrayref');
 
-is($cursor2->{NUM_OF_FIELDS}, 17, "Field count");
+is($cursor2->{NUM_OF_FIELDS}, scalar(@{$expected{VALUES}}), "Field count");
 do {
     my $i = 0;
     for my $t ( @{ $expected{DEF} } ) {

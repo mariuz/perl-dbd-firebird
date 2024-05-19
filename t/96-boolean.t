@@ -21,7 +21,22 @@ unless ( $dbh->isa('DBI::db') ) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 else {
-    plan tests => 23;
+    my $orig_ver = $dbh->func(version => 'ib_database_info')->{version};
+    (my $ver = $orig_ver) =~ s/.*\bFirebird\s*//;
+
+    if ($ver =~ /^(\d+)\.(\d+)$/) {
+        if ($1 >= 3) {
+            plan tests => 23;
+        }
+        else {
+            plan skip_all =>
+                "Firebird version $1.$2 doesn't support BOOLEAN data type";
+        }
+    }
+    else {
+        plan skip_all =>
+            "Unable to determine Firebird version from '$orig_ver'. Assuming no BOOLEAN support";
+    }
 }
 
 ok($dbh, 'Connected to the database');
