@@ -1383,7 +1383,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
 #ifdef sv_setbool
                     sv_setbool(sv, b == FB_TRUE);
 #else
-                    sv_setiv(sv, (b == FB_TRUE) ? 1 : 0)
+                    sv_setiv(sv, (b == FB_TRUE) ? 1 : 0);
 #endif
 #endif
                     break;
