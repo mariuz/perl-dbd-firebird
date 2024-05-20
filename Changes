@@ -1,4 +1,6 @@
 Revision history for Perl extension DBD::Firebird.
+1.37 [2024-05-20]
+ * fall back to sv_setiv when sv_setbool is not available (gh#58)
 1.36 [2024-05-19]
  * fix problems with Perl befpre 5.36 and Firebird before 3.0
    (gh#56 and gh#57)
