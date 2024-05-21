@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: install dependencies
-      run: sudo apt-get install firebird3.0-server-core firebird-dev libdbi-perl libfile-which-perl libtest-deep-perl libtest-exception-perl perl-xs-dev perl
+      run: sudo apt-get install firebird3.0-server-core firebird-dev libdbi-perl libfile-which-perl libtest-checkdeps-perl libtest-deep-perl libtest-exception-perl perl-xs-dev perl
     - name: configure
       run: perl Makefile.PL
     - name: make
