@@ -293,6 +293,7 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     SV **svp;  /* versatile scalar storage */
 
     unsigned short ib_dialect, ib_cache;
+    bool ib_db_triggers = true;
     char *ib_role;
     char ISC_FAR *dpb_buffer, *dpb;
     int connect_timeout = 0;
@@ -420,6 +421,25 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
         DPB_PREP_INTEGER(buflen);
     }
 
+    if ((svp = hv_fetch(hv, "ib_db_triggers", 14, FALSE)))
+    {
+        ib_db_triggers = SvTRUE(*svp);
+        if (!ib_db_triggers)
+            DPB_PREP_BYTE(buflen);
+    }
+    else {
+        if (SvOK(attr)) {
+            HV *attr_h = (HV*) SvRV(attr);
+            if (SvTYPE(hv) == SVt_PVHV) {
+                if (svp = hv_fetch(attr_h, "ib_db_triggers", 14, FALSE)) {
+                    ib_db_triggers = SvTRUE(*svp);
+                    if (!ib_db_triggers)
+                        DPB_PREP_BYTE(buflen);
+                }
+            }
+        }
+    }
+
     /* add length of other parameters to needed buflen */
     buflen += 1; /* dbpversion */
 
@@ -469,6 +489,11 @@ int dbd_db_login6(SV *dbh, imp_dbh_t *imp_dbh, char *dbname, char *uid,
     if (connect_timeout)
     {
         DPB_FILL_INTEGER(dpb, isc_dpb_connect_timeout, connect_timeout);
+    }
+
+    if (!ib_db_triggers)
+    {
+        DPB_FILL_BYTE(dpb, isc_dpb_no_db_triggers, 1);
     }
 
     dpb_length = dpb - dpb_buffer;

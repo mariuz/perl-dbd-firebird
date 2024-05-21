@@ -146,7 +146,8 @@ sub connect
 
     DBD::Firebird->_OdbcParse($dsn, $private_attr_hash,
                                ['database', 'host', 'port', 'ib_role', 'ib_dbkey_scope',
-                                'ib_charset', 'ib_dialect', 'ib_cache', 'ib_lc_time']);
+                                'ib_charset', 'ib_dialect', 'ib_cache', 'ib_lc_time',
+                                'ib_db_triggers']);
     $private_attr_hash->{database} ||= $ENV{ISC_DATABASE}; #"employee.fdb"
 
     my ($dbh_name) = ($dsn =~ /(db=[^;]+)/);
@@ -372,6 +373,7 @@ uses all possible parameters:
  ib_role=$role;
  ib_charset=$charset;
  ib_cache=$cache;
+ ib_db_triggers=0;
  timeout=$timeout
  DSN
 
@@ -396,6 +398,8 @@ respective meanings:
     ib_charset      character set to be used                optional
     ib_cache        number of database cache buffers        optional
     ib_dbkey_scope  change default duration of RDB$DB_KEY   optional
+    ib_db_triggers  enable/disable database-level triggers  optional
+                    defaults to 1 (enabled)
 
 B<database> could be used interchangebly with B<dbname> and B<db>. 
 To connect to a remote host, use the B<host> parameter. 

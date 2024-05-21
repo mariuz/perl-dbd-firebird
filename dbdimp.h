@@ -141,6 +141,12 @@ do {                                                \
     dpb += len;                                     \
 } while (0)
 
+#define DPB_PREP_BYTE(buflen)       \
+do {                                \
+    /* code, length, data */        \
+    buflen += 3;                    \
+} while (0)
+
 #define DPB_PREP_INTEGER(buflen)    \
 do {                                \
     buflen += sizeof(ISC_LONG) + 2; \

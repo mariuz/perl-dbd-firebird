@@ -53,6 +53,7 @@ t/93-bigdecimal.t
 t/94-biginteger_read.t
 t/95-biginteger.t
 t/96-boolean.t
+t/97-db-triggers.t
 t/dbi-primary_key_info.t
 t/dbi-rowcount.t
 t/dbi-table_info.t
