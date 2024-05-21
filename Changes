@@ -1,4 +1,7 @@
 Revision history for Perl extension DBD::Firebird.
+1.38 [2024-05-21]
+ * fix syntax error boolean fall back implementation (thanks to Robert Scheck)
+ * add support for disabling database-level triggers (gh#53)
 1.37 [2024-05-20]
  * fall back to sv_setiv when sv_setbool is not available (gh#58)
 1.36 [2024-05-19]
