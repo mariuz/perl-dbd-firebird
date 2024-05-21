@@ -1,0 +1,25 @@
+name: Perl Makemaker CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "master-off" ]
+  pull_request:
+    branches: [ "master-off" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: install dependencies
+      run: apt install firebird3.0-server-core firebird-dev libdbi-perl libfile-which-perl libtest-deep-perl libtest-exception-perl perl-xs-dev perl
+    - name: configure
+      run: perl Makefile.PL
+    - name: make
+      run: make
+    - name: make test
+      run: make test
