@@ -1400,17 +1400,19 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
             switch (dtype)
             {
 #ifdef SQL_BOOLEAN
-                case SQL_BOOLEAN:
-                    FB_BOOLEAN b = (*((FB_BOOLEAN *) (var->sqldata)));
+                case SQL_BOOLEAN: 
+                    {
+                       FB_BOOLEAN b = (*((FB_BOOLEAN *) (var->sqldata)));
 #ifdef sv_set_bool
-                    sv_set_bool(sv, b == FB_TRUE);
+                       sv_set_bool(sv, b == FB_TRUE);
 #else
 #ifdef sv_setbool
-                    sv_setbool(sv, b == FB_TRUE);
+                       sv_setbool(sv, b == FB_TRUE);
 #else
-                    sv_setiv(sv, (b == FB_TRUE) ? 1 : 0);
+                       sv_setiv(sv, (b == FB_TRUE) ? 1 : 0);
 #endif
 #endif
+                    } 
                     break;
 #endif
 
