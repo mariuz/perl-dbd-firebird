@@ -2,7 +2,7 @@
 /*
 
    Copyright (c) 2010, 2011  Popa Marius Adrian <mapopa@gmail.com>
-   Copyright (c) 2011, 2012, 2013, 2024  Damyan Ivanov <dmn@debian.org>
+   Copyright (c) 2011-2013, 2024, 2025  Damyan Ivanov <dmn@debian.org>
    Copyright (c) 2010  Mike Pomraning <mjp@pilcrow.madison.wi.us>
    Copyright (c) 1999-2008  Edwin Pratomo
    Portions Copyright (c) 2001-2005  Daniel Ritz
@@ -157,7 +157,7 @@ char* ib_error_decode(const ISC_STATUS *status) {
 #else
     const ISC_STATUS *pvector = status;
 #endif
-#if defined (INCLUDE_TYPES_PUB_H) 
+#if defined (INCLUDE_TYPES_PUB_H) || defined(FIREBIRD_IMPL_TYPES_PUB_H)
     ISC_SCHAR msg[1024];
 #else
     char msg[1024];
@@ -1722,7 +1722,7 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                     /* Open the Blob according to the Blob id. */
                     isc_open_blob2(status, &(imp_dbh->db), &(imp_dbh->tr),
                                    &blob_handle, (ISC_QUAD *) var->sqldata,
-#if defined(INCLUDE_FB_TYPES_H) || defined(INCLUDE_TYPES_PUB_H)
+#if defined(INCLUDE_FB_TYPES_H) || defined(INCLUDE_TYPES_PUB_H) || defined(FIREBIRD_IMPL_TYPES_PUB_H)
                                    (ISC_USHORT) 0,
                                    (ISC_UCHAR *) NULL);
 #else

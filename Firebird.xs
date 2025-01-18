@@ -1,7 +1,7 @@
 /*
 
    Copyright (c) 2011  Stefan Suciu <stefbv70@gmail.com>
-   Copyright (c) 2011  Damyan Ivanov <dmn@debian.org>
+   Copyright (c) 2011, 2025  Damyan Ivanov <dmn@debian.org>
    Copyright (c) 1999-2008  Edwin Pratomo
    Portions Copyright (c) 2001-2005  Daniel Ritz
 
@@ -38,7 +38,7 @@ static int _cancel_callback(SV *dbh, IB_EVENT *ev)
 }
 
 static int _call_perlsub(IB_EVENT ISC_FAR *ev, short length,
-#if defined(INCLUDE_TYPES_PUB_H)
+#if defined(INCLUDE_TYPES_PUB_H) || defined(FIREBIRD_IMPL_TYPES_PUB_H)
 const ISC_UCHAR *updated
 #else
 char ISC_FAR *updated
@@ -62,7 +62,7 @@ char ISC_FAR *updated
         SV **svp;
         HV *posted_events = newHV();
         ISC_ULONG ecount[15];
-#if defined(INCLUDE_TYPES_PUB_H)
+#if defined(INCLUDE_TYPES_PUB_H) || defined(FIREBIRD_IMPL_TYPES_PUB_H)
         ISC_UCHAR *result = ev->result_buffer;
 #else
         char ISC_FAR *result = ev->result_buffer;
@@ -110,7 +110,7 @@ char ISC_FAR *updated
 /* callback function for events, called by Firebird */
 /* static isc_callback _async_callback(IB_EVENT ISC_FAR *ev, short length, char ISC_FAR *updated) */
 static ISC_EVENT_CALLBACK _async_callback(IB_EVENT ISC_FAR *ev,
-#if defined(INCLUDE_TYPES_PUB_H)
+#if defined(INCLUDE_TYPES_PUB_H) || defined(FIREBIRD_IMPL_TYPES_PUB_H)
 ISC_USHORT length, const ISC_UCHAR *updated
 #else
 short length, char ISC_FAR *updated
@@ -1624,13 +1624,13 @@ DESTROY(ev_rv)
         isc_cancel_events(status, &(evh->dbh->db), &(evh->id));
     }
     if (evh->event_buffer)
-#ifdef INCLUDE_TYPES_PUB_H
+#if defined(INCLUDE_TYPES_PUB_H) || defined(FIREBIRD_IMPL_TYPES_PUB_H)
         isc_free((ISC_SCHAR*)evh->event_buffer);
 #else
         isc_free(evh->event_buffer);
 #endif
     if (evh->result_buffer)
-#ifdef INCLUDE_TYPES_PUB_H
+#if defined(INCLUDE_TYPES_PUB_H) || defined(FIREBIRD_IMPL_TYPES_PUB_H)
         isc_free((ISC_SCHAR*)evh->result_buffer);
 #else
         isc_free(evh->result_buffer);

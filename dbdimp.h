@@ -4,6 +4,7 @@
    Copyright (c) 2010  Mike Pomraning <mjp@pilcrow.madison.wi.us>
    Copyright (c) 1999-2008  Edwin Pratomo
    Portions Copyright (c) 2001-2005  Daniel Ritz
+   Copyright (c) 2025  Damyan Ivanov <dmn@debian.org>
 
    You may distribute under the terms of either the GNU General Public
    License or the Artistic License, as specified in the Perl README file.
@@ -215,7 +216,7 @@ typedef struct
 {
     imp_dbh_t       *dbh;               /* pointer to parent dbh */
     ISC_LONG        id;                 /* event id assigned by IB */
-#if defined(INCLUDE_TYPES_PUB_H)
+#if defined(INCLUDE_TYPES_PUB_H) || defined(FIREBIRD_IMPL_TYPES_PUB_H)
     ISC_UCHAR       *event_buffer;
     ISC_UCHAR       *result_buffer;
 #else
