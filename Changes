@@ -1,4 +1,6 @@
 Revision history for Perl extension DBD::Firebird.
+1.39 [2025-01-19]
+ * adapt checks for Firebird headers to Firebird 4.0.5 (gh#54)
 1.38 [2024-05-21]
  * fix syntax error boolean fall back implementation (thanks to Robert Scheck)
  * add support for disabling database-level triggers (gh#53)
