@@ -1,4 +1,4 @@
-DBD::Firebird version 1.32
+DBD::Firebird 
 ==========================
 
 DBI driver for the Firebird RDBMS server.
@@ -51,7 +51,7 @@ Requirements:
 - Build, test and install the DBI module (at least DBI 1.41).
 
   On Debian/Ubuntu you can do a simple:
-    sudo apt-get install firebird2.5-dev libdbi-perl
+    sudo apt-get install firebird3.0-dev libdbi-perl
 
 - Remember to *read* the DBI README file if you installed it from source
 
