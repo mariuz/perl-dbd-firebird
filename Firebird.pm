@@ -1081,6 +1081,52 @@ once. Example:
  $dbh->{ib_time_all} = 'TM';
 
 
+=head1 TIMESTAMP WITH TIME ZONE and TIME WITH TIME ZONE (Firebird 4.0+)
+
+Firebird 4.0 introduced C<TIMESTAMP WITH TIME ZONE> and C<TIME WITH TIME ZONE>
+data types. These types store the value in UTC together with a timezone
+identifier (either a named timezone like C<America/New_York> or a fixed offset
+like C<+05:30>).
+
+=head2 Reading (fetching)
+
+C<TIMESTAMP WITH TIME ZONE> and C<TIME WITH TIME ZONE> columns use the same
+C<ib_timestampformat> and C<ib_timeformat> format attributes as their non-TZ
+counterparts, with the following extensions:
+
+=over
+
+=item C<ISO> format (default for TZ types)
+
+Returns the local time with timezone offset appended, e.g.:
+
+  "2020-01-01 12:00:00.0000 +05:30"    # TIMESTAMP WITH TIME ZONE
+  "12:00:00.0000 +05:30"               # TIME WITH TIME ZONE
+
+For named timezone columns (e.g. C<America/New_York>), if the offset cannot be
+decoded without the ICU timezone database, UTC time with C<+00:00> is returned.
+
+=item C<TM> format
+
+Returns an array reference with 11 elements: the standard 9 C<localtime()>
+elements (sec, min, hour, mday, mon, year, wday, yday, isdst) plus two
+additional elements:
+
+  [9]  fractional seconds (0..9999)
+  [10] timezone offset in minutes (signed integer, e.g. +330 for +05:30)
+
+=back
+
+=head2 Writing (binding)
+
+Bind string values containing a timestamp and timezone identifier:
+
+  $sth->execute('2020-02-03 20:00:00.0000 -05:00');
+  $sth->execute('2020-02-03 20:00:00.0000 America/New_York');
+
+Firebird's server-side parser interprets the timezone identifier.
+
+
 =head1 EVENT ALERT SUPPORT
 
 Event alerter is used to notify client applications whenever something is

@@ -51,6 +51,8 @@ use warnings;
         [ "DATE",              SQL_TYPE_DATE,     10,        "{d'", "'}", undef,            1,0,3,undef,0,undef,"DATE",     undef,undef,SQL_DATE,         1,    undef,undef, ],
         [ "TIME",              SQL_TYPE_TIME,     8,         "{t'", "'}", undef,            1,0,3,undef,0,undef,"TIME",     undef,undef,SQL_DATE,         2,    undef,undef, ],
         [ "TIMESTAMP",         SQL_TYPE_TIMESTAMP,24,        "{ts'","'}", undef,            1,0,3,undef,0,undef,"TIMESTAMP",undef,undef,SQL_DATE,         3,    undef,undef, ],
+        [ "TIME WITH TIME ZONE",      SQL_TYPE_TIME,     21, "'",   "'",  undef,            1,0,3,undef,0,undef,"TIME WITH TIME ZONE",     undef,undef,SQL_DATE,2,undef,undef, ],
+        [ "TIMESTAMP WITH TIME ZONE", SQL_TYPE_TIMESTAMP,32, "'",   "'",  undef,            1,0,3,undef,0,undef,"TIMESTAMP WITH TIME ZONE",undef,undef,SQL_DATE,3,undef,undef, ],
     ];
 
     1;

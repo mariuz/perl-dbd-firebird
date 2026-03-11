@@ -244,6 +244,14 @@ static int ib2sql_type(int ibtype)
         case SQL_BOOLEAN:
             return DBI_SQL_BOOLEAN;
 #endif
+
+        case SQL_TIMESTAMP_TZ:
+        case SQL_TIMESTAMP_TZ_EX:
+            return DBI_SQL_TIMESTAMP;
+
+        case SQL_TIME_TZ:
+        case SQL_TIME_TZ_EX:
+            return DBI_SQL_TYPE_TIME;
     }
     /* else map type into DBI reserved standard range */
     return -9000 - ibtype;
@@ -1705,6 +1713,181 @@ AV *dbd_st_fetch(SV *sth, imp_sth_t *imp_sth)
                     break;
                 }
 
+                /*
+                 * Firebird 4.0+: TIME WITH TIME ZONE and TIMESTAMP WITH TIME ZONE
+                 *
+                 * These types store the value in UTC plus a timezone identifier.
+                 * The timezone identifier is either:
+                 *   - An offset zone ID (0..2878): displacement = time_zone - FB_TZ_ONE_DAY_OFFSET
+                 *   - FB_TZ_GMT_ZONE (65535): UTC, displacement = 0
+                 *   - A named zone ID (> 2878 and < 65535): requires ICU timezone DB to decode
+                 *
+                 * We apply the offset (if available) to convert UTC to local time,
+                 * and format the result with the timezone offset appended.
+                 * For named zones, we display UTC with offset "+00:00".
+                 *
+                 * The *_EX variants (SQL_TIMESTAMP_TZ_EX, SQL_TIME_TZ_EX) carry
+                 * an explicit signed-minute offset in the ext_offset field.
+                 */
+                case SQL_TIMESTAMP_TZ:
+                case SQL_TIMESTAMP_TZ_EX:
+                case SQL_TIME_TZ:
+                case SQL_TIME_TZ_EX:
+                {
+                    char     *format = NULL, buf[128];
+                    struct tm times;
+                    long int  fpsec = 0;
+                    ISC_SHORT offset_minutes = 0;
+
+                    Zero(&times, 1, struct tm);
+
+                    switch (dtype)
+                    {
+                        case SQL_TIMESTAMP_TZ_EX:
+                        {
+                            ISC_TIMESTAMP_TZ_EX *ts = (ISC_TIMESTAMP_TZ_EX *) var->sqldata;
+                            isc_decode_timestamp(&ts->utc_timestamp, &times);
+                            fpsec = ts->utc_timestamp.timestamp_time % ISC_TIME_SECONDS_PRECISION;
+                            offset_minutes = ts->ext_offset;
+                            break;
+                        }
+                        case SQL_TIMESTAMP_TZ:
+                        {
+                            ISC_TIMESTAMP_TZ *ts = (ISC_TIMESTAMP_TZ *) var->sqldata;
+                            isc_decode_timestamp(&ts->utc_timestamp, &times);
+                            fpsec = ts->utc_timestamp.timestamp_time % ISC_TIME_SECONDS_PRECISION;
+                            if (ts->time_zone == FB_TZ_GMT_ZONE)
+                                offset_minutes = 0;
+                            else if (ts->time_zone <= FB_TZ_MAX_OFFSET_ZONE)
+                                offset_minutes = (ISC_SHORT)((int)ts->time_zone - FB_TZ_ONE_DAY_OFFSET);
+                            /* else named zone: use UTC (offset_minutes stays 0) */
+                            break;
+                        }
+                        case SQL_TIME_TZ_EX:
+                        {
+                            ISC_TIME_TZ_EX *t = (ISC_TIME_TZ_EX *) var->sqldata;
+                            isc_decode_sql_time(&t->utc_time, &times);
+                            fpsec = t->utc_time % ISC_TIME_SECONDS_PRECISION;
+                            offset_minutes = t->ext_offset;
+                            break;
+                        }
+                        case SQL_TIME_TZ:
+                        {
+                            ISC_TIME_TZ *t = (ISC_TIME_TZ *) var->sqldata;
+                            isc_decode_sql_time(&t->utc_time, &times);
+                            fpsec = t->utc_time % ISC_TIME_SECONDS_PRECISION;
+                            if (t->time_zone == FB_TZ_GMT_ZONE)
+                                offset_minutes = 0;
+                            else if (t->time_zone <= FB_TZ_MAX_OFFSET_ZONE)
+                                offset_minutes = (ISC_SHORT)((int)t->time_zone - FB_TZ_ONE_DAY_OFFSET);
+                            /* else named zone: use UTC (offset_minutes stays 0) */
+                            break;
+                        }
+                    }
+
+                    /* Apply timezone offset: convert UTC to local time.
+                     * Handle day boundary crossings by normalizing tm_mday,
+                     * tm_mon, and tm_year to account for month/year rollover. */
+                    {
+#define FB_TZ_IS_LEAP_YEAR(y) (((y)%4==0 && (y)%100!=0) || (y)%400==0)
+#define FB_TZ_DAYS_IN_MONTH(m, y) \
+    ((m)==1 ? (FB_TZ_IS_LEAP_YEAR(y) ? 29 : 28) : \
+    ((m)<7) ? (((m)%2==0) ? 31 : 30) : (((m)%2==0) ? 30 : 31))
+
+                        int total_min = times.tm_hour * 60 + times.tm_min + (int)offset_minutes;
+                        if (total_min < 0) {
+                            total_min += 24 * 60;
+                            times.tm_mday -= 1;
+                            if (times.tm_mday < 1) {
+                                times.tm_mon -= 1;
+                                if (times.tm_mon < 0) {
+                                    times.tm_mon = 11;
+                                    times.tm_year -= 1;
+                                }
+                                times.tm_mday = FB_TZ_DAYS_IN_MONTH(
+                                    times.tm_mon, times.tm_year + 1900);
+                            }
+                        } else if (total_min >= 24 * 60) {
+                            total_min -= 24 * 60;
+                            times.tm_mday += 1;
+                            if (times.tm_mday >
+                                FB_TZ_DAYS_IN_MONTH(times.tm_mon, times.tm_year + 1900))
+                            {
+                                times.tm_mday = 1;
+                                times.tm_mon += 1;
+                                if (times.tm_mon > 11) {
+                                    times.tm_mon = 0;
+                                    times.tm_year += 1;
+                                }
+                            }
+                        }
+                        times.tm_hour = total_min / 60;
+                        times.tm_min  = total_min % 60;
+#undef FB_TZ_IS_LEAP_YEAR
+#undef FB_TZ_DAYS_IN_MONTH
+                    }
+
+                    /* Determine format string */
+                    if (dtype == SQL_TIMESTAMP_TZ || dtype == SQL_TIMESTAMP_TZ_EX)
+                        format = imp_sth->timestampformat ?
+                            imp_sth->timestampformat : imp_dbh->timestampformat;
+                    else
+                        format = imp_sth->timeformat ?
+                            imp_sth->timeformat : imp_dbh->timeformat;
+
+                    DBI_TRACE_imp_xxh(imp_sth, 3, (DBIc_LOGPIO(imp_sth),
+                        "Decode TZ type passed, offset=%d minutes.\n", (int)offset_minutes));
+
+                    /* ISO format: YYYY-MM-DD HH:MM:SS.NNNN +HH:MM */
+                    if (!format || strEQ(format, "iso") || strEQ(format, "ISO"))
+                    {
+                        int abs_off = offset_minutes < 0 ? -offset_minutes : offset_minutes;
+                        char tz_str[10];
+                        snprintf(tz_str, sizeof(tz_str), " %c%02d:%02d",
+                                 offset_minutes < 0 ? '-' : '+',
+                                 abs_off / 60, abs_off % 60);
+
+                        if (dtype == SQL_TIMESTAMP_TZ || dtype == SQL_TIMESTAMP_TZ_EX)
+                            snprintf(buf, sizeof(buf),
+                                     "%04d-%02d-%02d %02d:%02d:%02d.%04ld%s",
+                                     times.tm_year + 1900, times.tm_mon + 1,
+                                     times.tm_mday, times.tm_hour, times.tm_min,
+                                     times.tm_sec, fpsec, tz_str);
+                        else
+                            snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%04ld%s",
+                                     times.tm_hour, times.tm_min, times.tm_sec,
+                                     fpsec, tz_str);
+
+                        sv_setpvn(sv, buf, strlen(buf));
+                        break;
+                    }
+
+                    /* TM format: return as reference to array (like localtime()),
+                     * with two extra elements: fractional seconds and offset minutes */
+                    if (strEQ(format, "tm") || strEQ(format, "TM"))
+                    {
+                        AV *list = newAV();
+                        av_push(list, newSViv(times.tm_sec));
+                        av_push(list, newSViv(times.tm_min));
+                        av_push(list, newSViv(times.tm_hour));
+                        av_push(list, newSViv(times.tm_mday));
+                        av_push(list, newSViv(times.tm_mon));
+                        av_push(list, newSViv(times.tm_year));
+                        av_push(list, newSViv(times.tm_wday));
+                        av_push(list, newSViv(times.tm_yday));
+                        av_push(list, newSViv(times.tm_isdst));
+                        av_push(list, newSViv(fpsec));
+                        av_push(list, newSViv((IV)offset_minutes));
+                        sv_setsv(sv, sv_2mortal(newRV_noinc((SV *) list)));
+                        break;
+                    }
+
+                    /* strftime() format - no timezone info in output */
+                    strftime(buf, sizeof(buf), format, &times);
+                    sv_setpvn(sv, buf, strlen(buf));
+                    break;
+                }
+
                 case SQL_BLOB:
                 {
                     isc_blob_handle blob_handle = 0;
@@ -2737,6 +2920,60 @@ static int ib_fill_isqlda(SV *sth, imp_sth_t *imp_sth, SV *param, SV *value,
                         break;
                     }
                 }
+            }
+            break;
+
+
+        /**********************************************************************/
+        /*
+         * Firebird 4.0+: TIMESTAMP WITH TIME ZONE and TIME WITH TIME ZONE
+         *
+         * Binding is done by converting the column type to SQL_TEXT and
+         * letting Firebird's server-side parser interpret the string literal.
+         * Accepted string formats (examples):
+         *   TIMESTAMP: '2020-02-03 20:00:00.0000 America/New_York'
+         *              '2020-02-03 20:00:00.0000 -05:00'
+         *   TIME:      '20:00:00.0000 America/New_York'
+         *              '20:00:00.0000 -05:00'
+         */
+        case SQL_TIMESTAMP_TZ:
+        case SQL_TIMESTAMP_TZ_EX:
+        case SQL_TIME_TZ:
+        case SQL_TIME_TZ_EX:
+            DBI_TRACE_imp_xxh(imp_sth, 1, (DBIc_LOGPIO(imp_sth),
+                "ib_fill_isqlda: SQL_TIMESTAMP_TZ/SQL_TIME_TZ\n"));
+
+            if (SvPOK(value) || SvTYPE(value) == SVt_PVMG)
+            {
+                /*
+                 * Coerce to CHAR string, letting Firebird parse the
+                 * timezone literal (e.g. "2020-02-03 20:00:00 -05:00").
+                 */
+                char *datestring = SvPV(value, len);
+
+                ivar->sqltype = SQL_TEXT | (ivar->sqltype & 1);
+
+                /* prevent overflow: TZ strings can be longer than plain timestamps */
+                if (len > MAX_DATETIME_CHAR_LEN) {
+                    do_error(sth, 2, "TIMESTAMP/TIME WITH TIME ZONE input too long\n");
+                    retval = FALSE;
+                    break;
+                }
+
+                ivar->sqlsubtype = 0x77; /* workaround for date problem (bug #429820) */
+                ivar->sqllen = len;
+                if (!(ivar->sqldata))
+                    Newx(ivar->sqldata, MAX_DATETIME_CHAR_LEN + 1, ISC_SCHAR);
+                Copy(datestring, ivar->sqldata, len, ISC_SCHAR);
+                ivar->sqldata[len] = '\0';
+            }
+            else
+            {
+                do_error(sth, 2,
+                    "TIMESTAMP/TIME WITH TIME ZONE binding requires a string value "
+                    "(e.g. '2020-02-03 20:00:00.0000 -05:00' or "
+                    "'2020-02-03 20:00:00.0000 America/New_York')");
+                retval = FALSE;
             }
             break;
 
