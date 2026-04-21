@@ -39,6 +39,7 @@ my @items = qw/
         ods_version
         page_size
         version
+        firebird_version
         db_sql_dialect
         current_memory
         forced_writes
