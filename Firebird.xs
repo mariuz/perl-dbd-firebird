@@ -923,6 +923,9 @@ ib_database_info(dbh, ...)
         DB_INFOBUF(ods_version,       1);
         DB_INFOBUF(page_size,         4);
         DB_INFOBUF(version,         257);
+#ifdef isc_info_firebird_version
+		DB_INFOBUF(firebird_version,257);
+#endif
         DB_INFOBUF(db_sql_dialect,    1);
 
         /* environmental characteristics */
@@ -1060,6 +1063,16 @@ ib_database_info(dbh, ...)
                          newSVpvn(++p, slen), 0);
                 break;
             }
+#ifdef isc_info_firebird_version
+            DB_RESBUF_CASEHDR(firebird_version)
+            {
+                ISC_LONG slen;
+                slen = isc_vax_integer(++p, 1);
+                (void)hv_store(RETVAL, keyname, strlen(keyname),
+                         newSVpvn(++p, slen), 0);
+                break;
+            }
+#endif
 #ifdef isc_dpb_sql_dialect
             DB_RESBUF_CASEHDR(db_sql_dialect)
                 (void)hv_store(RETVAL, keyname, strlen(keyname),
