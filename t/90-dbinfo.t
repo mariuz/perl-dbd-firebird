@@ -57,6 +57,7 @@ my @items = qw/
 
 my $info = $dbh1->func(@items, 'ib_database_info');
 ok($info);
+note(explain($info));
 
 SKIP: {
     my $k = 'active_tran_count';
