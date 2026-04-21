@@ -1006,7 +1006,7 @@ ib_database_info(dbh, ...)
                 p += slen;
 
                 slen = isc_vax_integer(p++, 1);
-                (void)hv_store(reshv, "site", 8, newSVpvn(p, slen), 0);
+                (void)hv_store(reshv, "site", 4, newSVpvn(p, slen), 0);
 
                 (void)hv_store(RETVAL, keyname, strlen(keyname),
                          newRV_noinc((SV *) reshv), 0);
