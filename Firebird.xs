@@ -924,7 +924,7 @@ ib_database_info(dbh, ...)
         DB_INFOBUF(page_size,         4);
         DB_INFOBUF(version,         257);
 #ifdef isc_info_firebird_version
-		DB_INFOBUF(firebird_version,257);
+        DB_INFOBUF(firebird_version,257);
 #endif
         DB_INFOBUF(db_sql_dialect,    1);
 
