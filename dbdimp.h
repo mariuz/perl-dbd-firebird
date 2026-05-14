@@ -86,6 +86,56 @@ static const int DBI_SQL_BOOLEAN    = SQL_BOOLEAN;
 typedef void (*ISC_EVENT_CALLBACK)();
 #endif
 
+/*
+ * Firebird 4.0+ TIME/TIMESTAMP WITH TIME ZONE support.
+ * SQL type constants and C structs are defined in Firebird 4.0+ headers.
+ * For older Firebird client libraries, we define them ourselves so the
+ * code compiles and is ready when connecting to a Firebird 4+ server
+ * through an upgraded client.
+ *
+ * Timezone ID encoding (from Firebird source TimeZoneUtil.cpp):
+ *   ONE_DAY_OFFSET = 24 * 60 - 1 = 1439
+ *   Offset zones:  time_zone <= ONE_DAY_OFFSET * 2 (i.e., <= 2878)
+ *                  displacement_minutes = time_zone - ONE_DAY_OFFSET
+ *   Named zones:   time_zone > 2878 (region-based, requires ICU timezone DB)
+ *   GMT_ZONE:      time_zone = 65535 (UTC, displacement = 0)
+ */
+#ifndef SQL_TIMESTAMP_TZ
+#  define SQL_TIMESTAMP_TZ_EX  32748
+#  define SQL_TIME_TZ_EX       32750
+#  define SQL_TIMESTAMP_TZ     32754
+#  define SQL_TIME_TZ          32756
+
+/* Structs for TIME/TIMESTAMP WITH TIME ZONE (Firebird 4.0+) */
+typedef struct {
+    ISC_TIME   utc_time;
+    ISC_USHORT time_zone;
+} ISC_TIME_TZ;
+
+typedef struct {
+    ISC_TIME   utc_time;
+    ISC_USHORT time_zone;
+    ISC_SHORT  ext_offset;
+} ISC_TIME_TZ_EX;
+
+typedef struct {
+    ISC_TIMESTAMP utc_timestamp;
+    ISC_USHORT    time_zone;
+} ISC_TIMESTAMP_TZ;
+
+typedef struct {
+    ISC_TIMESTAMP utc_timestamp;
+    ISC_USHORT    time_zone;
+    ISC_SHORT     ext_offset;
+} ISC_TIMESTAMP_TZ_EX;
+
+#endif /* SQL_TIMESTAMP_TZ */
+
+/* Timezone decoding constants (from Firebird TimeZoneUtil.cpp) */
+#define FB_TZ_ONE_DAY_OFFSET  1439  /* 24*60 - 1, base for offset zone IDs */
+#define FB_TZ_GMT_ZONE        65535 /* ISC_USHORT max = UTC */
+#define FB_TZ_MAX_OFFSET_ZONE 2878  /* ONE_DAY_OFFSET * 2 */
+
 #ifndef SQLDA_CURRENT_VERSION
 #  define SQLDA_OK_VERSION SQLDA_VERSION1
 #else
@@ -94,6 +144,12 @@ typedef void (*ISC_EVENT_CALLBACK)();
 
 #define IB_ALLOC_FAIL   2
 #define IB_FETCH_ERROR  1
+
+/* Maximum length for date/time/timestamp string literals passed as bind parameters.
+ * Must be at least 32 to accommodate "YYYY-MM-DD HH:MM:SS.NNNN +HH:MM" (32 chars)
+ * plus a NUL terminator in a 101-byte buffer.
+ */
+#define MAX_DATETIME_CHAR_LEN 100
 
 #ifndef ISC_STATUS_LENGTH
 #  define ISC_STATUS_LENGTH 20
@@ -171,6 +227,11 @@ do {                                        \
    (long)((*(ISC_TIME *)value) % ISC_TIME_SECONDS_PRECISION)
 #  define TIME_ADD_FPSECS(value, inc) \
    (*(ISC_TIME *)value) += (inc % ISC_TIME_SECONDS_PRECISION)
+
+#  define TIMESTAMP_TZ_FPSECS(value) \
+   (long)(((ISC_TIMESTAMP_TZ *)value)->utc_timestamp.timestamp_time % ISC_TIME_SECONDS_PRECISION)
+#  define TIME_TZ_FPSECS(value) \
+   (long)(((ISC_TIME_TZ *)value)->utc_time % ISC_TIME_SECONDS_PRECISION)
 
 
 #ifndef NO_TRACE_MSGS
